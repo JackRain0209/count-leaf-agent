@@ -1,0 +1,17 @@
+__pycache__/
+*.pyc
+.env
+venv/
+uploads/*
+!uploads/.gitkeep
+results/*
+!results/.gitkeep
+.DS_Store
+benchmark_cache/
+benchmark_log.txt
+benchmark_results.csv
+benchmark_skipped.csv
+benchmark_summary.txt
+server.log
+online_uploads/
+*.zip
