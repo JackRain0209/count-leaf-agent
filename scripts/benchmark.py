@@ -34,7 +34,7 @@ import glob as _glob
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from app.pipeline.vlm_counter import vlm_label_plants
-from app.pipeline.pod_counter import count_pods_on_branch
+from app.pipeline.pod_counter_graph import count_pods_on_branch
 
 # ---------------------------------------------------------------------------
 # Paths
@@ -187,8 +187,8 @@ def run_cv_phase(cache_dir: Path):
         pid = p.get("id")
         label = p.get("label", "")
         if label == "主干":
-            # 主干 = 主花序, also count pods
-            pass
+            results.append((pid, label, 0))
+            continue
         crop_fname = crop_files.get(str(pid))
         if not crop_fname:
             results.append((pid, label, 0))
@@ -302,14 +302,15 @@ def main():
             continue
 
         # Aggregate
-        # 主花序角果 = 主干 + 主枝 (VLM labels), 分枝角果 = 分枝 only
-        main_pods = 0      # 主干 + 主枝 → F列 主花序角果数
+        # 主花序角果 = 主枝 only (VLM label), 分枝角果 = 分枝 only, 主干不计角果
+        main_pods = 0      # 主枝 → F列 主花序角果数
         branch_pods = 0    # 分枝 → G列 分枝角果数
         for pid, label, count in plant_results:
-            if label in ("主干", "主枝"):
+            if label == "主枝":
                 main_pods += count
-            else:
+            elif label == "分枝":
                 branch_pods += count
+            # 主干: skip, no pods
         total_pods = main_pods + branch_pods
 
         # Ground truth

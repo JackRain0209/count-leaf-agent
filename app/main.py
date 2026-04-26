@@ -56,6 +56,9 @@ def list_online_images():
 async def analyze_online(payload: dict):
     """Analyze an image that already exists under online_uploads. payload: {"path": "relative/path.jpg"}"""
     rel = (payload or {}).get("path", "")
+    method = (payload or {}).get("method", "skeleton")
+    if method not in ("skeleton", "graph"):
+        method = "skeleton"
     if not rel:
         raise HTTPException(400, "Missing 'path'")
     target = (ONLINE_UPLOAD_DIR / rel).resolve()
@@ -69,7 +72,7 @@ async def analyze_online(payload: dict):
 
     def _stream():
         try:
-            for event in analyze_plant_image_stream(str(target)):
+            for event in analyze_plant_image_stream(str(target), method=method):
                 yield f"data: {_json.dumps(event, ensure_ascii=False)}\n\n"
         except Exception as e:
             import traceback
@@ -85,7 +88,7 @@ def health():
 
 
 @app.post("/api/analyze")
-async def analyze(file: UploadFile = File(...)):
+async def analyze(file: UploadFile = File(...), method: str = "skeleton"):
     """
     Upload a plant image → SSE stream of pipeline steps.
     Each line: data: {"type":"step"|"result"|"error", ...}
@@ -102,7 +105,7 @@ async def analyze(file: UploadFile = File(...)):
 
     def _stream():
         try:
-            for event in analyze_plant_image_stream(str(save_path)):
+            for event in analyze_plant_image_stream(str(save_path), method=method):
                 yield f"data: {_json.dumps(event, ensure_ascii=False)}\n\n"
         except Exception as e:
             import traceback

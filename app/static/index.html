@@ -219,15 +219,16 @@
             <input type="file" id="fileInput" accept=".jpg,.jpeg,.png,.bmp,.tiff">
         </div>
 
-        <div style="margin-bottom: 24px; text-align: center;">
-            <button id="openDbBtn" class="btn-primary">📂 在线数据库</button>
+        <div style="margin-bottom: 24px; text-align: center; display: flex; gap: 12px; justify-content: center;">
+            <button id="openDbSkeletonBtn" class="btn-primary" style="background: #38bdf8;">🦴 骨架分析</button>
+            <button id="openDbGraphBtn" class="btn-primary" style="background: #a78bfa;">� 图论分析</button>
         </div>
 
         <div class="modal" id="dbModal">
             <div class="modal-backdrop" data-close></div>
             <div class="modal-panel">
                 <div class="modal-header">
-                    <h3>📂 在线数据库 — 选择一张图片进行分析</h3>
+                    <h3 id="dbModalTitle">📂 在线数据库 — 选择一张图片进行分析</h3>
                     <button class="modal-close" data-close>×</button>
                 </div>
                 <div class="modal-toolbar">
@@ -430,6 +431,7 @@
             const form = new FormData();
             form.append('file', file);
             try {
+                form.append('method', currentMethod);
                 const res = await fetch('/api/analyze', { method: 'POST', body: form });
                 if (!res.ok) throw new Error(await res.text());
                 loading.classList.add('hidden');
@@ -449,7 +451,7 @@
                 const res = await fetch('/api/analyze_online', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ path: relPath }),
+                    body: JSON.stringify({ path: relPath, method: currentMethod }),
                 });
                 if (!res.ok) throw new Error(await res.text());
                 loading.classList.add('hidden');
@@ -474,7 +476,9 @@
         let dbItems = [];
         let dbSelectedPath = null;
 
-        document.getElementById('openDbBtn').addEventListener('click', openDbModal);
+        let currentMethod = 'skeleton';
+        document.getElementById('openDbSkeletonBtn').addEventListener('click', () => { currentMethod = 'skeleton'; openDbModal(); });
+        document.getElementById('openDbGraphBtn').addEventListener('click', () => { currentMethod = 'graph'; openDbModal(); });
         dbModal.querySelectorAll('[data-close]').forEach(el =>
             el.addEventListener('click', () => dbModal.classList.remove('active'))
         );
@@ -493,6 +497,9 @@
             dbSelected.textContent = '未选择';
             dbSubmitBtn.disabled = true;
             dbPreview.innerHTML = '<div class="placeholder">← 从左侧选择一张图片查看预览</div>';
+            const mLabel = currentMethod === 'graph' ? '🔗 图论分析' : '🦴 骨架分析';
+            document.getElementById('dbModalTitle').textContent = `📂 在线数据库 — ${mLabel}`;
+            dbSubmitBtn.textContent = `提交${currentMethod === 'graph' ? '图论' : '骨架'}分析`;
             try {
                 const res = await fetch('/api/online_images');
                 const data = await res.json();

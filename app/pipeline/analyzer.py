@@ -12,11 +12,12 @@ import time
 import json
 
 from .vlm_counter import vlm_label_plants
-from .pod_counter import count_pods_on_branch
+from .pod_counter import count_pods_on_branch as _skeleton_counter
+from .pod_counter_graph import count_pods_on_branch as _graph_counter
 from app.config import RESULT_DIR
 
 
-def analyze_plant_image_stream(image_path: str):
+def analyze_plant_image_stream(image_path: str, method: str = "skeleton"):
     """
     Generator that yields each pipeline step as it completes.
     Yields: dict with "type" = "step" | "result"
@@ -70,8 +71,9 @@ def analyze_plant_image_stream(image_path: str):
         label = p.get("label", "")
         if label == "主干" or pid not in crops:
             continue
-        print(f"[Pipeline] Counting pods on #{pid} {label}...")
-        pod_result = count_pods_on_branch(
+        _counter = _graph_counter if method == "graph" else _skeleton_counter
+        print(f"[Pipeline] Counting pods on #{pid} {label} (method={method})...")
+        pod_result = _counter(
             crops[pid],
             stem_start_local=p.get("stem_start_local"),
             stem_end_local=p.get("stem_end_local"),

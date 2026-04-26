@@ -17,12 +17,16 @@ from numba import njit
 
 
 def _binarize(crop_bgr: np.ndarray) -> np.ndarray:
-    """Gaussian blur + Otsu + CLOSE (no OPEN, to preserve thin stems)."""
+    """Gaussian blur + Otsu + CLOSE + DILATE/ERODE to bridge broken thin stems."""
     gray = cv2.cvtColor(crop_bgr, cv2.COLOR_BGR2GRAY)
     blurred = cv2.GaussianBlur(gray, (5, 5), 0)
     _, mask = cv2.threshold(blurred, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
-    k = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (3, 3))
-    mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, k, iterations=2)
+    k_close = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (3, 3))
+    mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, k_close, iterations=2)
+    # Bridge small gaps at branch roots: dilate then erode (= CLOSE with larger kernel)
+    k_bridge = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (5, 5))
+    mask = cv2.dilate(mask, k_bridge, iterations=1)
+    mask = cv2.erode(mask, k_bridge, iterations=1)
     return mask
 
 
@@ -462,199 +466,209 @@ def count_pods_on_branch(
         if non_main_nbs >= 3:
             junctions.add(p)
 
-    # 6. Find ALL side-branch segments along the main stem
-    #    At junctions: continue in the most-aligned direction (no sharp U-turns),
-    #    instead of stopping.  Junction pixels are NOT globally locked, so
-    #    multiple branches can pass through the same crossing from different angles.
-    branch_comps = []  # list of (comp_pixels, attach_point)
-    visited_branches = set()   # non-junction pixels claimed by a branch
+    # 6. Curvature-aware branch traversal from main stem.
+    #    From each attachment point, walk outward following smooth curvature.
+    #    At junctions, pick the candidate with smallest angle difference to
+    #    the incoming direction. All walked pixels are globally marked to
+    #    prevent loops. No junction count limit.
+    non_main_set = skel_set - main_set
+    dist = cv2.distanceTransform(mask, cv2.DIST_L2, 3)
+    DIR_WINDOW = 8        # pixels to look back for direction estimation
+    ANGLE_THRESH = 60.0   # max deflection (degrees) to count as "smooth"
 
-    for idx, p in enumerate(main_path):
-        for nb in _neighbors(p, skel_set):
-            if nb not in main_set and nb not in visited_branches:
-                comp = []
-                comp_set = set()
-                # Queue entries: (pixel, came_from) — came_from used for heading
-                queue = deque([(nb, p)])
-                while queue:
-                    sp, came_from = queue.popleft()
-                    # Non-junction pixels are exclusive; junction pixels can be shared
-                    if sp not in junctions and sp in visited_branches:
+    # 6a. Find attachment points: non-main pixels adjacent to main stem
+    attach_points = []
+    for p in non_main_set:
+        if any(nb in main_set for nb in _neighbors(p, skel_set)):
+            attach_points.append(p)
+
+    # Cluster nearby attachment points (within 10px)
+    def _cluster_points(pts, radius=10):
+        if not pts:
+            return []
+        used = set()
+        clusters = []
+        for i, p in enumerate(pts):
+            if i in used:
+                continue
+            group = [p]
+            used.add(i)
+            for j, q in enumerate(pts):
+                if j in used:
+                    continue
+                if abs(p[0]-q[0]) + abs(p[1]-q[1]) <= radius:
+                    group.append(q)
+                    used.add(j)
+            clusters.append(group)
+        return clusters
+
+    attach_clusters = _cluster_points(attach_points, radius=10)
+
+    def _direction_vector(path_segment):
+        """Compute direction vector from a path segment (list of (r,c)).
+        Returns (dr, dc) normalized, or None if too short."""
+        if len(path_segment) < 2:
+            return None
+        r0, c0 = path_segment[0]
+        r1, c1 = path_segment[-1]
+        dr, dc = float(r1 - r0), float(c1 - c0)
+        mag = (dr*dr + dc*dc) ** 0.5
+        if mag < 1e-6:
+            return None
+        return (dr / mag, dc / mag)
+
+    def _angle_between(d1, d2):
+        """Angle in degrees between two direction vectors."""
+        if d1 is None or d2 is None:
+            return 180.0  # unknown → treat as sharp turn
+        dot = d1[0]*d2[0] + d1[1]*d2[1]
+        dot = max(-1.0, min(1.0, dot))
+        return np.degrees(np.arccos(dot))
+
+    # 6b. Curvature-aware walk from each attachment cluster
+    #     Global visited prevents any walk from entering pixels already
+    #     claimed by a previous walk → no loops, no double-counting.
+    global_visited = set(main_set)  # main stem is off-limits
+    branch_data = []  # (tip, path_pixels, attach_pt, area, avg_w)
+
+    for cluster in attach_clusters:
+        attach_set = set(cluster)
+        # Representative attachment point
+        ap_r = sum(p[0] for p in cluster) // len(cluster)
+        ap_c = sum(p[1] for p in cluster) // len(cluster)
+        attach_pt = (ap_r, ap_c)
+
+        # Find initial outward neighbors from cluster (non-main, non-cluster)
+        start_pixels = []
+        for ap in cluster:
+            for nb in _neighbors(ap, skel_set):
+                if nb in non_main_set and nb not in attach_set and nb not in global_visited:
+                    start_pixels.append((nb, ap))
+
+        # For each outward start, do curvature-aware walk
+        for start_px, from_px in start_pixels:
+            if start_px in global_visited:
+                continue  # another walk from this cluster already claimed it
+
+            path = [from_px, start_px]
+            path_set = {from_px, start_px}
+            cur = start_px
+
+            while True:
+                # Candidates: non-main neighbors not on this path, not globally visited
+                candidates = [nb for nb in _neighbors(cur, skel_set)
+                              if nb in non_main_set
+                              and nb not in path_set
+                              and nb not in global_visited
+                              and nb not in attach_set]
+
+                if not candidates:
+                    break  # dead end (tip)
+
+                if len(candidates) == 1:
+                    nxt = candidates[0]
+                    path.append(nxt)
+                    path_set.add(nxt)
+                    cur = nxt
+                    continue
+
+                # Junction: pick candidate with smallest angle diff to incoming dir
+                window = path[-min(DIR_WINDOW, len(path)):]
+                in_dir = _direction_vector(window)
+
+                best_nb = None
+                best_angle = 999.0
+                for nb in candidates:
+                    out_dir = (float(nb[0] - cur[0]), float(nb[1] - cur[1]))
+                    mag = (out_dir[0]**2 + out_dir[1]**2) ** 0.5
+                    if mag > 0:
+                        out_dir = (out_dir[0]/mag, out_dir[1]/mag)
+                    else:
                         continue
-                    if sp in junctions:
-                        if sp in comp_set:
-                            continue
-                    else:
-                        visited_branches.add(sp)
-                    comp.append(sp)
-                    comp_set.add(sp)
+                    angle = _angle_between(in_dir, out_dir)
+                    if angle < best_angle:
+                        best_angle = angle
+                        best_nb = nb
 
-                    if sp in junctions:
-                        # Direction-guided: pick the neighbor most aligned with heading
-                        dr = sp[0] - came_from[0]
-                        dc = sp[1] - came_from[1]
-                        h_len = (dr * dr + dc * dc) ** 0.5
-                        if h_len > 0:
-                            best_nb = None
-                            best_cos = -2.0
-                            for n2 in _neighbors(sp, skel_set):
-                                if n2 in main_set:
-                                    continue
-                                if n2 not in junctions and n2 in visited_branches:
-                                    continue
-                                if n2 in comp_set:
-                                    continue
-                                n_dr = n2[0] - sp[0]
-                                n_dc = n2[1] - sp[1]
-                                n_len = (n_dr * n_dr + n_dc * n_dc) ** 0.5
-                                if n_len == 0:
-                                    continue
-                                cos_val = (dr * n_dr + dc * n_dc) / (h_len * n_len)
-                                if cos_val > best_cos:
-                                    best_cos = cos_val
-                                    best_nb = n2
-                            # Only continue if angle < 90° (cos > 0)
-                            if best_nb is not None and best_cos > 0:
-                                queue.append((best_nb, sp))
-                    else:
-                        # Normal pixel: expand all unvisited non-main neighbors
-                        for n2 in _neighbors(sp, skel_set):
-                            if n2 not in main_set and n2 not in visited_branches:
-                                queue.append((n2, sp))
-                if comp:
-                    branch_comps.append((comp, p))
+                if best_nb is None or best_angle > ANGLE_THRESH:
+                    break  # no smooth continuation
 
-    # 6. Filter stage A: remove tiny noise (size filter)
-    #    Keep branches that touch a junction (truncated by crossing → short but real)
-    MIN_SIDE_PIXELS = 3
-    threshold = MIN_SIDE_PIXELS
-    size_passed = []  # [(comp, attach_pt), ...]
-    size_rejected = []
-    for comp, attach_pt in branch_comps:
-        touches_junction = any(p in junctions for p in comp)
-        if touches_junction or len(comp) >= threshold:
-            size_passed.append((comp, attach_pt))
-        else:
-            size_rejected.append((comp, attach_pt))
+                path.append(best_nb)
+                path_set.add(best_nb)
+                cur = best_nb
 
-    # 6b. Filter stage B: width expansion (pedicel → silique morphology)
-    #     Real pod: narrow near the main stem, then clearly widens along path or at tip.
-    #     Dead twig/leaf residue: uniform thin width all the way.
-    EXPAND_RATIO = 1.6      # peak must be ≥ 1.6× base
-    EXPAND_ABS_PX = 2.0     # OR peak − base ≥ 2 px (for thin scales)
-    TAIL_SEARCH_RADIUS = 6  # px neighborhood around branch tail to capture
-                            # pod body that was cut off at junction
+            # Mark all pixels on this path as globally visited (prevent loops)
+            global_visited.update(path_set)
 
-    dist = cv2.distanceTransform(mask, cv2.DIST_L2, 3)  # half-width at each pixel
-    H_img, W_img = dist.shape
+            # Path must have at least a few pixels beyond attachment
+            if len(path) < 4:
+                continue
 
-    def _branch_widths(comp, attach_pt):
-        """Order comp via BFS from entry pixel (neighbor of attach in comp),
-        return (widths_along_path, tail_pixel) — widths are full widths (2*dist)."""
-        comp_set = set(comp)
-        # Entry pixel = comp member 8-adjacent to attach_pt (pick nearest)
-        entry = None
-        ar, ac = attach_pt
-        for dr in (-1, 0, 1):
-            for dc in (-1, 0, 1):
-                if dr == 0 and dc == 0: continue
-                if (ar + dr, ac + dc) in comp_set:
-                    entry = (ar + dr, ac + dc)
-                    break
-            if entry is not None: break
-        if entry is None:
-            # Fallback: pick any member
-            entry = next(iter(comp_set))
-        # BFS, tracking depth; tail = deepest pixel
-        depth = {entry: 0}
-        queue = deque([entry])
-        ordered = []
-        tail = entry
-        max_d = 0
-        while queue:
-            p = queue.popleft()
-            ordered.append(p)
-            if depth[p] > max_d:
-                max_d = depth[p]
-                tail = p
-            for nb in _neighbors(p, skel_set):
-                if nb in comp_set and nb not in depth:
-                    depth[nb] = depth[p] + 1
-                    queue.append(nb)
-        widths = [float(dist[r, c]) * 2.0 for (r, c) in ordered]
-        return widths, tail, ordered
+            branch_path = path[1:]  # skip from_px (attachment pixel)
+            tip = branch_path[-1]
 
-    def _tail_peak_width(tail):
-        """Scan mask in a small neighborhood around tail to catch pod body that was
-        truncated at a crossing junction."""
-        tr, tc = tail
-        r0, r1 = max(0, tr - TAIL_SEARCH_RADIUS), min(H_img, tr + TAIL_SEARCH_RADIUS + 1)
-        c0, c1 = max(0, tc - TAIL_SEARCH_RADIUS), min(W_img, tc + TAIL_SEARCH_RADIUS + 1)
-        patch = dist[r0:r1, c0:c1]
-        return float(patch.max()) * 2.0 if patch.size else 0.0
+            area = sum(float(dist[r, c]) * 2.0 for (r, c) in branch_path)
+            avg_w = area / len(branch_path) if branch_path else 0.0
+            branch_data.append((tip, branch_path, attach_pt, area, avg_w))
 
-    real_pods = []      # branches passing width filter → counted
-    width_rejected = [] # passed size but failed width → dead twig
-    branch_stats = []   # (attach_pt, w_base, w_peak, is_real, tail) for debug
+    tip_endpoints = [d[0] for d in branch_data]
 
-    for comp, attach_pt in size_passed:
-        touches_junction = any(p in junctions for p in comp)
+    # Filter: adaptive outlier removal on width and area.
+    WIDTH_RATIO = 0.6     # avg_w  < 60% of median → dead twig
+    AREA_RATIO = 0.25     # area   < 25% of median → dead twig
+    MIN_BRANCHES = 4      # need enough samples for meaningful median
+    real_pods = []
+    rejected = []
 
-        if touches_junction:
-            # Overlapping / incomplete branch — skip width filter, count directly
-            widths, tail, ordered = _branch_widths(comp, attach_pt)
-            w_base = float(np.median(widths[:max(3, len(widths))])) if widths else 0.0
-            w_peak = max(widths) if widths else 0.0
-            real_pods.append((comp, attach_pt))
-            branch_stats.append((attach_pt, w_base, w_peak, True, tail))
-            continue
+    if not branch_data:
+        pass
+    elif len(branch_data) < MIN_BRANCHES:
+        real_pods = list(branch_data)
+    else:
+        all_areas = np.array([d[3] for d in branch_data])
+        all_widths = np.array([d[4] for d in branch_data])
+        median_area = float(np.median(all_areas))
+        median_width = float(np.median(all_widths))
+        area_fence = median_area * AREA_RATIO
+        width_fence = median_width * WIDTH_RATIO
 
-        # Complete (non-overlapping) branch — apply width expansion filter
-        widths, tail, ordered = _branch_widths(comp, attach_pt)
-        if not widths:
-            width_rejected.append((comp, attach_pt))
-            branch_stats.append((attach_pt, 0.0, 0.0, False, tail))
-            continue
-        # Base = median of first 20% (or first min(3, N))
-        n_base = max(3, int(len(widths) * 0.2))
-        w_base = float(np.median(widths[:min(n_base, len(widths))]))
-        # Peak = max of (90th pct along path, tail neighborhood peak on mask)
-        w_peak_path = float(np.quantile(widths, 0.9))
-        w_peak_tail = _tail_peak_width(tail)
-        w_peak = max(w_peak_path, w_peak_tail)
-        # Decision
-        is_real = (w_peak >= w_base * EXPAND_RATIO) or (w_peak - w_base >= EXPAND_ABS_PX)
-        if is_real:
-            real_pods.append((comp, attach_pt))
-        else:
-            width_rejected.append((comp, attach_pt))
-        branch_stats.append((attach_pt, w_base, w_peak, is_real, tail))
+        for item in branch_data:
+            area = item[3]
+            avg_w = item[4]
+            if area >= area_fence and avg_w >= width_fence:
+                real_pods.append(item)
+            else:
+                rejected.append(item)
+        print(f"  [PodFilter] branches={len(branch_data)}, "
+              f"med_area={median_area:.0f} fence={area_fence:.0f}, "
+              f"med_w={median_width:.1f} fence={width_fence:.1f}, "
+              f"keep={len(real_pods)}, reject={len(rejected)}")
 
     pod_count = len(real_pods)
 
     # 7. Debug visualization
     debug = crop_bgr.copy()
-    # Layer 1: Main stem in orange (bottom layer)
+    h, w = debug.shape[:2]
+    # Layer 1: Main stem in orange
     for p in main_path:
         cv2.circle(debug, (p[1], p[0]), 2, (255, 128, 0), -1)
-    # Layer 2: Size-rejected branches (dark gray dots)
-    for comp, _ in size_rejected:
-        for p in comp:
-            cv2.circle(debug, (p[1], p[0]), 1, (80, 80, 80), -1)
-    # Layer 3: Width-rejected branches (枯枝) in purple
-    for comp, _ in width_rejected:
-        for p in comp:
+    # Layer 2: Non-main skeleton in dark gray (background)
+    for p in non_main_set:
+        cv2.circle(debug, (p[1], p[0]), 1, (80, 80, 80), -1)
+    # Layer 3: Rejected branch paths in purple
+    for tip, bp, ap, a, w_ in rejected:
+        for p in bp:
             cv2.circle(debug, (p[1], p[0]), 1, (200, 80, 200), -1)
-    # Layer 4: Counted pods in bright red
-    for comp, _ in real_pods:
-        for p in comp:
+        cv2.circle(debug, (tip[1], tip[0]), 4, (200, 80, 200), -1)
+    # Layer 4: Counted branch paths in red, tips in cyan
+    for i, (tip, bp, ap, a, w_) in enumerate(real_pods, 1):
+        for p in bp:
             cv2.circle(debug, (p[1], p[0]), 1, (0, 0, 255), -1)
-    # Layer 5: Labels for counted pods
-    for i, (comp, attach_pt) in enumerate(real_pods, 1):
-        cv2.circle(debug, (attach_pt[1], attach_pt[0]), 5, (255, 255, 255), -1)
-        cv2.putText(debug, str(i), (attach_pt[1] + 7, attach_pt[0] - 5),
-                    cv2.FONT_HERSHEY_SIMPLEX, 0.45, (255, 255, 255), 1)
-    # Stem endpoints in green circles
+        cv2.circle(debug, (tip[1], tip[0]), 5, (255, 255, 0), -1)   # cyan tip
+        cv2.circle(debug, (ap[1], ap[0]), 4, (255, 255, 255), -1)   # white attach
+        cv2.putText(debug, str(i), (tip[1] + 6, tip[0] - 4),
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.4, (255, 255, 0), 1)
+    # Stem endpoints
     for p in [start_pt, end_pt]:
         cv2.circle(debug, (p[1], p[0]), 6, (0, 255, 0), 2)
     # Count text
@@ -662,39 +676,42 @@ def count_pods_on_branch(
     cv2.putText(debug, f"Pods: {pod_count} ({stem_source})", (5, int(25 * fs) + 5),
                 cv2.FONT_HERSHEY_SIMPLEX, fs, (0, 255, 255), max(1, int(fs * 2)))
     cv2.putText(debug,
-                f"size_pass={len(size_passed)} width_kill={len(width_rejected)} "
+                f"tips={len(tip_endpoints)} reject={len(rejected)} "
                 f"junc={len(junctions)}",
                 (5, int(50 * fs) + 5),
                 cv2.FONT_HERSHEY_SIMPLEX, fs * 0.6, (180, 180, 180), 1)
 
-    # --- Step image A: width-filter visualization with per-branch stats ---
-    width_vis = crop_bgr.copy()
+    # --- Step image A: filter visualization ---
+    filter_vis = crop_bgr.copy()
     for p in main_path:
-        cv2.circle(width_vis, (p[1], p[0]), 2, (255, 128, 0), -1)
-    for (attach_pt, wb, wp, is_real, tail) in branch_stats:
-        color = (0, 0, 255) if is_real else (200, 80, 200)
-        cv2.circle(width_vis, (attach_pt[1], attach_pt[0]), 3, color, -1)
-        cv2.circle(width_vis, (tail[1], tail[0]), 3, (0, 255, 255), 1)
-        txt = f"{wb:.1f}->{wp:.1f}"
-        cv2.putText(width_vis, txt, (attach_pt[1] + 4, attach_pt[0] - 4),
-                    cv2.FONT_HERSHEY_SIMPLEX, 0.35, color, 1)
+        cv2.circle(filter_vis, (p[1], p[0]), 2, (255, 128, 0), -1)
+    for p in non_main_set:
+        cv2.circle(filter_vis, (p[1], p[0]), 1, (100, 100, 100), -1)
+    for tip, bp, ap, a, w_ in real_pods:
+        cv2.circle(filter_vis, (tip[1], tip[0]), 5, (0, 255, 0), -1)
+        txt = f"a={a:.0f} w={w_:.1f} l={len(bp)}"
+        cv2.putText(filter_vis, txt, (tip[1] + 6, tip[0] - 4),
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.3, (0, 255, 0), 1)
+    for tip, bp, ap, a, w_ in rejected:
+        cv2.circle(filter_vis, (tip[1], tip[0]), 4, (0, 0, 255), -1)
+        txt = f"a={a:.0f} w={w_:.1f} l={len(bp)}"
+        cv2.putText(filter_vis, txt, (tip[1] + 6, tip[0] - 4),
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.3, (0, 0, 255), 1)
     step_images.append((
-        width_vis,
-        f"宽度过滤：沿分支测量宽度（base→peak px），红=角果({len(real_pods)})，"
-        f"紫=枯枝被剔除({len(width_rejected)})，阈值 ratio≥{EXPAND_RATIO} 或 Δ≥{EXPAND_ABS_PX}px"
+        filter_vis,
+        f"自适应过滤：绿=角果({len(real_pods)})，红=枯枝({len(rejected)})"
     ))
 
     # --- Step image B: final result ---
-    step_images.append((debug.copy(), f"角果计数结果：{pod_count} 个（红=计入，紫=枯枝，灰=过短，橙=主干）"))
+    step_images.append((debug.copy(), f"角果计数结果：{pod_count} 个（青=计入尖端，紫=被过滤，橙=主干）"))
 
-    print(f"  [PodCounter:{stem_source}] stem={stem_len}px, branches={len(branch_comps)}, "
-          f"size_pass={len(size_passed)}, width_kill={len(width_rejected)}, "
-          f"pods={pod_count}")
+    print(f"  [PodCounter:{stem_source}] stem={stem_len}px, tips={len(tip_endpoints)}, "
+          f"reject={len(rejected)}, pods={pod_count}")
 
     return {
         "pod_count": pod_count,
         "main_stem_length": stem_len,
-        "fork_count": len(branch_comps),
+        "fork_count": len(tip_endpoints),
         "skeleton_pixels": len(skel_set),
         "stem_source": stem_source,
         "debug_image": debug,
