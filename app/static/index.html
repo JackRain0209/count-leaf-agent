@@ -206,6 +206,55 @@
             padding: 4px 10px; border-radius: 12px; font-size: 11px; font-weight: 600;
             background: rgba(56,189,248,0.15); color: #38bdf8;
         }
+
+        /* Batch test console */
+        .batch-bar {
+            display: flex; gap: 12px; align-items: center; justify-content: center;
+            margin-top: 12px; margin-bottom: 24px;
+        }
+        .btn-batch {
+            background: #f59e0b; color: #0f172a; border: 0;
+            padding: 10px 20px; font-size: 14px; font-weight: 600;
+            border-radius: 8px; cursor: pointer; transition: background 0.2s;
+        }
+        .btn-batch:hover:not(:disabled) { background: #d97706; }
+        .btn-batch:disabled { background: #334155; color: #64748b; cursor: not-allowed; }
+        .btn-stop {
+            background: #ef4444; color: #fff; border: 0;
+            padding: 10px 20px; font-size: 14px; font-weight: 600;
+            border-radius: 8px; cursor: pointer; transition: background 0.2s;
+            animation: pulse-stop 1.2s ease-in-out infinite;
+        }
+        .btn-stop:hover { background: #dc2626; }
+        @keyframes pulse-stop {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(239,68,68,0.4); }
+            50% { box-shadow: 0 0 0 8px rgba(239,68,68,0); }
+        }
+        .batch-console {
+            background: #0c0c0c; border: 1px solid #334155; border-radius: 12px;
+            margin-bottom: 32px; overflow: hidden;
+        }
+        .batch-console-header {
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 10px 16px; background: #1a1a2e; border-bottom: 1px solid #334155;
+        }
+        .batch-console-header h3 { font-size: 14px; color: #38bdf8; margin: 0; }
+        .batch-console-header .batch-status {
+            font-size: 12px; padding: 2px 10px; border-radius: 10px;
+        }
+        .batch-status-running { background: rgba(245,158,11,0.2); color: #f59e0b; }
+        .batch-status-done { background: rgba(34,197,94,0.2); color: #22c55e; }
+        .batch-status-stopped { background: rgba(239,68,68,0.2); color: #ef4444; }
+        .batch-log {
+            height: 400px; overflow-y: auto; padding: 12px 16px;
+            font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+            font-size: 12px; line-height: 1.6; color: #a0a0a0;
+            white-space: pre-wrap; word-break: break-all;
+        }
+        .batch-log .log-success { color: #22c55e; }
+        .batch-log .log-error { color: #ef4444; }
+        .batch-log .log-header { color: #38bdf8; font-weight: 600; }
+        .batch-log .log-info { color: #94a3b8; }
     </style>
 </head>
 <body>
@@ -219,9 +268,22 @@
             <input type="file" id="fileInput" accept=".jpg,.jpeg,.png,.bmp,.tiff">
         </div>
 
-        <div style="margin-bottom: 24px; text-align: center; display: flex; gap: 12px; justify-content: center;">
+        <div style="margin-bottom: 12px; text-align: center; display: flex; gap: 12px; justify-content: center;">
             <button id="openDbSkeletonBtn" class="btn-primary" style="background: #38bdf8;">🦴 骨架分析</button>
-            <button id="openDbGraphBtn" class="btn-primary" style="background: #a78bfa;">� 图论分析</button>
+            <button id="openDbGraphBtn" class="btn-primary" style="background: #a78bfa;">🔗 图论分析</button>
+            <button id="openDbPlantcvBtn" class="btn-primary" style="background: #4ade80;">🌿 PlantCV 分析</button>
+        </div>
+        <div class="batch-bar">
+            <button id="batchTestBtn" class="btn-batch">🧪 批量测试（图论）</button>
+            <button id="batchStopBtn" class="btn-stop hidden">⏹ 急停</button>
+        </div>
+
+        <div id="batchConsole" class="batch-console hidden">
+            <div class="batch-console-header">
+                <h3>📋 批量测试日志</h3>
+                <span id="batchStatus" class="batch-status batch-status-running">运行中</span>
+            </div>
+            <div id="batchLog" class="batch-log"></div>
         </div>
 
         <div class="modal" id="dbModal">
@@ -479,6 +541,7 @@
         let currentMethod = 'skeleton';
         document.getElementById('openDbSkeletonBtn').addEventListener('click', () => { currentMethod = 'skeleton'; openDbModal(); });
         document.getElementById('openDbGraphBtn').addEventListener('click', () => { currentMethod = 'graph'; openDbModal(); });
+        document.getElementById('openDbPlantcvBtn').addEventListener('click', () => { currentMethod = 'plantcv'; openDbModal(); });
         dbModal.querySelectorAll('[data-close]').forEach(el =>
             el.addEventListener('click', () => dbModal.classList.remove('active'))
         );
@@ -497,9 +560,10 @@
             dbSelected.textContent = '未选择';
             dbSubmitBtn.disabled = true;
             dbPreview.innerHTML = '<div class="placeholder">← 从左侧选择一张图片查看预览</div>';
-            const mLabel = currentMethod === 'graph' ? '🔗 图论分析' : '🦴 骨架分析';
+            const mLabel = currentMethod === 'graph' ? '🔗 图论分析' : currentMethod === 'plantcv' ? '🌿 PlantCV 分析' : '🦴 骨架分析';
             document.getElementById('dbModalTitle').textContent = `📂 在线数据库 — ${mLabel}`;
-            dbSubmitBtn.textContent = `提交${currentMethod === 'graph' ? '图论' : '骨架'}分析`;
+            const mShort = currentMethod === 'graph' ? '图论' : currentMethod === 'plantcv' ? 'PlantCV' : '骨架';
+            dbSubmitBtn.textContent = `提交${mShort}分析`;
             try {
                 const res = await fetch('/api/online_images');
                 const data = await res.json();
@@ -553,6 +617,92 @@
                 });
             });
         }
+        // ── 批量测试 ──
+        const batchTestBtn = document.getElementById('batchTestBtn');
+        const batchStopBtn = document.getElementById('batchStopBtn');
+        const batchConsole = document.getElementById('batchConsole');
+        const batchLog = document.getElementById('batchLog');
+        const batchStatus = document.getElementById('batchStatus');
+        let batchRunning = false;
+
+        function batchAppendLog(msg) {
+            let cls = '';
+            if (msg.includes('✅')) cls = 'log-success';
+            else if (msg.includes('❌') || msg.includes('⛔')) cls = 'log-error';
+            else if (msg.startsWith('===') || msg.startsWith('==')) cls = 'log-header';
+            else if (msg.startsWith('  [')) cls = 'log-info';
+            const span = document.createElement('span');
+            if (cls) span.className = cls;
+            span.textContent = msg + '\n';
+            batchLog.appendChild(span);
+            batchLog.scrollTop = batchLog.scrollHeight;
+        }
+
+        batchTestBtn.addEventListener('click', async () => {
+            if (batchRunning) return;
+            batchRunning = true;
+            batchTestBtn.disabled = true;
+            batchStopBtn.classList.remove('hidden');
+            batchConsole.classList.remove('hidden');
+            batchLog.innerHTML = '';
+            batchStatus.textContent = '运行中';
+            batchStatus.className = 'batch-status batch-status-running';
+
+            try {
+                const res = await fetch('/api/batch_test', { method: 'POST' });
+                if (!res.ok) {
+                    batchAppendLog('❌ 启动失败: ' + (await res.text()));
+                    return;
+                }
+                const reader = res.body.getReader();
+                const decoder = new TextDecoder();
+                let buffer = '';
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
+                    buffer += decoder.decode(value, { stream: true });
+                    const lines = buffer.split('\n');
+                    buffer = lines.pop();
+                    for (const line of lines) {
+                        if (!line.startsWith('data: ')) continue;
+                        const jsonStr = line.slice(6).trim();
+                        if (!jsonStr) continue;
+                        try {
+                            const evt = JSON.parse(jsonStr);
+                            if (evt.type === 'log') {
+                                batchAppendLog(evt.message);
+                            } else if (evt.type === 'batch_done') {
+                                batchStatus.textContent = '已完成';
+                                batchStatus.className = 'batch-status batch-status-done';
+                            }
+                        } catch (e) { /* skip */ }
+                    }
+                }
+            } catch (e) {
+                batchAppendLog('❌ 连接中断: ' + e.message);
+                batchStatus.textContent = '异常中断';
+                batchStatus.className = 'batch-status batch-status-stopped';
+            } finally {
+                batchRunning = false;
+                batchTestBtn.disabled = false;
+                batchStopBtn.classList.add('hidden');
+                if (batchStatus.textContent === '运行中') {
+                    batchStatus.textContent = '已停止';
+                    batchStatus.className = 'batch-status batch-status-stopped';
+                }
+            }
+        });
+
+        batchStopBtn.addEventListener('click', async () => {
+            batchAppendLog('\n⏹ 正在停止...');
+            batchStatus.textContent = '停止中...';
+            batchStatus.className = 'batch-status batch-status-stopped';
+            try {
+                await fetch('/api/batch_stop', { method: 'POST' });
+            } catch (e) {
+                batchAppendLog('急停请求失败: ' + e.message);
+            }
+        });
     </script>
 </body>
 </html>

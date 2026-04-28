@@ -317,7 +317,7 @@ def count_pods_on_branch(
     tip_endpoints = [d[0] for d in branch_data]
 
     # ── 6. Filter: adaptive outlier removal on width and area ──
-    WIDTH_RATIO = 0.6
+    WIDTH_RATIO = 0.55
     AREA_RATIO = 0.25
     MIN_BRANCHES = 4
     real_pods = []
@@ -415,6 +415,17 @@ def count_pods_on_branch(
           f"edges={len(edges)}, tips={len(tip_endpoints)}, "
           f"reject={len(rejected)}, pods={pod_count}")
 
+    # ── Standardized markers for downstream VLM verification ──
+    # Coordinates normalized to [0, 1] relative to working image dimensions
+    # to avoid mismatch when auto-upscale changes resolution.
+    markers = []
+    for i, (tip, bp, ap, a, w_) in enumerate(real_pods, 1):
+        markers.append({"id": i, "type": "pod",
+                        "x_norm": tip[1] / w, "y_norm": tip[0] / h})
+    for j, (tip, bp, ap, a, w_) in enumerate(rejected, len(real_pods) + 1):
+        markers.append({"id": j, "type": "filtered",
+                        "x_norm": tip[1] / w, "y_norm": tip[0] / h})
+
     return {
         "pod_count": pod_count,
         "main_stem_length": stem_len,
@@ -423,4 +434,5 @@ def count_pods_on_branch(
         "stem_source": stem_source,
         "debug_image": debug,
         "step_images": step_images,
+        "markers": markers,
     }

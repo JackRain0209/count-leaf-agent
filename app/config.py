@@ -9,9 +9,11 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 UPLOAD_DIR = BASE_DIR / "uploads"
 RESULT_DIR = BASE_DIR / "results"
 ONLINE_UPLOAD_DIR = BASE_DIR / "online_uploads"
+CACHE_DIR = BASE_DIR / "benchmark_cache"
 UPLOAD_DIR.mkdir(exist_ok=True)
 RESULT_DIR.mkdir(exist_ok=True)
 ONLINE_UPLOAD_DIR.mkdir(exist_ok=True)
+CACHE_DIR.mkdir(exist_ok=True)
 
 # Doubao VLM
 ARK_API_KEY = os.getenv("ARK_API_KEY", "")

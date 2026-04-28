@@ -34,7 +34,9 @@ import glob as _glob
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from app.pipeline.vlm_counter import vlm_label_plants
-from app.pipeline.pod_counter_graph import count_pods_on_branch
+from app.pipeline.pod_counter import count_pods_on_branch as _skeleton_counter
+from app.pipeline.pod_counter_graph import count_pods_on_branch as _graph_counter
+from app.pipeline.pod_counter_plantcv import count_pods_on_branch as _plantcv_counter
 
 # ---------------------------------------------------------------------------
 # Paths
@@ -168,8 +170,10 @@ def _clean_debug_images(cache_dir: Path):
         f.unlink()
 
 
-def run_cv_phase(cache_dir: Path):
+def run_cv_phase(cache_dir: Path, counter_fn=None):
     """Run pod_counter on cached crops. Returns per-plant pod counts."""
+    if counter_fn is None:
+        counter_fn = _graph_counter
     meta_path = cache_dir / "vlm_result.json"
     if not meta_path.exists():
         return None
@@ -203,7 +207,7 @@ def run_cv_phase(cache_dir: Path):
             results.append((pid, label, 0))
             continue
 
-        pod_result = count_pods_on_branch(
+        pod_result = counter_fn(
             crop_img,
             stem_start_local=p.get("stem_start_local"),
             stem_end_local=p.get("stem_end_local"),
@@ -223,12 +227,21 @@ def main():
     parser = argparse.ArgumentParser(description="Benchmark pod counting")
     parser.add_argument("--cv-only", action="store_true",
                         help="Skip VLM, reuse cached crops")
+    parser.add_argument("--method", choices=["skeleton", "graph", "plantcv"], default="graph",
+                        help="CV algorithm: skeleton, graph, or plantcv (default: graph)")
     parser.add_argument("--limit", type=int, default=0,
                         help="Process only first N images (0 = all)")
     args = parser.parse_args()
 
+    if args.method == "skeleton":
+        counter_fn = _skeleton_counter
+    elif args.method == "plantcv":
+        counter_fn = _plantcv_counter
+    else:
+        counter_fn = _graph_counter
+
     print("=" * 60)
-    print("  Pod Counting Benchmark")
+    print(f"  Pod Counting Benchmark (method={args.method})")
     print("=" * 60)
 
     # Load ground truth
@@ -294,7 +307,7 @@ def main():
 
         # Phase B: CV
         t0 = time.time()
-        plant_results = run_cv_phase(cache_dir)
+        plant_results = run_cv_phase(cache_dir, counter_fn=counter_fn)
         cv_time = time.time() - t0
 
         if plant_results is None:

@@ -1,0 +1,3121 @@
+============================================================
+  Pod Counting Benchmark
+============================================================
+Ground truth: 897 rows from Excel
+Processing: 900 images
+
+[1/900] N0.1.1.1
+  [PodGraph] branches=77, med_area=1003 fence=251, med_w=8.3 fence=5.0, keep=59, reject=18
+  [PodGraph:scored] stem=1359px, nodes=550, edges=666, tips=77, reject=18, pods=59
+  [PodGraph] branches=34, med_area=242 fence=60, med_w=6.9 fence=4.2, keep=26, reject=8
+  [PodGraph:scored] stem=647px, nodes=153, edges=160, tips=34, reject=8, pods=26
+  [PodGraph] branches=51, med_area=546 fence=137, med_w=7.5 fence=4.5, keep=44, reject=7
+  [PodGraph:scored] stem=1090px, nodes=296, edges=352, tips=51, reject=7, pods=44
+  [PodGraph] branches=50, med_area=873 fence=218, med_w=7.2 fence=4.3, keep=37, reject=13
+  [PodGraph:scored] stem=1070px, nodes=271, edges=312, tips=50, reject=13, pods=37
+  [PodGraph] branches=34, med_area=427 fence=107, med_w=7.1 fence=4.3, keep=27, reject=7
+  [PodGraph:scored] stem=665px, nodes=202, edges=239, tips=34, reject=7, pods=27
+  [PodGraph] branches=48, med_area=923 fence=231, med_w=6.7 fence=4.0, keep=35, reject=13
+  [PodGraph:scored] stem=915px, nodes=205, edges=213, tips=48, reject=13, pods=35
+  [PodGraph] branches=52, med_area=1254 fence=314, med_w=8.7 fence=5.2, keep=37, reject=15
+  [PodGraph:scored] stem=994px, nodes=280, edges=312, tips=52, reject=15, pods=37
+  [CV] main=59 branch=206 total=265 (truth: F=67 G=159 H=226)  2.2s
+  [ACC] 主花序=88.1% 分枝=70.4% 总计=82.7%
+
+[2/900] N0.1.1.2
+  [PodGraph] branches=41, med_area=401 fence=100, med_w=7.1 fence=4.2, keep=28, reject=13
+  [PodGraph:scored] stem=840px, nodes=236, edges=275, tips=41, reject=13, pods=28
+  [PodGraph] branches=34, med_area=659 fence=165, med_w=7.7 fence=4.6, keep=26, reject=8
+  [PodGraph:scored] stem=824px, nodes=216, edges=254, tips=34, reject=8, pods=26
+  [PodGraph] branches=53, med_area=945 fence=236, med_w=7.6 fence=4.6, keep=46, reject=7
+  [PodGraph:scored] stem=1239px, nodes=318, edges=373, tips=53, reject=7, pods=46
+  [PodGraph] branches=56, med_area=689 fence=172, med_w=7.2 fence=4.3, keep=34, reject=22
+  [PodGraph:scored] stem=975px, nodes=243, edges=264, tips=56, reject=22, pods=34
+  [PodGraph] branches=29, med_area=394 fence=99, med_w=6.3 fence=3.8, keep=26, reject=3
+  [PodGraph:scored] stem=692px, nodes=166, edges=180, tips=29, reject=3, pods=26
+  [PodGraph] branches=30, med_area=443 fence=111, med_w=6.5 fence=3.9, keep=24, reject=6
+  [PodGraph:scored] stem=688px, nodes=173, edges=194, tips=30, reject=6, pods=24
+  [Ruler] Top strip removed: rows 0~11
+  [PodGraph] branches=74, med_area=1937 fence=484, med_w=8.9 fence=5.4, keep=66, reject=8
+  [PodGraph:scored] stem=1077px, nodes=612, edges=809, tips=74, reject=8, pods=66
+  [CV] main=66 branch=184 total=250 (truth: F=57 G=162 H=219)  1.5s
+  [ACC] 主花序=84.2% 分枝=86.4% 总计=85.8%
+
+[3/900] N0.1.1.3
+  [PodGraph] branches=85, med_area=1234 fence=309, med_w=8.4 fence=5.0, keep=63, reject=22
+  [PodGraph:scored] stem=1531px, nodes=617, edges=755, tips=85, reject=22, pods=63
+  [PodGraph] branches=55, med_area=1054 fence=264, med_w=7.7 fence=4.6, keep=36, reject=19
+  [PodGraph:scored] stem=1104px, nodes=245, edges=247, tips=55, reject=19, pods=36
+  [PodGraph] branches=52, med_area=1471 fence=368, med_w=8.7 fence=5.2, keep=44, reject=8
+  [PodGraph:scored] stem=1002px, nodes=308, edges=387, tips=52, reject=8, pods=44
+  [PodGraph] branches=52, med_area=522 fence=131, med_w=7.2 fence=4.3, keep=45, reject=7
+  [PodGraph:scored] stem=1022px, nodes=221, edges=231, tips=52, reject=7, pods=45
+  [PodGraph] branches=62, med_area=1175 fence=294, med_w=7.7 fence=4.6, keep=49, reject=13
+  [PodGraph:scored] stem=1066px, nodes=451, edges=576, tips=62, reject=13, pods=49
+  [PodGraph] branches=23, med_area=313 fence=78, med_w=6.8 fence=4.1, keep=20, reject=3
+  [PodGraph:scored] stem=618px, nodes=106, edges=111, tips=23, reject=3, pods=20
+  [PodGraph] branches=61, med_area=747 fence=187, med_w=6.9 fence=4.2, keep=50, reject=11
+  [PodGraph:scored] stem=1116px, nodes=373, edges=452, tips=61, reject=11, pods=50
+  [PodGraph] branches=42, med_area=582 fence=146, med_w=6.5 fence=3.9, keep=28, reject=14
+  [PodGraph:scored] stem=828px, nodes=239, edges=279, tips=42, reject=14, pods=28
+  [CV] main=63 branch=272 total=335 (truth: F=77 G=202 H=279)  2.8s
+  [ACC] 主花序=81.8% 分枝=65.3% 总计=79.9%
+
+[4/900] N0.1.1.4
+  [PodGraph] branches=76, med_area=1219 fence=305, med_w=8.5 fence=5.1, keep=59, reject=17
+  [PodGraph:scored] stem=1367px, nodes=605, edges=727, tips=76, reject=17, pods=59
+  [PodGraph] branches=43, med_area=599 fence=150, med_w=7.4 fence=4.5, keep=32, reject=11
+  [PodGraph:scored] stem=935px, nodes=220, edges=238, tips=43, reject=11, pods=32
+  [PodGraph] branches=49, med_area=696 fence=174, med_w=7.0 fence=4.2, keep=32, reject=17
+  [PodGraph:scored] stem=1046px, nodes=243, edges=261, tips=49, reject=17, pods=32
+  [PodGraph] branches=69, med_area=916 fence=229, med_w=7.9 fence=4.7, keep=59, reject=10
+  [PodGraph:scored] stem=1209px, nodes=442, edges=561, tips=69, reject=10, pods=59
+  [PodGraph] branches=43, med_area=606 fence=151, med_w=6.5 fence=3.9, keep=30, reject=13
+  [PodGraph:scored] stem=793px, nodes=282, edges=337, tips=43, reject=13, pods=30
+  [PodGraph] branches=66, med_area=805 fence=201, med_w=8.0 fence=4.8, keep=46, reject=20
+  [PodGraph:scored] stem=983px, nodes=337, edges=400, tips=66, reject=20, pods=46
+  [PodGraph] branches=62, med_area=700 fence=175, med_w=6.8 fence=4.1, keep=52, reject=10
+  [PodGraph:scored] stem=1238px, nodes=328, edges=374, tips=62, reject=10, pods=52
+  [PodGraph] branches=55, med_area=546 fence=136, med_w=7.1 fence=4.2, keep=46, reject=9
+  [PodGraph:scored] stem=1082px, nodes=273, edges=304, tips=55, reject=9, pods=46
+  [PodGraph] branches=72, med_area=752 fence=188, med_w=7.4 fence=4.5, keep=49, reject=23
+  [PodGraph:scored] stem=1096px, nodes=349, edges=401, tips=72, reject=23, pods=49
+  [CV] main=59 branch=346 total=405 (truth: F=73 G=263 H=336)  2.3s
+  [ACC] 主花序=80.8% 分枝=68.4% 总计=79.5%
+
+[5/900] N0.1.1.5
+  [PodGraph] branches=45, med_area=1114 fence=279, med_w=8.4 fence=5.0, keep=30, reject=15
+  [PodGraph:scored] stem=994px, nodes=232, edges=258, tips=45, reject=15, pods=30
+  [PodGraph] branches=43, med_area=1421 fence=355, med_w=8.8 fence=5.3, keep=38, reject=5
+  [PodGraph:scored] stem=962px, nodes=221, edges=268, tips=43, reject=5, pods=38
+  [PodGraph] branches=47, med_area=1167 fence=292, med_w=7.0 fence=4.2, keep=41, reject=6
+  [PodGraph:scored] stem=897px, nodes=352, edges=460, tips=47, reject=6, pods=41
+  [PodGraph] branches=42, med_area=1095 fence=274, med_w=8.1 fence=4.9, keep=36, reject=6
+  [PodGraph:scored] stem=853px, nodes=200, edges=232, tips=42, reject=6, pods=36
+  [PodGraph] branches=62, med_area=1197 fence=299, med_w=7.6 fence=4.6, keep=48, reject=14
+  [PodGraph:scored] stem=1142px, nodes=344, edges=404, tips=62, reject=14, pods=48
+  [PodGraph] branches=23, med_area=388 fence=97, med_w=6.5 fence=3.9, keep=18, reject=5
+  [PodGraph:scored] stem=628px, nodes=121, edges=130, tips=23, reject=5, pods=18
+  [PodGraph] branches=73, med_area=1699 fence=425, med_w=9.0 fence=5.4, keep=70, reject=3
+  [PodGraph:scored] stem=1344px, nodes=500, edges=607, tips=73, reject=3, pods=70
+  [CV] main=70 branch=211 total=281 (truth: F=71 G=164 H=235)  1.5s
+  [ACC] 主花序=98.6% 分枝=71.3% 总计=80.4%
+
+[6/900] N0.1.2.1
+  [PodGraph] branches=68, med_area=1481 fence=370, med_w=8.2 fence=4.9, keep=48, reject=20
+  [PodGraph:scored] stem=1096px, nodes=493, edges=615, tips=68, reject=20, pods=48
+  [PodGraph] branches=33, med_area=1865 fence=466, med_w=8.6 fence=5.1, keep=28, reject=5
+  [PodGraph:scored] stem=690px, nodes=239, edges=313, tips=33, reject=5, pods=28
+  [PodGraph] branches=31, med_area=407 fence=102, med_w=7.1 fence=4.2, keep=25, reject=6
+  [PodGraph:scored] stem=617px, nodes=177, edges=192, tips=31, reject=6, pods=25
+  [PodGraph] branches=36, med_area=463 fence=116, med_w=7.9 fence=4.8, keep=26, reject=10
+  [PodGraph:scored] stem=669px, nodes=262, edges=328, tips=36, reject=10, pods=26
+  [PodGraph] branches=29, med_area=2356 fence=589, med_w=8.6 fence=5.2, keep=25, reject=4
+  [PodGraph:scored] stem=607px, nodes=282, edges=384, tips=29, reject=4, pods=25
+  [PodGraph] branches=30, med_area=408 fence=102, med_w=6.5 fence=3.9, keep=24, reject=6
+  [PodGraph:scored] stem=590px, nodes=159, edges=177, tips=30, reject=6, pods=24
+  [CV] main=48 branch=128 total=176 (truth: F=59 G=65 H=124)  0.9s
+  [ACC] 主花序=81.4% 分枝=3.1% 总计=58.1%
+
+[7/900] N0.1.2.2
+  [PodGraph] branches=79, med_area=1711 fence=428, med_w=8.4 fence=5.1, keep=66, reject=13
+  [PodGraph:scored] stem=1305px, nodes=493, edges=634, tips=79, reject=13, pods=66
+  [PodGraph] branches=67, med_area=1519 fence=380, med_w=7.7 fence=4.6, keep=54, reject=13
+  [PodGraph:scored] stem=1259px, nodes=480, edges=607, tips=67, reject=13, pods=54
+  [PodGraph] branches=51, med_area=1109 fence=277, med_w=6.9 fence=4.2, keep=40, reject=11
+  [PodGraph:scored] stem=933px, nodes=313, edges=372, tips=51, reject=11, pods=40
+  [PodGraph] branches=64, med_area=1554 fence=389, med_w=7.8 fence=4.7, keep=51, reject=13
+  [PodGraph:scored] stem=1346px, nodes=549, edges=711, tips=64, reject=13, pods=51
+  [PodGraph] branches=76, med_area=1853 fence=463, med_w=7.7 fence=4.6, keep=65, reject=11
+  [PodGraph:scored] stem=1425px, nodes=573, edges=738, tips=76, reject=11, pods=65
+  [PodGraph] branches=83, med_area=1212 fence=303, med_w=7.9 fence=4.7, keep=57, reject=26
+  [PodGraph:scored] stem=1549px, nodes=686, edges=860, tips=83, reject=26, pods=57
+  [CV] main=57 branch=276 total=333 (truth: F=76 G=215 H=291)  3.9s
+  [ACC] 主花序=75.0% 分枝=71.6% 总计=85.6%
+
+[8/900] N0.1.2.3
+  [PodGraph] branches=88, med_area=2054 fence=513, med_w=12.8 fence=7.7, keep=79, reject=9
+  [PodGraph:scored] stem=1237px, nodes=835, edges=1104, tips=88, reject=9, pods=79
+  [PodGraph] branches=18, med_area=706 fence=177, med_w=9.3 fence=5.6, keep=13, reject=5
+  [PodGraph:scored] stem=645px, nodes=87, edges=93, tips=18, reject=5, pods=13
+  [PodGraph] branches=24, med_area=1116 fence=279, med_w=8.8 fence=5.3, keep=21, reject=3
+  [PodGraph:scored] stem=683px, nodes=180, edges=223, tips=24, reject=3, pods=21
+  [PodGraph] branches=23, med_area=885 fence=221, med_w=9.0 fence=5.4, keep=16, reject=7
+  [PodGraph:scored] stem=630px, nodes=135, edges=149, tips=23, reject=7, pods=16
+  [PodGraph] branches=17, med_area=332 fence=83, med_w=6.3 fence=3.8, keep=15, reject=2
+  [PodGraph:scored] stem=639px, nodes=126, edges=150, tips=17, reject=2, pods=15
+  [PodGraph] branches=17, med_area=1287 fence=322, med_w=10.2 fence=6.1, keep=12, reject=5
+  [PodGraph:scored] stem=674px, nodes=88, edges=93, tips=17, reject=5, pods=12
+  [PodGraph] branches=19, med_area=1317 fence=329, med_w=9.3 fence=5.6, keep=15, reject=4
+  [PodGraph:scored] stem=628px, nodes=91, edges=105, tips=19, reject=4, pods=15
+  [PodGraph] branches=19, med_area=932 fence=233, med_w=8.9 fence=5.3, keep=15, reject=4
+  [PodGraph:scored] stem=648px, nodes=115, edges=144, tips=19, reject=4, pods=15
+  [PodGraph] branches=16, med_area=458 fence=114, med_w=8.8 fence=5.3, keep=13, reject=3
+  [PodGraph:scored] stem=632px, nodes=56, edges=53, tips=16, reject=3, pods=13
+  [PodGraph] branches=20, med_area=369 fence=92, med_w=7.8 fence=4.7, keep=17, reject=3
+  [PodGraph:scored] stem=637px, nodes=62, edges=55, tips=20, reject=3, pods=17
+  [CV] main=79 branch=137 total=216 (truth: F=81 G=98 H=179)  1.1s
+  [ACC] 主花序=97.5% 分枝=60.2% 总计=79.3%
+
+[9/900] N0.1.2.4
+  [PodGraph] branches=87, med_area=964 fence=241, med_w=7.5 fence=4.5, keep=71, reject=16
+  [PodGraph:scored] stem=1426px, nodes=397, edges=397, tips=87, reject=16, pods=71
+  [PodGraph] branches=45, med_area=406 fence=101, med_w=7.7 fence=4.6, keep=34, reject=11
+  [PodGraph:scored] stem=871px, nodes=189, edges=193, tips=45, reject=11, pods=34
+  [PodGraph] branches=36, med_area=649 fence=162, med_w=7.4 fence=4.4, keep=26, reject=10
+  [PodGraph:scored] stem=746px, nodes=157, edges=166, tips=36, reject=10, pods=26
+  [PodGraph] branches=30, med_area=438 fence=109, med_w=7.2 fence=4.3, keep=24, reject=6
+  [PodGraph:scored] stem=651px, nodes=118, edges=118, tips=30, reject=6, pods=24
+  [PodGraph] branches=43, med_area=754 fence=189, med_w=7.8 fence=4.7, keep=31, reject=12
+  [PodGraph:scored] stem=925px, nodes=203, edges=216, tips=43, reject=12, pods=31
+  [PodGraph] branches=40, med_area=720 fence=180, med_w=7.1 fence=4.3, keep=34, reject=6
+  [PodGraph:scored] stem=896px, nodes=213, edges=225, tips=40, reject=6, pods=34
+  [PodGraph] branches=32, med_area=932 fence=233, med_w=9.0 fence=5.4, keep=28, reject=4
+  [PodGraph:scored] stem=921px, nodes=168, edges=185, tips=32, reject=4, pods=28
+  [PodGraph] branches=38, med_area=537 fence=134, med_w=6.9 fence=4.2, keep=33, reject=5
+  [PodGraph:scored] stem=955px, nodes=201, edges=221, tips=38, reject=5, pods=33
+  [PodGraph] branches=38, med_area=813 fence=203, med_w=6.9 fence=4.2, keep=23, reject=15
+  [PodGraph:scored] stem=930px, nodes=168, edges=166, tips=38, reject=15, pods=23
+  [CV] main=71 branch=233 total=304 (truth: F=47 G=140 H=187)  1.8s
+  [ACC] 主花序=48.9% 分枝=33.6% 总计=37.4%
+
+[10/900] N0.1.2.5
+  [PodGraph] branches=86, med_area=1151 fence=288, med_w=7.9 fence=4.7, keep=73, reject=13
+  [PodGraph:scored] stem=1636px, nodes=639, edges=772, tips=86, reject=13, pods=73
+  [PodGraph] branches=71, med_area=1374 fence=344, med_w=7.9 fence=4.7, keep=58, reject=13
+  [PodGraph:scored] stem=1189px, nodes=420, edges=532, tips=71, reject=13, pods=58
+  [PodGraph] branches=73, med_area=1387 fence=347, med_w=8.1 fence=4.8, keep=63, reject=10
+  [PodGraph:scored] stem=1055px, nodes=462, edges=581, tips=73, reject=10, pods=63
+  [PodGraph] branches=57, med_area=697 fence=174, med_w=6.9 fence=4.1, keep=45, reject=12
+  [PodGraph:scored] stem=865px, nodes=294, edges=346, tips=57, reject=12, pods=45
+  [PodGraph] branches=75, med_area=1428 fence=357, med_w=9.3 fence=5.6, keep=64, reject=11
+  [PodGraph:scored] stem=1322px, nodes=373, edges=433, tips=75, reject=11, pods=64
+  [PodGraph] branches=63, med_area=1234 fence=308, med_w=6.9 fence=4.1, keep=53, reject=10
+  [PodGraph:scored] stem=988px, nodes=353, edges=430, tips=63, reject=10, pods=53
+  [PodGraph] branches=71, med_area=1078 fence=269, med_w=7.1 fence=4.3, keep=56, reject=15
+  [PodGraph:scored] stem=1036px, nodes=401, edges=509, tips=71, reject=15, pods=56
+  [PodGraph] branches=55, med_area=871 fence=218, med_w=6.9 fence=4.1, keep=42, reject=13
+  [PodGraph:scored] stem=1088px, nodes=280, edges=312, tips=55, reject=13, pods=42
+  [PodGraph] branches=42, med_area=594 fence=148, med_w=6.6 fence=4.0, keep=36, reject=6
+  [PodGraph:scored] stem=685px, nodes=210, edges=243, tips=42, reject=6, pods=36
+  [CV] main=73 branch=417 total=490 (truth: F=52 G=344 H=396)  3.3s
+  [ACC] 主花序=59.6% 分枝=78.8% 总计=76.3%
+
+[11/900] N0.1.3.1
+  [Ruler] Left strip removed: cols 0~43 (smoothed density > 0.25)
+  [PodGraph] branches=49, med_area=1808 fence=452, med_w=10.8 fence=6.5, keep=45, reject=4
+  [PodGraph:scored] stem=1326px, nodes=325, edges=388, tips=49, reject=4, pods=45
+  [PodGraph] branches=23, med_area=1299 fence=325, med_w=9.2 fence=5.5, keep=21, reject=2
+  [PodGraph:scored] stem=757px, nodes=141, edges=165, tips=23, reject=2, pods=21
+  [PodGraph] branches=18, med_area=915 fence=229, med_w=8.1 fence=4.8, keep=14, reject=4
+  [PodGraph:scored] stem=669px, nodes=92, edges=98, tips=18, reject=4, pods=14
+  [PodGraph] branches=25, med_area=1205 fence=301, med_w=9.0 fence=5.4, keep=24, reject=1
+  [PodGraph:scored] stem=952px, nodes=134, edges=135, tips=25, reject=1, pods=24
+  [PodGraph] branches=28, med_area=1551 fence=388, med_w=10.2 fence=6.1, keep=26, reject=2
+  [PodGraph:scored] stem=1204px, nodes=172, edges=204, tips=28, reject=2, pods=26
+  [PodGraph] branches=25, med_area=1970 fence=493, med_w=10.9 fence=6.5, keep=24, reject=1
+  [PodGraph:scored] stem=1325px, nodes=148, edges=171, tips=25, reject=1, pods=24
+  [PodGraph] branches=21, med_area=1485 fence=371, med_w=9.6 fence=5.7, keep=20, reject=1
+  [PodGraph:scored] stem=701px, nodes=123, edges=138, tips=21, reject=1, pods=20
+  [PodGraph] branches=26, med_area=877 fence=219, med_w=8.1 fence=4.9, keep=21, reject=5
+  [PodGraph:scored] stem=957px, nodes=138, edges=152, tips=26, reject=5, pods=21
+  [PodGraph] branches=26, med_area=1342 fence=336, med_w=9.2 fence=5.5, keep=22, reject=4
+  [PodGraph:scored] stem=1045px, nodes=164, edges=189, tips=26, reject=4, pods=22
+  [PodGraph] branches=24, med_area=1288 fence=322, med_w=9.9 fence=5.9, keep=22, reject=2
+  [PodGraph:scored] stem=899px, nodes=138, edges=159, tips=24, reject=2, pods=22
+  [PodGraph] branches=27, med_area=1367 fence=342, med_w=10.6 fence=6.4, keep=26, reject=1
+  [PodGraph:scored] stem=1096px, nodes=170, edges=187, tips=27, reject=1, pods=26
+  [CV] main=45 branch=220 total=265 (truth: F=50 G=209 H=259)  1.1s
+  [ACC] 主花序=90.0% 分枝=94.7% 总计=97.7%
+
+[12/900] N0.1.3.2
+  [Ruler] Left strip removed: cols 0~66 (smoothed density > 0.25)
+  [PodGraph] branches=53, med_area=1650 fence=412, med_w=10.3 fence=6.2, keep=52, reject=1
+  [PodGraph:scored] stem=1377px, nodes=416, edges=526, tips=53, reject=1, pods=52
+  [PodGraph] branches=24, med_area=1340 fence=335, med_w=10.2 fence=6.1, keep=21, reject=3
+  [PodGraph:scored] stem=932px, nodes=178, edges=218, tips=24, reject=3, pods=21
+  [PodGraph] branches=18, med_area=2432 fence=608, med_w=12.6 fence=7.5, keep=16, reject=2
+  [PodGraph:scored] stem=618px, nodes=109, edges=135, tips=18, reject=2, pods=16
+  [PodGraph] branches=26, med_area=1111 fence=278, med_w=9.8 fence=5.9, keep=23, reject=3
+  [PodGraph:scored] stem=883px, nodes=184, edges=228, tips=26, reject=3, pods=23
+  [PodGraph] branches=26, med_area=1495 fence=374, med_w=10.4 fence=6.3, keep=24, reject=2
+  [PodGraph:scored] stem=1233px, nodes=186, edges=234, tips=26, reject=2, pods=24
+  [PodGraph] branches=17, med_area=986 fence=247, med_w=8.4 fence=5.0, keep=15, reject=2
+  [PodGraph:scored] stem=894px, nodes=97, edges=112, tips=17, reject=2, pods=15
+  [PodGraph] branches=18, med_area=2338 fence=584, med_w=11.2 fence=6.7, keep=17, reject=1
+  [PodGraph:scored] stem=651px, nodes=140, edges=183, tips=18, reject=1, pods=17
+  [PodGraph] branches=22, med_area=1363 fence=341, med_w=9.9 fence=6.0, keep=21, reject=1
+  [PodGraph:scored] stem=817px, nodes=163, edges=199, tips=22, reject=1, pods=21
+  [CV] main=52 branch=137 total=189 (truth: F=62 G=136 H=198)  0.7s
+  [ACC] 主花序=83.9% 分枝=99.3% 总计=95.5%
+
+[13/900] N0.1.3.3
+  [Ruler] Left strip removed: cols 0~114 (smoothed density > 0.25)
+  [PodGraph] branches=55, med_area=1757 fence=439, med_w=10.8 fence=6.5, keep=48, reject=7
+  [PodGraph:scored] stem=1495px, nodes=372, edges=444, tips=55, reject=7, pods=48
+  [PodGraph] branches=28, med_area=1296 fence=324, med_w=9.9 fence=5.9, keep=26, reject=2
+  [PodGraph:scored] stem=1488px, nodes=187, edges=217, tips=28, reject=2, pods=26
+  [PodGraph] branches=18, med_area=1377 fence=344, med_w=8.8 fence=5.3, keep=17, reject=1
+  [PodGraph:scored] stem=1051px, nodes=111, edges=132, tips=18, reject=1, pods=17
+  [PodGraph] branches=31, med_area=1299 fence=325, med_w=10.0 fence=6.0, keep=24, reject=7
+  [PodGraph:scored] stem=1058px, nodes=149, edges=167, tips=31, reject=7, pods=24
+  [PodGraph] branches=17, med_area=1376 fence=344, med_w=9.4 fence=5.6, keep=16, reject=1
+  [PodGraph:scored] stem=904px, nodes=140, edges=169, tips=17, reject=1, pods=16
+  [PodGraph] branches=25, med_area=1432 fence=358, med_w=10.0 fence=6.0, keep=23, reject=2
+  [PodGraph:scored] stem=1032px, nodes=152, edges=175, tips=25, reject=2, pods=23
+  [CV] main=48 branch=106 total=154 (truth: F=67 G=105 H=172)  0.7s
+  [ACC] 主花序=71.6% 分枝=99.0% 总计=89.5%
+
+[14/900] N0.1.3.4
+  [Ruler] Left strip removed: cols 0~89 (smoothed density > 0.25)
+  [PodGraph] branches=52, med_area=1582 fence=396, med_w=10.6 fence=6.3, keep=49, reject=3
+  [PodGraph:scored] stem=1365px, nodes=357, edges=428, tips=52, reject=3, pods=49
+  [PodGraph] branches=34, med_area=1474 fence=368, med_w=10.4 fence=6.2, keep=30, reject=4
+  [PodGraph:scored] stem=1549px, nodes=216, edges=259, tips=34, reject=4, pods=30
+  [PodGraph] branches=22, med_area=1271 fence=318, med_w=9.0 fence=5.4, keep=19, reject=3
+  [PodGraph:scored] stem=1157px, nodes=131, edges=146, tips=22, reject=3, pods=19
+  [PodGraph] branches=7, med_area=1440 fence=360, med_w=9.1 fence=5.5, keep=6, reject=1
+  [PodGraph:scored] stem=642px, nodes=30, edges=32, tips=7, reject=1, pods=6
+  [PodGraph] branches=22, med_area=1419 fence=355, med_w=10.0 fence=6.0, keep=21, reject=1
+  [PodGraph:scored] stem=1280px, nodes=166, edges=207, tips=22, reject=1, pods=21
+  [PodGraph] branches=31, med_area=1290 fence=322, med_w=8.8 fence=5.3, keep=26, reject=5
+  [PodGraph:scored] stem=1280px, nodes=191, edges=228, tips=31, reject=5, pods=26
+  [PodGraph] branches=23, med_area=1088 fence=272, med_w=8.4 fence=5.0, keep=17, reject=6
+  [PodGraph:scored] stem=928px, nodes=132, edges=151, tips=23, reject=6, pods=17
+  [PodGraph] branches=22, med_area=1120 fence=280, med_w=9.4 fence=5.6, keep=18, reject=4
+  [PodGraph:scored] stem=778px, nodes=132, edges=152, tips=22, reject=4, pods=18
+  [PodGraph] branches=24, med_area=1465 fence=366, med_w=9.5 fence=5.7, keep=23, reject=1
+  [PodGraph:scored] stem=1176px, nodes=185, edges=224, tips=24, reject=1, pods=23
+  [PodGraph] branches=23, med_area=1884 fence=471, med_w=9.8 fence=5.9, keep=22, reject=1
+  [PodGraph:scored] stem=688px, nodes=139, edges=172, tips=23, reject=1, pods=22
+  [CV] main=49 branch=182 total=231 (truth: F=72 G=119 H=191)  1.0s
+  [ACC] 主花序=68.1% 分枝=47.1% 总计=79.1%
+
+[15/900] N0.1.3.5
+  [Ruler] Left strip removed: cols 0~26 (smoothed density > 0.25)
+  [PodGraph] branches=54, med_area=1564 fence=391, med_w=10.7 fence=6.4, keep=49, reject=5
+  [PodGraph:scored] stem=1553px, nodes=419, edges=497, tips=54, reject=5, pods=49
+  [PodGraph] branches=21, med_area=1448 fence=362, med_w=9.0 fence=5.4, keep=20, reject=1
+  [PodGraph:scored] stem=946px, nodes=199, edges=256, tips=21, reject=1, pods=20
+  [PodGraph] branches=18, med_area=678 fence=169, med_w=7.9 fence=4.7, keep=16, reject=2
+  [PodGraph:scored] stem=617px, nodes=88, edges=95, tips=18, reject=2, pods=16
+  [PodGraph] branches=18, med_area=1100 fence=275, med_w=8.5 fence=5.1, keep=17, reject=1
+  [PodGraph:scored] stem=833px, nodes=100, edges=103, tips=18, reject=1, pods=17
+  [PodGraph] branches=27, med_area=1408 fence=352, med_w=9.3 fence=5.6, keep=24, reject=3
+  [PodGraph:scored] stem=854px, nodes=136, edges=156, tips=27, reject=3, pods=24
+  [PodGraph] branches=20, med_area=1128 fence=282, med_w=8.3 fence=5.0, keep=19, reject=1
+  [PodGraph:scored] stem=857px, nodes=138, edges=163, tips=20, reject=1, pods=19
+  [PodGraph] branches=25, med_area=1087 fence=272, med_w=8.4 fence=5.1, keep=22, reject=3
+  [PodGraph:scored] stem=920px, nodes=122, edges=121, tips=25, reject=3, pods=22
+  [PodGraph] branches=17, med_area=1225 fence=306, med_w=9.1 fence=5.4, keep=16, reject=1
+  [PodGraph:scored] stem=769px, nodes=96, edges=109, tips=17, reject=1, pods=16
+  [PodGraph] branches=22, med_area=1417 fence=354, med_w=9.9 fence=6.0, keep=22, reject=0
+  [PodGraph:scored] stem=885px, nodes=132, edges=157, tips=22, reject=0, pods=22
+  [CV] main=49 branch=156 total=205 (truth: F=58 G=121 H=179)  0.8s
+  [ACC] 主花序=84.5% 分枝=71.1% 总计=85.5%
+
+[16/900] N0.1.4.1
+  [PodGraph] branches=44, med_area=929 fence=232, med_w=8.2 fence=4.9, keep=33, reject=11
+  [PodGraph:scored] stem=781px, nodes=310, edges=386, tips=44, reject=11, pods=33
+  [PodGraph] branches=29, med_area=691 fence=173, med_w=7.7 fence=4.6, keep=25, reject=4
+  [PodGraph:scored] stem=677px, nodes=175, edges=206, tips=29, reject=4, pods=25
+  [PodGraph] branches=50, med_area=811 fence=203, med_w=7.9 fence=4.7, keep=45, reject=5
+  [PodGraph:scored] stem=942px, nodes=329, edges=407, tips=50, reject=5, pods=45
+  [Ruler] Left strip removed: cols 0~19 (smoothed density > 0.25)
+  [PodGraph] branches=62, med_area=907 fence=227, med_w=8.2 fence=4.9, keep=48, reject=14
+  [PodGraph:scored] stem=1269px, nodes=387, edges=476, tips=62, reject=14, pods=48
+  [PodGraph] branches=71, med_area=1182 fence=295, med_w=8.6 fence=5.2, keep=61, reject=10
+  [PodGraph:scored] stem=1441px, nodes=516, edges=638, tips=71, reject=10, pods=61
+  [PodGraph] branches=52, med_area=519 fence=130, med_w=7.7 fence=4.6, keep=44, reject=8
+  [PodGraph:scored] stem=785px, nodes=335, edges=415, tips=52, reject=8, pods=44
+  [PodGraph] branches=30, med_area=423 fence=106, med_w=8.3 fence=5.0, keep=27, reject=3
+  [PodGraph:scored] stem=692px, nodes=207, edges=247, tips=30, reject=3, pods=27
+  [PodGraph] branches=39, med_area=1037 fence=259, med_w=8.0 fence=4.8, keep=34, reject=5
+  [PodGraph:scored] stem=697px, nodes=259, edges=342, tips=39, reject=5, pods=34
+  [CV] main=61 branch=256 total=317 (truth: F=72 G=148 H=220)  1.3s
+  [ACC] 主花序=84.7% 分枝=27.0% 总计=55.9%
+
+[17/900] N0.1.4.2
+  [PodGraph] branches=77, med_area=1642 fence=411, med_w=9.3 fence=5.6, keep=64, reject=13
+  [PodGraph:scored] stem=1426px, nodes=639, edges=830, tips=77, reject=13, pods=64
+  [PodGraph] branches=56, med_area=1324 fence=331, med_w=8.5 fence=5.1, keep=46, reject=10
+  [PodGraph:scored] stem=967px, nodes=384, edges=477, tips=56, reject=10, pods=46
+  [PodGraph] branches=51, med_area=1292 fence=323, med_w=9.8 fence=5.9, keep=42, reject=9
+  [PodGraph:scored] stem=981px, nodes=414, edges=533, tips=51, reject=9, pods=42
+  [PodGraph] branches=53, med_area=1304 fence=326, med_w=8.0 fence=4.8, keep=45, reject=8
+  [PodGraph:scored] stem=1150px, nodes=415, edges=526, tips=53, reject=8, pods=45
+  [PodGraph] branches=60, med_area=938 fence=234, med_w=8.0 fence=4.8, keep=46, reject=14
+  [PodGraph:scored] stem=1010px, nodes=465, edges=599, tips=60, reject=14, pods=46
+  [PodGraph] branches=40, med_area=283 fence=71, med_w=6.5 fence=3.9, keep=34, reject=6
+  [PodGraph:scored] stem=824px, nodes=248, edges=296, tips=40, reject=6, pods=34
+  [PodGraph] branches=32, med_area=1144 fence=286, med_w=7.5 fence=4.5, keep=31, reject=1
+  [PodGraph:scored] stem=850px, nodes=362, edges=504, tips=32, reject=1, pods=31
+  [PodGraph] branches=48, med_area=1096 fence=274, med_w=8.1 fence=4.8, keep=43, reject=5
+  [PodGraph:scored] stem=1075px, nodes=462, edges=619, tips=48, reject=5, pods=43
+  [PodGraph] branches=39, med_area=845 fence=211, med_w=7.8 fence=4.7, keep=29, reject=10
+  [PodGraph:scored] stem=918px, nodes=305, edges=376, tips=39, reject=10, pods=29
+  [CV] main=64 branch=316 total=380 (truth: F=68 G=302 H=370)  2.2s
+  [ACC] 主花序=94.1% 分枝=95.4% 总计=97.3%
+
+[18/900] N0.1.4.3
+  [PodGraph] branches=44, med_area=548 fence=137, med_w=7.1 fence=4.3, keep=41, reject=3
+  [PodGraph:scored] stem=962px, nodes=310, edges=397, tips=44, reject=3, pods=41
+  [PodGraph] branches=51, med_area=1942 fence=486, med_w=8.7 fence=5.2, keep=41, reject=10
+  [PodGraph:scored] stem=1121px, nodes=308, edges=378, tips=51, reject=10, pods=41
+  [PodGraph] branches=37, med_area=795 fence=199, med_w=6.9 fence=4.2, keep=34, reject=3
+  [PodGraph:scored] stem=890px, nodes=313, edges=414, tips=37, reject=3, pods=34
+  [PodGraph] branches=36, med_area=703 fence=176, med_w=7.1 fence=4.3, keep=24, reject=12
+  [PodGraph:scored] stem=889px, nodes=255, edges=300, tips=36, reject=12, pods=24
+  [Ruler] Bottom strip removed: rows 842~877
+  [PodGraph] branches=99, med_area=1503 fence=376, med_w=8.6 fence=5.1, keep=80, reject=19
+  [PodGraph:scored] stem=2012px, nodes=784, edges=992, tips=99, reject=19, pods=80
+  [PodGraph] branches=32, med_area=417 fence=104, med_w=7.2 fence=4.3, keep=29, reject=3
+  [PodGraph:scored] stem=598px, nodes=205, edges=242, tips=32, reject=3, pods=29
+  [PodGraph] branches=42, med_area=923 fence=231, med_w=7.8 fence=4.7, keep=32, reject=10
+  [PodGraph:scored] stem=903px, nodes=320, edges=400, tips=42, reject=10, pods=32
+  [PodGraph] branches=44, med_area=815 fence=204, med_w=7.2 fence=4.3, keep=37, reject=7
+  [PodGraph:scored] stem=965px, nodes=333, edges=418, tips=44, reject=7, pods=37
+  [CV] main=80 branch=238 total=318 (truth: F=63 G=211 H=274)  2.8s
+  [ACC] 主花序=73.0% 分枝=87.2% 总计=83.9%
+
+[19/900] N0.1.4.4
+  [PodGraph] branches=107, med_area=1014 fence=254, med_w=8.6 fence=5.1, keep=80, reject=27
+  [PodGraph:scored] stem=1669px, nodes=706, edges=866, tips=107, reject=27, pods=80
+  [PodGraph] branches=73, med_area=1134 fence=283, med_w=8.6 fence=5.2, keep=57, reject=16
+  [PodGraph:scored] stem=1423px, nodes=466, edges=590, tips=73, reject=16, pods=57
+  [Ruler] Left strip removed: cols 0~90 (smoothed density > 0.25)
+  [PodGraph] branches=90, med_area=568 fence=142, med_w=6.9 fence=4.1, keep=66, reject=24
+  [PodGraph:scored] stem=1290px, nodes=503, edges=607, tips=90, reject=24, pods=66
+  [PodGraph] branches=72, med_area=1561 fence=390, med_w=7.4 fence=4.5, keep=53, reject=19
+  [PodGraph:scored] stem=1239px, nodes=504, edges=618, tips=72, reject=19, pods=53
+  [PodGraph] branches=79, med_area=1388 fence=347, med_w=8.7 fence=5.2, keep=61, reject=18
+  [PodGraph:scored] stem=1261px, nodes=487, edges=619, tips=79, reject=18, pods=61
+  [PodGraph] branches=73, med_area=1051 fence=263, med_w=8.4 fence=5.0, keep=61, reject=12
+  [PodGraph:scored] stem=1158px, nodes=497, edges=642, tips=73, reject=12, pods=61
+  [PodGraph] branches=76, med_area=1133 fence=283, med_w=7.9 fence=4.7, keep=69, reject=7
+  [PodGraph:scored] stem=1469px, nodes=557, edges=711, tips=76, reject=7, pods=69
+  [PodGraph] branches=39, med_area=877 fence=219, med_w=7.1 fence=4.2, keep=32, reject=7
+  [PodGraph:scored] stem=856px, nodes=279, edges=360, tips=39, reject=7, pods=32
+  [PodGraph] branches=56, med_area=680 fence=170, med_w=7.3 fence=4.4, keep=42, reject=14
+  [PodGraph:scored] stem=1144px, nodes=320, edges=374, tips=56, reject=14, pods=42
+  [CV] main=80 branch=441 total=521 (truth: F=42 G=198 H=240)  4.7s
+  [ACC] 主花序=9.5% 分枝=0.0% 总计=0.0%
+
+[20/900] N0.1.4.5
+  [PodGraph] branches=67, med_area=1253 fence=313, med_w=8.2 fence=4.9, keep=60, reject=7
+  [PodGraph:scored] stem=1320px, nodes=483, edges=607, tips=67, reject=7, pods=60
+  [PodGraph] branches=71, med_area=1548 fence=387, med_w=8.9 fence=5.4, keep=53, reject=18
+  [PodGraph:scored] stem=1299px, nodes=464, edges=577, tips=71, reject=18, pods=53
+  [Ruler] Left strip removed: cols 0~107 (smoothed density > 0.25)
+  [PodGraph] branches=86, med_area=1616 fence=404, med_w=8.0 fence=4.8, keep=71, reject=15
+  [PodGraph:scored] stem=1524px, nodes=478, edges=578, tips=86, reject=15, pods=71
+  [PodGraph] branches=65, med_area=1200 fence=300, med_w=7.2 fence=4.3, keep=59, reject=6
+  [PodGraph:scored] stem=1278px, nodes=408, edges=511, tips=65, reject=6, pods=59
+  [PodGraph] branches=156, med_area=2685 fence=671, med_w=7.7 fence=4.6, keep=130, reject=26
+  [PodGraph:scored] stem=1699px, nodes=1236, edges=1720, tips=156, reject=26, pods=130
+  [PodGraph] branches=47, med_area=669 fence=167, med_w=7.9 fence=4.7, keep=44, reject=3
+  [PodGraph:scored] stem=1044px, nodes=326, edges=407, tips=47, reject=3, pods=44
+  [PodGraph] branches=45, med_area=752 fence=188, med_w=7.8 fence=4.7, keep=34, reject=11
+  [PodGraph:scored] stem=1087px, nodes=280, edges=321, tips=45, reject=11, pods=34
+  [PodGraph] branches=90, med_area=1294 fence=324, med_w=7.9 fence=4.7, keep=77, reject=13
+  [PodGraph:scored] stem=1476px, nodes=596, edges=762, tips=90, reject=13, pods=77
+  [Ruler] Left strip removed: cols 0~101 (smoothed density > 0.25)
+  [PodGraph] branches=115, med_area=1420 fence=355, med_w=7.9 fence=4.8, keep=93, reject=22
+  [PodGraph:scored] stem=1889px, nodes=644, edges=794, tips=115, reject=22, pods=93
+  [PodGraph] branches=120, med_area=10340 fence=2585, med_w=9.9 fence=5.9, keep=110, reject=10
+  [PodGraph:scored] stem=2097px, nodes=837, edges=1182, tips=120, reject=10, pods=110
+  [CV] main=110 branch=621 total=731 (truth: F=71 G=356 H=427)  11.9s
+  [ACC] 主花序=45.1% 分枝=25.6% 总计=28.8%
+
+[21/900] N0.1.5.1
+  [Ruler] Left strip removed: cols 0~138 (smoothed density > 0.25)
+  [PodGraph] branches=93, med_area=1278 fence=319, med_w=8.5 fence=5.1, keep=72, reject=21
+  [PodGraph:scored] stem=1843px, nodes=568, edges=653, tips=93, reject=21, pods=72
+  [PodGraph] branches=61, med_area=958 fence=239, med_w=8.7 fence=5.2, keep=50, reject=11
+  [PodGraph:scored] stem=1573px, nodes=518, edges=659, tips=61, reject=11, pods=50
+  [PodGraph] branches=45, med_area=1125 fence=281, med_w=9.4 fence=5.6, keep=26, reject=19
+  [PodGraph:scored] stem=1080px, nodes=274, edges=322, tips=45, reject=19, pods=26
+  [Ruler] Top strip removed: rows 0~215
+  [PodGraph] branches=47, med_area=769 fence=192, med_w=7.8 fence=4.7, keep=37, reject=10
+  [PodGraph:scored] stem=1447px, nodes=273, edges=305, tips=47, reject=10, pods=37
+  [PodGraph] branches=34, med_area=408 fence=102, med_w=7.7 fence=4.6, keep=34, reject=0
+  [PodGraph:scored] stem=1104px, nodes=142, edges=151, tips=34, reject=0, pods=34
+  [PodGraph] branches=77, med_area=1157 fence=289, med_w=8.3 fence=5.0, keep=59, reject=18
+  [PodGraph:scored] stem=1401px, nodes=533, edges=671, tips=77, reject=18, pods=59
+  [PodGraph] branches=58, med_area=803 fence=201, med_w=7.8 fence=4.7, keep=46, reject=12
+  [PodGraph:scored] stem=1214px, nodes=280, edges=306, tips=58, reject=12, pods=46
+  [PodGraph] branches=54, med_area=914 fence=228, med_w=8.3 fence=5.0, keep=42, reject=12
+  [PodGraph:scored] stem=1652px, nodes=321, edges=380, tips=54, reject=12, pods=42
+  [CV] main=72 branch=294 total=366 (truth: F=62 G=192 H=254)  3.8s
+  [ACC] 主花序=83.9% 分枝=46.9% 总计=55.9%
+
+[22/900] N0.1.5.2
+  SKIP: no VLM cache
+
+[23/900] N0.1.5.3
+  SKIP: no VLM cache
+
+[24/900] N0.1.5.4
+  SKIP: no VLM cache
+
+[25/900] N0.1.5.5
+  SKIP: no VLM cache
+
+[26/900] N0.1.6.1
+  SKIP: no VLM cache
+
+[27/900] N0.1.6.2
+  SKIP: no VLM cache
+
+[28/900] N0.1.6.3
+  SKIP: no VLM cache
+
+[29/900] N0.1.6.4
+  SKIP: no VLM cache
+
+[30/900] N0.1.6.5
+  SKIP: no VLM cache
+
+[31/900] N0.1.7.1
+  SKIP: no VLM cache
+
+[32/900] N0.1.7.2
+  SKIP: no VLM cache
+
+[33/900] N0.1.7.3
+  SKIP: no VLM cache
+
+[34/900] N0.1.7.4
+  SKIP: no VLM cache
+
+[35/900] N0.1.7.5
+  SKIP: no VLM cache
+
+[36/900] N0.1.8.1
+  SKIP: no VLM cache
+
+[37/900] N0.1.8.2
+  SKIP: no VLM cache
+
+[38/900] N0.1.8.3
+  SKIP: no VLM cache
+
+[39/900] N0.1.8.4
+  SKIP: no VLM cache
+
+[40/900] N0.1.8.5
+  SKIP: no VLM cache
+
+[41/900] N0.1.9.1
+  SKIP: no VLM cache
+
+[42/900] N0.1.9.2
+  SKIP: no VLM cache
+
+[43/900] N0.1.9.3
+  SKIP: no VLM cache
+
+[44/900] N0.1.9.4
+  SKIP: no VLM cache
+
+[45/900] N0.1.9.5
+  SKIP: no VLM cache
+
+[46/900] N0.1.10.1
+  SKIP: no VLM cache
+
+[47/900] N0.1.10.2
+  SKIP: no VLM cache
+
+[48/900] N0.1.10.3
+  SKIP: no VLM cache
+
+[49/900] N0.1.10.4
+  SKIP: no VLM cache
+
+[50/900] N0.1.10.5
+  SKIP: no VLM cache
+
+[51/900] N0.1.11.1
+  SKIP: no VLM cache
+
+[52/900] N0.1.11.2
+  SKIP: no VLM cache
+
+[53/900] N0.1.11.3
+  SKIP: no VLM cache
+
+[54/900] N0.1.11.4
+  SKIP: no VLM cache
+
+[55/900] N0.1.11.5
+  SKIP: no VLM cache
+
+[56/900] N0.1.12.1
+  SKIP: no VLM cache
+
+[57/900] N0.1.12.2
+  SKIP: no VLM cache
+
+[58/900] N0.1.12.3
+  SKIP: no VLM cache
+
+[59/900] N0.1.12.4
+  SKIP: no VLM cache
+
+[60/900] N0.1.12.5
+  SKIP: no VLM cache
+
+[61/900] N0.2.1.1
+  SKIP: no VLM cache
+
+[62/900] N0.2.1.2
+  SKIP: no VLM cache
+
+[63/900] N0.2.1.3
+  SKIP: no VLM cache
+
+[64/900] N0.2.1.4
+  SKIP: no VLM cache
+
+[65/900] N0.2.1.5
+  SKIP: no VLM cache
+
+[66/900] N0.2.2.1
+  SKIP: no VLM cache
+
+[67/900] N0.2.2.2
+  SKIP: no VLM cache
+
+[68/900] N0.2.2.3
+  SKIP: no VLM cache
+
+[69/900] N0.2.2.4
+  SKIP: no VLM cache
+
+[70/900] N0.2.2.5
+  SKIP: no VLM cache
+
+[71/900] N0.2.3.1
+  SKIP: no VLM cache
+
+[72/900] N0.2.3.2
+  SKIP: no VLM cache
+
+[73/900] N0.2.3.3
+  SKIP: no VLM cache
+
+[74/900] N0.2.3.4
+  SKIP: no VLM cache
+
+[75/900] N0.2.3.5
+  SKIP: no VLM cache
+
+[76/900] N0.2.4.1
+  SKIP: 备注='缺照片' (data quality issue)
+
+[77/900] N0.2.4.2
+  SKIP: 备注='缺照片' (data quality issue)
+
+[78/900] N0.2.4.3
+  SKIP: 备注='缺照片' (data quality issue)
+
+[79/900] N0.2.4.4
+  SKIP: 备注='缺照片' (data quality issue)
+
+[80/900] N0.2.4.5
+  SKIP: 备注='缺照片' (data quality issue)
+
+[81/900] N0.2.5.1
+  SKIP: no VLM cache
+
+[82/900] N0.2.5.2
+  SKIP: no VLM cache
+
+[83/900] N0.2.5.3
+  SKIP: no VLM cache
+
+[84/900] N0.2.5.4
+  SKIP: no VLM cache
+
+[85/900] N0.2.5.5
+  SKIP: no VLM cache
+
+[86/900] N0.2.6.1
+  SKIP: no VLM cache
+
+[87/900] N0.2.6.2
+  SKIP: no VLM cache
+
+[88/900] N0.2.6.3
+  SKIP: no VLM cache
+
+[89/900] N0.2.6.4
+  SKIP: no VLM cache
+
+[90/900] N0.2.6.5
+  SKIP: no VLM cache
+
+[91/900] N0.2.7.1
+  SKIP: no VLM cache
+
+[92/900] N0.2.7.2
+  SKIP: no VLM cache
+
+[93/900] N0.2.7.3
+  SKIP: no VLM cache
+
+[94/900] N0.2.7.4
+  SKIP: no VLM cache
+
+[95/900] N0.2.7.5
+  SKIP: no VLM cache
+
+[96/900] N0.2.8.1
+  SKIP: no VLM cache
+
+[97/900] N0.2.8.2
+  SKIP: no VLM cache
+
+[98/900] N0.2.8.3
+  SKIP: no VLM cache
+
+[99/900] N0.2.8.4
+  SKIP: no VLM cache
+
+[100/900] N0.2.8.5
+  SKIP: no VLM cache
+
+[101/900] N0.2.9.1
+  SKIP: no VLM cache
+
+[102/900] N0.2.9.2
+  SKIP: no VLM cache
+
+[103/900] N0.2.9.3
+  SKIP: no VLM cache
+
+[104/900] N0.2.9.4
+  SKIP: no VLM cache
+
+[105/900] N0.2.9.5
+  SKIP: no VLM cache
+
+[106/900] N0.2.10.1
+  SKIP: no VLM cache
+
+[107/900] N0.2.10.2
+  SKIP: no VLM cache
+
+[108/900] N0.2.10.3
+  SKIP: no VLM cache
+
+[109/900] N0.2.10.4
+  SKIP: no VLM cache
+
+[110/900] N0.2.10.5
+  SKIP: no VLM cache
+
+[111/900] N0.2.11.1
+  SKIP: no VLM cache
+
+[112/900] N0.2.11.2
+  SKIP: no VLM cache
+
+[113/900] N0.2.11.3
+  SKIP: no VLM cache
+
+[114/900] N0.2.11.4
+  SKIP: no VLM cache
+
+[115/900] N0.2.11.5
+  SKIP: no VLM cache
+
+[116/900] N0.2.12.1
+  SKIP: 备注='缺照片' (data quality issue)
+
+[117/900] N0.2.12.2
+  SKIP: 备注='缺照片' (data quality issue)
+
+[118/900] N0.2.12.3
+  SKIP: 备注='缺照片' (data quality issue)
+
+[119/900] N0.2.12.4
+  SKIP: 备注='缺照片' (data quality issue)
+
+[120/900] N0.2.12.5
+  SKIP: 备注='缺照片' (data quality issue)
+
+[121/900] N0.3.1.1
+  SKIP: no VLM cache
+
+[122/900] N0.3.1.2
+  SKIP: no VLM cache
+
+[123/900] N0.3.1.3
+  SKIP: no VLM cache
+
+[124/900] N0.3.1.4
+  SKIP: no VLM cache
+
+[125/900] N0.3.1.5
+  SKIP: no VLM cache
+
+[126/900] N0.3.2.1
+  SKIP: no VLM cache
+
+[127/900] N0.3.2.2
+  SKIP: no VLM cache
+
+[128/900] N0.3.2.3
+  SKIP: no VLM cache
+
+[129/900] N0.3.2.4
+  SKIP: no VLM cache
+
+[130/900] N0.3.2.5
+  SKIP: no VLM cache
+
+[131/900] N0.3.3.1
+  SKIP: no VLM cache
+
+[132/900] N0.3.3.2
+  SKIP: no VLM cache
+
+[133/900] N0.3.3.3
+  SKIP: no VLM cache
+
+[134/900] N0.3.3.4
+  SKIP: no VLM cache
+
+[135/900] N0.3.3.5
+  SKIP: no VLM cache
+
+[136/900] N0.3.4.1
+  SKIP: no VLM cache
+
+[137/900] N0.3.4.2
+  SKIP: no VLM cache
+
+[138/900] N0.3.4.3
+  SKIP: no VLM cache
+
+[139/900] N0.3.4.4
+  SKIP: no VLM cache
+
+[140/900] N0.3.4.5
+  SKIP: no VLM cache
+
+[141/900] N0.3.5.1
+  SKIP: no VLM cache
+
+[142/900] N0.3.5.2
+  SKIP: no VLM cache
+
+[143/900] N0.3.5.3
+  SKIP: no VLM cache
+
+[144/900] N0.3.5.4
+  SKIP: no VLM cache
+
+[145/900] N0.3.5.5
+  SKIP: no VLM cache
+
+[146/900] N0.3.6.1
+  SKIP: no VLM cache
+
+[147/900] N0.3.6.2
+  SKIP: no VLM cache
+
+[148/900] N0.3.6.3
+  SKIP: no VLM cache
+
+[149/900] N0.3.6.4
+  SKIP: no VLM cache
+
+[150/900] N0.3.6.5
+  SKIP: no VLM cache
+
+[151/900] N0.3.7.1
+  SKIP: no VLM cache
+
+[152/900] N0.3.7.2
+  SKIP: no VLM cache
+
+[153/900] N0.3.7.3
+  SKIP: no VLM cache
+
+[154/900] N0.3.7.4
+  SKIP: no VLM cache
+
+[155/900] N0.3.7.5
+  SKIP: no VLM cache
+
+[156/900] N0.3.8.1
+  SKIP: no VLM cache
+
+[157/900] N0.3.8.2
+  SKIP: no VLM cache
+
+[158/900] N0.3.8.3
+  SKIP: no VLM cache
+
+[159/900] N0.3.8.4
+  SKIP: no VLM cache
+
+[160/900] N0.3.8.5
+  SKIP: no VLM cache
+
+[161/900] N0.3.9.1
+  SKIP: no VLM cache
+
+[162/900] N0.3.9.2
+  SKIP: no VLM cache
+
+[163/900] N0.3.9.3
+  SKIP: no VLM cache
+
+[164/900] N0.3.9.4
+  SKIP: no VLM cache
+
+[165/900] N0.3.9.5
+  SKIP: no VLM cache
+
+[166/900] N0.3.10.1
+  SKIP: no VLM cache
+
+[167/900] N0.3.10.2
+  SKIP: no VLM cache
+
+[168/900] N0.3.10.3
+  SKIP: photo not found
+
+[169/900] N0.3.10.4
+  SKIP: no VLM cache
+
+[170/900] N0.3.10.5
+  SKIP: no VLM cache
+
+[171/900] N0.3.11.1
+  SKIP: no VLM cache
+
+[172/900] N0.3.11.2
+  SKIP: no VLM cache
+
+[173/900] N0.3.11.3
+  SKIP: no VLM cache
+
+[174/900] N0.3.11.4
+  SKIP: no VLM cache
+
+[175/900] N0.3.11.5
+  SKIP: no VLM cache
+
+[176/900] N0.3.12.1
+  SKIP: no VLM cache
+
+[177/900] N0.3.12.2
+  SKIP: no VLM cache
+
+[178/900] N0.3.12.3
+  SKIP: no VLM cache
+
+[179/900] N0.3.12.4
+  SKIP: no VLM cache
+
+[180/900] N0.3.12.5
+  SKIP: no VLM cache
+
+[181/900] N1.1.1.1
+  SKIP: no VLM cache
+
+[182/900] N1.1.1.2
+  SKIP: no VLM cache
+
+[183/900] N1.1.1.3
+  SKIP: no VLM cache
+
+[184/900] N1.1.1.4
+  SKIP: no VLM cache
+
+[185/900] N1.1.1.5
+  SKIP: no VLM cache
+
+[186/900] N1.1.2.1
+  SKIP: no VLM cache
+
+[187/900] N1.1.2.2
+  SKIP: no VLM cache
+
+[188/900] N1.1.2.3
+  SKIP: photo not found
+
+[189/900] N1.1.2.4
+  SKIP: no VLM cache
+
+[190/900] N1.1.2.5
+  SKIP: photo not found
+
+[191/900] N1.1.3.1
+  SKIP: no VLM cache
+
+[192/900] N1.1.3.2
+  SKIP: no VLM cache
+
+[193/900] N1.1.3.3
+  SKIP: no VLM cache
+
+[194/900] N1.1.3.4
+  SKIP: no VLM cache
+
+[195/900] N1.1.3.5
+  SKIP: no VLM cache
+
+[196/900] N1.1.4.1
+  SKIP: no VLM cache
+
+[197/900] N1.1.4.2
+  SKIP: no VLM cache
+
+[198/900] N1.1.4.3
+  SKIP: no VLM cache
+
+[199/900] N1.1.4.4
+  SKIP: no VLM cache
+
+[200/900] N1.1.4.5
+  SKIP: no VLM cache
+
+[201/900] N1.1.5.1
+  SKIP: no VLM cache
+
+[202/900] N1.1.5.2
+  SKIP: no VLM cache
+
+[203/900] N1.1.5.3
+  SKIP: no VLM cache
+
+[204/900] N1.1.5.4
+  SKIP: no VLM cache
+
+[205/900] N1.1.5.5
+  SKIP: no VLM cache
+
+[206/900] N1.1.6.1
+  SKIP: no VLM cache
+
+[207/900] N1.1.6.2
+  SKIP: no VLM cache
+
+[208/900] N1.1.6.3
+  SKIP: no VLM cache
+
+[209/900] N1.1.6.4
+  SKIP: no VLM cache
+
+[210/900] N1.1.6.5
+  SKIP: no VLM cache
+
+[211/900] N1.1.7.1
+  SKIP: no VLM cache
+
+[212/900] N1.1.7.2
+  SKIP: no VLM cache
+
+[213/900] N1.1.7.3
+  SKIP: no VLM cache
+
+[214/900] N1.1.7.4
+  SKIP: no VLM cache
+
+[215/900] N1.1.7.5
+  SKIP: no VLM cache
+
+[216/900] N1.1.8.1
+  SKIP: no VLM cache
+
+[217/900] N1.1.8.2
+  SKIP: no VLM cache
+
+[218/900] N1.1.8.3
+  SKIP: no VLM cache
+
+[219/900] N1.1.8.4
+  SKIP: no VLM cache
+
+[220/900] N1.1.8.5
+  SKIP: no VLM cache
+
+[221/900] N1.1.9.1
+  SKIP: no VLM cache
+
+[222/900] N1.1.9.2
+  SKIP: no VLM cache
+
+[223/900] N1.1.9.3
+  SKIP: no VLM cache
+
+[224/900] N1.1.9.4
+  SKIP: no VLM cache
+
+[225/900] N1.1.9.5
+  SKIP: no VLM cache
+
+[226/900] N1.1.10.1
+  SKIP: no VLM cache
+
+[227/900] N1.1.10.2
+  SKIP: no VLM cache
+
+[228/900] N1.1.10.3
+  SKIP: no VLM cache
+
+[229/900] N1.1.10.4
+  SKIP: no VLM cache
+
+[230/900] N1.1.10.5
+  SKIP: no VLM cache
+
+[231/900] N1.1.11.1
+  SKIP: no VLM cache
+
+[232/900] N1.1.11.2
+  SKIP: no VLM cache
+
+[233/900] N1.1.11.3
+  SKIP: no VLM cache
+
+[234/900] N1.1.11.4
+  SKIP: no VLM cache
+
+[235/900] N1.1.11.5
+  SKIP: no VLM cache
+
+[236/900] N1.1.12.1
+  SKIP: no VLM cache
+
+[237/900] N1.1.12.2
+  SKIP: no VLM cache
+
+[238/900] N1.1.12.3
+  SKIP: no VLM cache
+
+[239/900] N1.1.12.4
+  SKIP: no VLM cache
+
+[240/900] N1.1.12.5
+  SKIP: no VLM cache
+
+[241/900] N1.2.1.1
+  SKIP: no VLM cache
+
+[242/900] N1.2.1.2
+  SKIP: no VLM cache
+
+[243/900] N1.2.1.3
+  SKIP: no VLM cache
+
+[244/900] N1.2.1.4
+  SKIP: no VLM cache
+
+[245/900] N1.2.1.5
+  SKIP: no VLM cache
+
+[246/900] N1.2.10.1
+  SKIP: no VLM cache
+
+[247/900] N1.2.10.2
+  SKIP: no VLM cache
+
+[248/900] N1.2.10.3
+  SKIP: no VLM cache
+
+[249/900] N1.2.10.4
+  SKIP: no VLM cache
+
+[250/900] N1.2.10.5
+  SKIP: no VLM cache
+
+[251/900] N1.2.11.1
+  SKIP: no VLM cache
+
+[252/900] N1.2.11.2
+  SKIP: no VLM cache
+
+[253/900] N1.2.11.3
+  SKIP: no VLM cache
+
+[254/900] N1.2.11.4
+  SKIP: no VLM cache
+
+[255/900] N1.2.11.5
+  SKIP: no VLM cache
+
+[256/900] N1.2.12.1
+  SKIP: no VLM cache
+
+[257/900] N1.2.12.2
+  SKIP: no VLM cache
+
+[258/900] N1.2.12.3
+  SKIP: no VLM cache
+
+[259/900] N1.2.12.4
+  SKIP: no VLM cache
+
+[260/900] N1.2.12.5
+  SKIP: no VLM cache
+
+[261/900] N1.2.2.1
+  SKIP: no VLM cache
+
+[262/900] N1.2.2.2
+  SKIP: no VLM cache
+
+[263/900] N1.2.2.3
+  SKIP: no VLM cache
+
+[264/900] N1.2.2.4
+  SKIP: no VLM cache
+
+[265/900] N1.2.2.5
+  SKIP: photo not found
+
+[266/900] N1.2.3.1
+  SKIP: no VLM cache
+
+[267/900] N1.2.3.2
+  SKIP: no VLM cache
+
+[268/900] N1.2.3.3
+  SKIP: no VLM cache
+
+[269/900] N1.2.3.4
+  SKIP: no VLM cache
+
+[270/900] N1.2.3.5
+  SKIP: no VLM cache
+
+[271/900] N1.2.4.1
+  SKIP: no VLM cache
+
+[272/900] N1.2.4.2
+  SKIP: no VLM cache
+
+[273/900] N1.2.4.3
+  SKIP: no VLM cache
+
+[274/900] N1.2.4.4
+  SKIP: no VLM cache
+
+[275/900] N1.2.4.5
+  SKIP: no VLM cache
+
+[276/900] N1.2.5.1
+  SKIP: no VLM cache
+
+[277/900] N1.2.5.2
+  SKIP: no VLM cache
+
+[278/900] N1.2.5.3
+  SKIP: no VLM cache
+
+[279/900] N1.2.5.4
+  SKIP: no VLM cache
+
+[280/900] N1.2.5.5
+  SKIP: no VLM cache
+
+[281/900] N1.2.6.1
+  SKIP: no VLM cache
+
+[282/900] N1.2.6.2
+  SKIP: no VLM cache
+
+[283/900] N1.2.6.3
+  SKIP: no VLM cache
+
+[284/900] N1.2.6.4
+  SKIP: no VLM cache
+
+[285/900] N1.2.6.5
+  SKIP: no VLM cache
+
+[286/900] N1.2.7.1
+  SKIP: no VLM cache
+
+[287/900] N1.2.7.2
+  SKIP: no VLM cache
+
+[288/900] N1.2.7.3
+  SKIP: no VLM cache
+
+[289/900] N1.2.7.4
+  SKIP: no VLM cache
+
+[290/900] N1.2.7.5
+  SKIP: no VLM cache
+
+[291/900] N1.2.8.1
+  SKIP: no VLM cache
+
+[292/900] N1.2.8.2
+  SKIP: no VLM cache
+
+[293/900] N1.2.8.3
+  SKIP: no VLM cache
+
+[294/900] N1.2.8.4
+  SKIP: no VLM cache
+
+[295/900] N1.2.8.5
+  SKIP: no VLM cache
+
+[296/900] N1.2.9.1
+  SKIP: no VLM cache
+
+[297/900] N1.2.9.2
+  SKIP: no VLM cache
+
+[298/900] N1.2.9.3
+  SKIP: no VLM cache
+
+[299/900] N1.2.9.4
+  SKIP: no VLM cache
+
+[300/900] N1.2.9.5
+  SKIP: no VLM cache
+
+[301/900] N1.3.1.1
+  SKIP: no VLM cache
+
+[302/900] N1.3.1.2
+  SKIP: no VLM cache
+
+[303/900] N1.3.1.3
+  SKIP: no VLM cache
+
+[304/900] N1.3.1.4
+  SKIP: no VLM cache
+
+[305/900] N1.3.1.5
+  SKIP: no VLM cache
+
+[306/900] N1.3.10.1
+  SKIP: no VLM cache
+
+[307/900] N1.3.10.2
+  SKIP: no VLM cache
+
+[308/900] N1.3.10.3
+  SKIP: no VLM cache
+
+[309/900] N1.3.10.4
+  SKIP: no VLM cache
+
+[310/900] N1.3.10.5
+  SKIP: no VLM cache
+
+[311/900] N1.3.11.1
+  SKIP: no VLM cache
+
+[312/900] N1.3.11.2
+  SKIP: no VLM cache
+
+[313/900] N1.3.11.3
+  SKIP: no VLM cache
+
+[314/900] N1.3.11.4
+  SKIP: no VLM cache
+
+[315/900] N1.3.11.5
+  SKIP: no VLM cache
+
+[316/900] N1.3.12.1
+  SKIP: no VLM cache
+
+[317/900] N1.3.12.2
+  SKIP: no VLM cache
+
+[318/900] N1.3.12.3
+  SKIP: no VLM cache
+
+[319/900] N1.3.12.4
+  SKIP: no VLM cache
+
+[320/900] N1.3.12.5
+  SKIP: no VLM cache
+
+[321/900] N1.3.2.1
+  SKIP: no VLM cache
+
+[322/900] N1.3.2.2
+  SKIP: no VLM cache
+
+[323/900] N1.3.2.3
+  SKIP: no VLM cache
+
+[324/900] N1.3.2.4
+  SKIP: no VLM cache
+
+[325/900] N1.3.2.5
+  SKIP: no VLM cache
+
+[326/900] N1.3.3.1
+  SKIP: no VLM cache
+
+[327/900] N1.3.3.2
+  SKIP: no VLM cache
+
+[328/900] N1.3.3.3
+  SKIP: no VLM cache
+
+[329/900] N1.3.3.4
+  SKIP: no VLM cache
+
+[330/900] N1.3.3.5
+  SKIP: no VLM cache
+
+[331/900] N1.3.4.1
+  SKIP: no VLM cache
+
+[332/900] N1.3.4.2
+  SKIP: no VLM cache
+
+[333/900] N1.3.4.3
+  SKIP: no VLM cache
+
+[334/900] N1.3.4.4
+  SKIP: no VLM cache
+
+[335/900] N1.3.4.5
+  SKIP: no VLM cache
+
+[336/900] N1.3.5.1
+  SKIP: no VLM cache
+
+[337/900] N1.3.5.2
+  SKIP: no VLM cache
+
+[338/900] N1.3.5.3
+  SKIP: no VLM cache
+
+[339/900] N1.3.5.4
+  SKIP: no VLM cache
+
+[340/900] N1.3.5.5
+  SKIP: no VLM cache
+
+[341/900] N1.3.6.1
+  SKIP: no VLM cache
+
+[342/900] N1.3.6.2
+  SKIP: no VLM cache
+
+[343/900] N1.3.6.3
+  SKIP: no VLM cache
+
+[344/900] N1.3.6.4
+  SKIP: no VLM cache
+
+[345/900] N1.3.6.5
+  SKIP: no VLM cache
+
+[346/900] N1.3.7.1
+  SKIP: no VLM cache
+
+[347/900] N1.3.7.2
+  SKIP: no VLM cache
+
+[348/900] N1.3.7.3
+  SKIP: no VLM cache
+
+[349/900] N1.3.7.4
+  SKIP: no VLM cache
+
+[350/900] N1.3.7.5
+  SKIP: no VLM cache
+
+[351/900] N1.3.8.1
+  SKIP: no VLM cache
+
+[352/900] N1.3.8.2
+  SKIP: no VLM cache
+
+[353/900] N1.3.8.3
+  SKIP: no VLM cache
+
+[354/900] N1.3.8.4
+  SKIP: no VLM cache
+
+[355/900] N1.3.8.5
+  SKIP: no VLM cache
+
+[356/900] N1.3.9.1
+  SKIP: no VLM cache
+
+[357/900] N1.3.9.2
+  SKIP: no VLM cache
+
+[358/900] N1.3.9.3
+  SKIP: no VLM cache
+
+[359/900] N1.3.9.4
+  SKIP: no VLM cache
+
+[360/900] N1.3.9.5
+  SKIP: no VLM cache
+
+[361/900] N2.2.1.1
+  SKIP: no VLM cache
+
+[362/900] N2.2.1.2
+  SKIP: no VLM cache
+
+[363/900] N2.2.1.3
+  SKIP: no VLM cache
+
+[364/900] N2.2.1.4
+  SKIP: no VLM cache
+
+[365/900] N2.2.1.5
+  SKIP: no VLM cache
+
+[366/900] N2.2.2.1
+  SKIP: no VLM cache
+
+[367/900] N2.2.2.2
+  SKIP: no VLM cache
+
+[368/900] N2.2.2.3
+  SKIP: no VLM cache
+
+[369/900] N2.2.2.4
+  SKIP: no VLM cache
+
+[370/900] N2.2.2.5
+  SKIP: no VLM cache
+
+[371/900] N2.2.3.1
+  SKIP: no VLM cache
+
+[372/900] N2.2.3.2
+  SKIP: no VLM cache
+
+[373/900] N2.2.3.3
+  SKIP: no VLM cache
+
+[374/900] N2.2.3.4
+  SKIP: no VLM cache
+
+[375/900] N2.2.3.5
+  SKIP: no VLM cache
+
+[376/900] N2.2.4.1
+  SKIP: no VLM cache
+
+[377/900] N2.2.4.2
+  SKIP: no VLM cache
+
+[378/900] N2.2.4.3
+  SKIP: no VLM cache
+
+[379/900] N2.2.4.4
+  SKIP: no VLM cache
+
+[380/900] N2.2.4.5
+  SKIP: no VLM cache
+
+[381/900] N2.2.5.1
+  SKIP: no VLM cache
+
+[382/900] N2.2.5.2
+  SKIP: no VLM cache
+
+[383/900] N2.2.5.3
+  SKIP: no VLM cache
+
+[384/900] N2.2.5.4
+  SKIP: no VLM cache
+
+[385/900] N2.2.5.5
+  SKIP: no VLM cache
+
+[386/900] N2.2.6.1
+  SKIP: no VLM cache
+
+[387/900] N2.2.6.2
+  SKIP: no VLM cache
+
+[388/900] N2.2.6.3
+  SKIP: no VLM cache
+
+[389/900] N2.2.6.4
+  SKIP: no VLM cache
+
+[390/900] N2.2.6.5
+  SKIP: no VLM cache
+
+[391/900] N2.2.7.1
+  SKIP: no VLM cache
+
+[392/900] N2.2.7.2
+  SKIP: no VLM cache
+
+[393/900] N2.2.7.3
+  SKIP: no VLM cache
+
+[394/900] N2.2.7.4
+  SKIP: no VLM cache
+
+[395/900] N2.2.7.5
+  SKIP: no VLM cache
+
+[396/900] N2.2.8.1
+  SKIP: no VLM cache
+
+[397/900] N2.2.8.2
+  SKIP: no VLM cache
+
+[398/900] N2.2.8.3
+  SKIP: no VLM cache
+
+[399/900] N2.2.8.4
+  SKIP: no VLM cache
+
+[400/900] N2.2.8.5
+  SKIP: no VLM cache
+
+[401/900] N2.2.9.1
+  SKIP: no VLM cache
+
+[402/900] N2.2.9.2
+  SKIP: no VLM cache
+
+[403/900] N2.2.9.3
+  SKIP: no VLM cache
+
+[404/900] N2.2.9.4
+  SKIP: no VLM cache
+
+[405/900] N2.2.9.5
+  SKIP: no VLM cache
+
+[406/900] N2.2.10.1
+  SKIP: photo not found
+
+[407/900] N2.2.10.2
+  SKIP: photo not found
+
+[408/900] N2.2.10.3
+  SKIP: photo not found
+
+[409/900] N2.2.10.4
+  SKIP: photo not found
+
+[410/900] N2.2.10.5
+  SKIP: photo not found
+
+[411/900] N2.2.11.1
+  SKIP: no VLM cache
+
+[412/900] N2.2.11.2
+  SKIP: no VLM cache
+
+[413/900] N2.2.11.3
+  SKIP: no VLM cache
+
+[414/900] N2.2.11.4
+  SKIP: no VLM cache
+
+[415/900] N2.2.11.5
+  SKIP: no VLM cache
+
+[416/900] N2.2.12.1
+  SKIP: no VLM cache
+
+[417/900] N2.2.12.2
+  SKIP: no VLM cache
+
+[418/900] N2.2.12.3
+  SKIP: no VLM cache
+
+[419/900] N2.2.12.4
+  SKIP: no VLM cache
+
+[420/900] N2.2.12.5
+  SKIP: no VLM cache
+
+[421/900] N2.1.1.1
+  SKIP: no VLM cache
+
+[422/900] N2.1.1.2
+  SKIP: no VLM cache
+
+[423/900] N2.1.1.3
+  SKIP: no VLM cache
+
+[424/900] N2.1.1.4
+  SKIP: no VLM cache
+
+[425/900] N2.1.1.5
+  SKIP: no VLM cache
+
+[426/900] N2.1.2.1
+  SKIP: 备注='未计算' (data quality issue)
+
+[427/900] N2.1.2.2
+  SKIP: 备注='未计算' (data quality issue)
+
+[428/900] N2.1.2.3
+  SKIP: 备注='未计算' (data quality issue)
+
+[429/900] N2.1.2.4
+  SKIP: no VLM cache
+
+[430/900] N2.1.2.5
+  SKIP: no VLM cache
+
+[431/900] N2.1.2.1
+  SKIP: 备注='未计算' (data quality issue)
+
+[432/900] N2.1.2.2
+  SKIP: 备注='未计算' (data quality issue)
+
+[433/900] N2.1.2.3
+  SKIP: 备注='未计算' (data quality issue)
+
+[434/900] N2.1.3.4
+  SKIP: no VLM cache
+
+[435/900] N2.1.3.5
+  SKIP: no VLM cache
+
+[436/900] N2.1.4.1
+  SKIP: no VLM cache
+
+[437/900] N2.1.4.2
+  SKIP: no VLM cache
+
+[438/900] N2.1.4.3
+  SKIP: no VLM cache
+
+[439/900] N2.1.4.4
+  SKIP: no VLM cache
+
+[440/900] N2.1.4.5
+  SKIP: no VLM cache
+
+[441/900] N2.1.5.1
+  SKIP: no VLM cache
+
+[442/900] N2.1.5.2
+  SKIP: no VLM cache
+
+[443/900] N2.1.5.3
+  SKIP: no VLM cache
+
+[444/900] N2.1.5.4
+  SKIP: no VLM cache
+
+[445/900] N2.1.5.5
+  SKIP: no VLM cache
+
+[446/900] N2.1.6.1
+  SKIP: no VLM cache
+
+[447/900] N2.1.6.2
+  SKIP: no VLM cache
+
+[448/900] N2.1.6.3
+  SKIP: no VLM cache
+
+[449/900] N2.1.6.4
+  SKIP: no VLM cache
+
+[450/900] N2.1.6.5
+  SKIP: no VLM cache
+
+[451/900] N2.1.7.1
+  SKIP: no VLM cache
+
+[452/900] N2.1.7.2
+  SKIP: no VLM cache
+
+[453/900] N2.1.7.3
+  SKIP: no VLM cache
+
+[454/900] N2.1.7.4
+  SKIP: no VLM cache
+
+[455/900] N2.1.7.5
+  SKIP: no VLM cache
+
+[456/900] N2.1.8.1
+  SKIP: no VLM cache
+
+[457/900] N2.1.8.2
+  SKIP: no VLM cache
+
+[458/900] N2.1.8.3
+  SKIP: no VLM cache
+
+[459/900] N2.1.8.4
+  SKIP: no VLM cache
+
+[460/900] N2.1.8.5
+  SKIP: no VLM cache
+
+[461/900] N2.1.9.1
+  SKIP: no VLM cache
+
+[462/900] N2.1.9.2
+  SKIP: no VLM cache
+
+[463/900] N2.1.9.3
+  SKIP: no VLM cache
+
+[464/900] N2.1.9.4
+  SKIP: no VLM cache
+
+[465/900] N2.1.9.5
+  SKIP: no VLM cache
+
+[466/900] N2.1.10.1
+  SKIP: photo not found
+
+[467/900] N2.1.10.2
+  SKIP: no VLM cache
+
+[468/900] N2.1.10.3
+  SKIP: no VLM cache
+
+[469/900] N2.1.10.4
+  SKIP: no VLM cache
+
+[470/900] N2.1.10.5
+  SKIP: no VLM cache
+
+[471/900] N2.1.11.1
+  SKIP: no VLM cache
+
+[472/900] N2.1.11.2
+  SKIP: no VLM cache
+
+[473/900] N2.1.11.3
+  SKIP: no VLM cache
+
+[474/900] N2.1.11.4
+  SKIP: no VLM cache
+
+[475/900] N2.1.11.5
+  SKIP: photo not found
+
+[476/900] N2.1.12.1
+  SKIP: photo not found
+
+[477/900] N2.1.12.2
+  SKIP: photo not found
+
+[478/900] N2.1.12.3
+  SKIP: no VLM cache
+
+[479/900] N2.1.12.4
+  SKIP: no VLM cache
+
+[480/900] N2.1.12.5
+  SKIP: photo not found
+
+[481/900] N2.3.1.1
+  SKIP: no VLM cache
+
+[482/900] N2.3.1.2
+  SKIP: no VLM cache
+
+[483/900] N2.3.1.3
+  SKIP: no VLM cache
+
+[484/900] N2.3.1.4
+  SKIP: no VLM cache
+
+[485/900] N2.3.1.5
+  SKIP: no VLM cache
+
+[486/900] N2.3.2.1
+  SKIP: no VLM cache
+
+[487/900] N2.3.2.2
+  SKIP: no VLM cache
+
+[488/900] N2.3.2.3
+  SKIP: no VLM cache
+
+[489/900] N2.3.2.4
+  SKIP: no VLM cache
+
+[490/900] N2.3.2.5
+  SKIP: no VLM cache
+
+[491/900] N2.3.3.1
+  SKIP: no VLM cache
+
+[492/900] N2.3.3.2
+  SKIP: no VLM cache
+
+[493/900] N2.3.3.3
+  SKIP: no VLM cache
+
+[494/900] N2.3.3.4
+  SKIP: no VLM cache
+
+[495/900] N2.3.3.5
+  SKIP: no VLM cache
+
+[496/900] N2.3.4.1
+  SKIP: no VLM cache
+
+[497/900] N2.3.4.2
+  SKIP: no VLM cache
+
+[498/900] N2.3.4.3
+  SKIP: no VLM cache
+
+[499/900] N2.3.4.4
+  SKIP: no VLM cache
+
+[500/900] N2.3.4.5
+  SKIP: no VLM cache
+
+[501/900] N2.3.5.1
+  SKIP: no VLM cache
+
+[502/900] N2.3.5.2
+  SKIP: no VLM cache
+
+[503/900] N2.3.5.3
+  SKIP: no VLM cache
+
+[504/900] N2.3.5.4
+  SKIP: no VLM cache
+
+[505/900] N2.3.5.5
+  SKIP: no VLM cache
+
+[506/900] N2.3.6.1
+  SKIP: no VLM cache
+
+[507/900] N2.3.6.2
+  SKIP: no VLM cache
+
+[508/900] N2.3.6.3
+  SKIP: no VLM cache
+
+[509/900] N2.3.6.4
+  SKIP: no VLM cache
+
+[510/900] N2.3.6.5
+  SKIP: no VLM cache
+
+[511/900] N2.3.7.1
+  SKIP: 备注='缺照片' (data quality issue)
+
+[512/900] N2.3.7.2
+  SKIP: no VLM cache
+
+[513/900] N2.3.7.3
+  SKIP: no VLM cache
+
+[514/900] N2.3.7.4
+  SKIP: no VLM cache
+
+[515/900] N2.3.7.5
+  SKIP: no VLM cache
+
+[516/900] N2.3.8.1
+  SKIP: no VLM cache
+
+[517/900] N2.3.8.2
+  SKIP: no VLM cache
+
+[518/900] N2.3.8.3
+  SKIP: no VLM cache
+
+[519/900] N2.3.8.4
+  SKIP: no VLM cache
+
+[520/900] N2.3.8.5
+  SKIP: no VLM cache
+
+[521/900] N2.3.9.1
+  SKIP: no VLM cache
+
+[522/900] N2.3.9.2
+  SKIP: no VLM cache
+
+[523/900] N2.3.9.3
+  SKIP: no VLM cache
+
+[524/900] N2.3.9.4
+  SKIP: no VLM cache
+
+[525/900] N2.3.9.5
+  SKIP: no VLM cache
+
+[526/900] N2.3.10.1
+  SKIP: no VLM cache
+
+[527/900] N2.3.10.2
+  SKIP: no VLM cache
+
+[528/900] N2.3.10.3
+  SKIP: no VLM cache
+
+[529/900] N2.3.10.4
+  SKIP: no VLM cache
+
+[530/900] N2.3.10.5
+  SKIP: no VLM cache
+
+[531/900] N2.3.11.1
+  SKIP: no VLM cache
+
+[532/900] N2.3.11.2
+  SKIP: no VLM cache
+
+[533/900] N2.3.11.3
+  SKIP: no VLM cache
+
+[534/900] N2.3.11.4
+  SKIP: no VLM cache
+
+[535/900] N2.3.11.5
+  SKIP: no VLM cache
+
+[536/900] N2.3.12.1
+  SKIP: no VLM cache
+
+[537/900] N2.3.12.2
+  SKIP: no VLM cache
+
+[538/900] N2.3.12.3
+  SKIP: no VLM cache
+
+[539/900] N2.3.12.4
+  SKIP: no VLM cache
+
+[540/900] N2.3.12.5
+  SKIP: no VLM cache
+
+[541/900] N3.1.1.1
+  SKIP: no VLM cache
+
+[542/900] N3.1.1.2
+  SKIP: no VLM cache
+
+[543/900] N3.1.1.3
+  SKIP: no VLM cache
+
+[544/900] N3.1.1.4
+  SKIP: no VLM cache
+
+[545/900] N3.1.1.5
+  SKIP: no VLM cache
+
+[546/900] N3.1.2.1
+  SKIP: no VLM cache
+
+[547/900] N3.1.2.2
+  SKIP: no VLM cache
+
+[548/900] N3.1.2.3
+  SKIP: no VLM cache
+
+[549/900] N3.1.2.4
+  SKIP: no VLM cache
+
+[550/900] N3.1.2.5
+  SKIP: no VLM cache
+
+[551/900] N3.1.3.1
+  SKIP: no VLM cache
+
+[552/900] N3.1.3.2
+  SKIP: no VLM cache
+
+[553/900] N3.1.3.3
+  SKIP: no VLM cache
+
+[554/900] N3.1.3.4
+  SKIP: no VLM cache
+
+[555/900] N3.1.3.5
+  SKIP: no VLM cache
+
+[556/900] N3.1.4.1
+  SKIP: no VLM cache
+
+[557/900] N3.1.4.2
+  SKIP: no VLM cache
+
+[558/900] N3.1.4.3
+  SKIP: no VLM cache
+
+[559/900] N3.1.4.4
+  SKIP: photo not found
+
+[560/900] N3.1.4.5
+  SKIP: photo not found
+
+[561/900] N3.1.5.1
+  SKIP: no VLM cache
+
+[562/900] N3.1.5.2
+  SKIP: no VLM cache
+
+[563/900] N3.1.5.3
+  SKIP: no VLM cache
+
+[564/900] N3.1.5.4
+  SKIP: no VLM cache
+
+[565/900] N3.1.5.5
+  SKIP: no VLM cache
+
+[566/900] N3.1.6.1
+  SKIP: no VLM cache
+
+[567/900] N3.1.6.2
+  SKIP: no VLM cache
+
+[568/900] N3.1.6.3
+  SKIP: photo not found
+
+[569/900] N3.1.6.4
+  SKIP: photo not found
+
+[570/900] N3.1.6.5
+  SKIP: photo not found
+
+[571/900] N3.1.7.1
+  SKIP: no VLM cache
+
+[572/900] N3.1.7.2
+  SKIP: no VLM cache
+
+[573/900] N3.1.7.3
+  SKIP: no VLM cache
+
+[574/900] N3.1.7.4
+  SKIP: no VLM cache
+
+[575/900] N3.1.7.5
+  SKIP: no VLM cache
+
+[576/900] N3.1.8.1
+  SKIP: no VLM cache
+
+[577/900] N3.1.8.2
+  SKIP: no VLM cache
+
+[578/900] N3.1.8.3
+  SKIP: no VLM cache
+
+[579/900] N3.1.8.4
+  SKIP: no VLM cache
+
+[580/900] N3.1.8.5
+  SKIP: no VLM cache
+
+[581/900] N3.1.9.1
+  SKIP: no VLM cache
+
+[582/900] N3.1.9.2
+  SKIP: no VLM cache
+
+[583/900] N3.1.9.3
+  SKIP: no VLM cache
+
+[584/900] N3.1.9.4
+  SKIP: no VLM cache
+
+[585/900] N3.1.9.5
+  SKIP: no VLM cache
+
+[586/900] N3.1.10.1
+  SKIP: no VLM cache
+
+[587/900] N3.1.10.2
+  SKIP: no VLM cache
+
+[588/900] N3.1.10.3
+  SKIP: no VLM cache
+
+[589/900] N3.1.10.4
+  SKIP: no VLM cache
+
+[590/900] N3.1.10.5
+  SKIP: no VLM cache
+
+[591/900] N3.1.11.1
+  SKIP: no VLM cache
+
+[592/900] N3.1.11.2
+  SKIP: no VLM cache
+
+[593/900] N3.1.11.3
+  SKIP: no VLM cache
+
+[594/900] N3.1.11.4
+  SKIP: no VLM cache
+
+[595/900] N3.1.11.5
+  SKIP: no VLM cache
+
+[596/900] N3.1.12.1
+  SKIP: no VLM cache
+
+[597/900] N3.1.12.2
+  SKIP: no VLM cache
+
+[598/900] N3.1.12.3
+  SKIP: no VLM cache
+
+[599/900] N3.1.12.4
+  SKIP: no VLM cache
+
+[600/900] N3.1.12.5
+  SKIP: no VLM cache
+
+[601/900] N3.2.1.1
+  SKIP: no VLM cache
+
+[602/900] N3.2.1.2
+  SKIP: no VLM cache
+
+[603/900] N3.2.1.3
+  SKIP: no VLM cache
+
+[604/900] N3.2.1.4
+  SKIP: no VLM cache
+
+[605/900] N3.2.1.5
+  SKIP: no VLM cache
+
+[606/900] N3.2.2.1
+  SKIP: no VLM cache
+
+[607/900] N3.2.2.2
+  SKIP: no VLM cache
+
+[608/900] N3.2.2.3
+  SKIP: no VLM cache
+
+[609/900] N3.2.2.4
+  SKIP: no VLM cache
+
+[610/900] N3.2.2.5
+  SKIP: no VLM cache
+
+[611/900] N3.2.3.1
+  SKIP: no VLM cache
+
+[612/900] N3.2.3.2
+  SKIP: no VLM cache
+
+[613/900] N3.2.3.3
+  SKIP: no VLM cache
+
+[614/900] N3.2.3.4
+  SKIP: no VLM cache
+
+[615/900] N3.2.3.5
+  SKIP: no VLM cache
+
+[616/900] N3.2.4.1
+  SKIP: no VLM cache
+
+[617/900] N3.2.4.2
+  SKIP: no VLM cache
+
+[618/900] N3.2.4.3
+  SKIP: no VLM cache
+
+[619/900] N3.2.4.4
+  SKIP: no VLM cache
+
+[620/900] N3.2.4.5
+  SKIP: no VLM cache
+
+[621/900] N3.2.5.1
+  SKIP: no VLM cache
+
+[622/900] N3.2.5.2
+  SKIP: no VLM cache
+
+[623/900] N3.2.5.3
+  SKIP: no VLM cache
+
+[624/900] N3.2.5.4
+  SKIP: no VLM cache
+
+[625/900] N3.2.5.5
+  SKIP: no VLM cache
+
+[626/900] N3.2.6.1
+  SKIP: no VLM cache
+
+[627/900] N3.2.6.2
+  SKIP: no VLM cache
+
+[628/900] N3.2.6.3
+  SKIP: no VLM cache
+
+[629/900] N3.2.6.4
+  SKIP: no VLM cache
+
+[630/900] N3.2.6.5
+  SKIP: no VLM cache
+
+[631/900] N3.2.7.1
+  SKIP: no VLM cache
+
+[632/900] N3.2.7.2
+  SKIP: no VLM cache
+
+[633/900] N3.2.7.3
+  SKIP: photo not found
+
+[634/900] N3.2.7.4
+  SKIP: no VLM cache
+
+[635/900] N3.2.7.5
+  SKIP: no VLM cache
+
+[636/900] N3.2.8.1
+  SKIP: no VLM cache
+
+[637/900] N3.2.8.2
+  SKIP: no VLM cache
+
+[638/900] N3.2.8.3
+  SKIP: no VLM cache
+
+[639/900] N3.2.8.4
+  SKIP: 备注='缺照片' (data quality issue)
+
+[640/900] N3.2.8.5
+  SKIP: no VLM cache
+
+[641/900] N3.2.9.1
+  SKIP: no VLM cache
+
+[642/900] N3.2.9.2
+  SKIP: no VLM cache
+
+[643/900] N3.2.9.3
+  SKIP: no VLM cache
+
+[644/900] N3.2.9.4
+  SKIP: no VLM cache
+
+[645/900] N3.2.9.5
+  SKIP: no VLM cache
+
+[646/900] N3.2.10.1
+  SKIP: no VLM cache
+
+[647/900] N3.2.10.2
+  SKIP: no VLM cache
+
+[648/900] N3.2.10.3
+  SKIP: no VLM cache
+
+[649/900] N3.2.10.4
+  SKIP: no VLM cache
+
+[650/900] N3.2.10.5
+  SKIP: no VLM cache
+
+[651/900] N3.2.11.1
+  SKIP: no VLM cache
+
+[652/900] N3.2.11.2
+  SKIP: no VLM cache
+
+[653/900] N3.2.11.3
+  SKIP: no VLM cache
+
+[654/900] N3.2.11.4
+  SKIP: no VLM cache
+
+[655/900] N3.2.11.5
+  SKIP: no VLM cache
+
+[656/900] N3.2.12.1
+  SKIP: 备注='未计算' (data quality issue)
+
+[657/900] N3.2.12.2
+  SKIP: 备注='未计算' (data quality issue)
+
+[658/900] N3.2.12.3
+  SKIP: 备注='未计算' (data quality issue)
+
+[659/900] N3.2.12.4
+  SKIP: 备注='未计算' (data quality issue)
+
+[660/900] N3.2.12.5
+  SKIP: 备注='缺照片' (data quality issue)
+
+[661/900] N3.3.1.1
+  SKIP: no VLM cache
+
+[662/900] N3.3.1.2
+  SKIP: no VLM cache
+
+[663/900] N3.3.1.3
+  SKIP: no VLM cache
+
+[664/900] N3.3.1.4
+  SKIP: no VLM cache
+
+[665/900] N3.3.1.5
+  SKIP: 备注='未计算' (data quality issue)
+
+[666/900] N3.3.2.1
+  SKIP: no VLM cache
+
+[667/900] N3.3.2.2
+  SKIP: no VLM cache
+
+[668/900] N3.3.2.3
+  SKIP: no VLM cache
+
+[669/900] N3.3.2.4
+  SKIP: no VLM cache
+
+[670/900] N3.3.2.5
+  SKIP: no VLM cache
+
+[671/900] N3.3.3.1
+  SKIP: no VLM cache
+
+[672/900] N3.3.3.2
+  SKIP: no VLM cache
+
+[673/900] N3.3.3.3
+  SKIP: no VLM cache
+
+[674/900] N3.3.3.4
+  SKIP: no VLM cache
+
+[675/900] N3.3.3.5
+  SKIP: no VLM cache
+
+[676/900] N3.3.4.1
+  SKIP: no VLM cache
+
+[677/900] N3.3.4.2
+  SKIP: no VLM cache
+
+[678/900] N3.3.4.3
+  SKIP: no VLM cache
+
+[679/900] N3.3.4.4
+  SKIP: no VLM cache
+
+[680/900] N3.3.4.5
+  SKIP: no VLM cache
+
+[681/900] N3.3.5.1
+  SKIP: no VLM cache
+
+[682/900] N3.3.5.2
+  SKIP: no VLM cache
+
+[683/900] N3.3.5.3
+  SKIP: no VLM cache
+
+[684/900] N3.3.5.4
+  SKIP: no VLM cache
+
+[685/900] N3.3.5.5
+  SKIP: no VLM cache
+
+[686/900] N3.3.6.1
+  SKIP: no VLM cache
+
+[687/900] N3.3.6.2
+  SKIP: no VLM cache
+
+[688/900] N3.3.6.3
+  SKIP: no VLM cache
+
+[689/900] N3.3.6.4
+  SKIP: no VLM cache
+
+[690/900] N3.3.6.5
+  SKIP: no VLM cache
+
+[691/900] N3.3.7.1
+  SKIP: no VLM cache
+
+[692/900] N3.3.7.2
+  SKIP: no VLM cache
+
+[693/900] N3.3.7.3
+  SKIP: no VLM cache
+
+[694/900] N3.3.7.4
+  SKIP: no VLM cache
+
+[695/900] N3.3.7.5
+  SKIP: no VLM cache
+
+[696/900] N3.3.8.1
+  SKIP: no VLM cache
+
+[697/900] N3.3.8.2
+  SKIP: no VLM cache
+
+[698/900] N3.3.8.3
+  SKIP: no VLM cache
+
+[699/900] N3.3.8.4
+  SKIP: no VLM cache
+
+[700/900] N3.3.8.5
+  SKIP: no VLM cache
+
+[701/900] N3.3.9.1
+  SKIP: no VLM cache
+
+[702/900] N3.3.9.2
+  SKIP: no VLM cache
+
+[703/900] N3.3.9.3
+  SKIP: no VLM cache
+
+[704/900] N3.3.9.4
+  SKIP: no VLM cache
+
+[705/900] N3.3.9.5
+  SKIP: no VLM cache
+
+[706/900] N3.3.10.1
+  SKIP: no VLM cache
+
+[707/900] N3.3.10.2
+  SKIP: no VLM cache
+
+[708/900] N3.3.10.3
+  SKIP: no VLM cache
+
+[709/900] N3.3.10.4
+  SKIP: no VLM cache
+
+[710/900] N3.3.10.5
+  SKIP: no VLM cache
+
+[711/900] N3.3.11.1
+  SKIP: no VLM cache
+
+[712/900] N3.3.11.2
+  SKIP: no VLM cache
+
+[713/900] N3.3.11.3
+  SKIP: no VLM cache
+
+[714/900] N3.3.11.4
+  SKIP: no VLM cache
+
+[715/900] N3.3.11.5
+  SKIP: no VLM cache
+
+[716/900] N3.3.12.1
+  SKIP: no VLM cache
+
+[717/900] N3.3.12.2
+  SKIP: no VLM cache
+
+[718/900] N3.3.12.3
+  SKIP: no VLM cache
+
+[719/900] N3.3.12.4
+  SKIP: no VLM cache
+
+[720/900] N3.3.12.5
+  SKIP: no VLM cache
+
+[721/900] N4.1.1.1
+  SKIP: no VLM cache
+
+[722/900] N4.1.1.2
+  SKIP: no VLM cache
+
+[723/900] N4.1.1.3
+  SKIP: no VLM cache
+
+[724/900] N4.1.1.4
+  SKIP: no VLM cache
+
+[725/900] N4.1.1.5
+  SKIP: no VLM cache
+
+[726/900] N4.1.2.1
+  SKIP: 备注='未计算' (data quality issue)
+
+[727/900] N4.1.2.2
+  SKIP: no VLM cache
+
+[728/900] N4.1.2.3
+  SKIP: no VLM cache
+
+[729/900] N4.1.2.4
+  SKIP: no VLM cache
+
+[730/900] N4.1.2.5
+  SKIP: 备注='未计算' (data quality issue)
+
+[731/900] N4.1.3.1
+  SKIP: 备注='单株角果数栏未含主花序角果数' (data quality issue)
+
+[732/900] N4.1.3.2
+  SKIP: no VLM cache
+
+[733/900] N4.1.3.3
+  SKIP: no VLM cache
+
+[734/900] N4.1.3.4
+  SKIP: no VLM cache
+
+[735/900] N4.1.3.5
+  SKIP: no VLM cache
+
+[736/900] N4.1.4.1
+  SKIP: no VLM cache
+
+[737/900] N4.1.4.2
+  SKIP: no VLM cache
+
+[738/900] N4.1.4.3
+  SKIP: no VLM cache
+
+[739/900] N4.1.4.4
+  SKIP: no VLM cache
+
+[740/900] N4.1.4.5
+  SKIP: no VLM cache
+
+[741/900] N4.1.5.1
+  SKIP: no VLM cache
+
+[742/900] N4.1.5.2
+  SKIP: no VLM cache
+
+[743/900] N4.1.5.3
+  SKIP: no VLM cache
+
+[744/900] N4.1.5.4
+  SKIP: no VLM cache
+
+[745/900] N4.1.5.5
+  SKIP: no VLM cache
+
+[746/900] N4.1.6.1
+  SKIP: 备注='未计算' (data quality issue)
+
+[747/900] N4.1.6.2
+  SKIP: no VLM cache
+
+[748/900] N4.1.6.3
+  SKIP: no VLM cache
+
+[749/900] N4.1.6.4
+  SKIP: no VLM cache
+
+[750/900] N4.1.6.5
+  SKIP: no VLM cache
+
+[751/900] N4.1.7.1
+  SKIP: no VLM cache
+
+[752/900] N4.1.7.2
+  SKIP: no VLM cache
+
+[753/900] N4.1.7.3
+  SKIP: no VLM cache
+
+[754/900] N4.1.7.4
+  SKIP: no VLM cache
+
+[755/900] N4.1.7.5
+  SKIP: no VLM cache
+
+[756/900] N4.1.8.1
+  SKIP: no VLM cache
+
+[757/900] N4.1.8.2
+  SKIP: no VLM cache
+
+[758/900] N4.1.8.3
+  SKIP: no VLM cache
+
+[759/900] N4.1.8.4
+  SKIP: no VLM cache
+
+[760/900] N4.1.8.5
+  SKIP: 备注='未计算' (data quality issue)
+
+[761/900] N4.1.9.1
+  SKIP: no VLM cache
+
+[762/900] N4.1.9.2
+  SKIP: no VLM cache
+
+[763/900] N4.1.9.3
+  SKIP: no VLM cache
+
+[764/900] N4.1.9.4
+  SKIP: no VLM cache
+
+[765/900] N4.1.9.5
+  SKIP: no VLM cache
+
+[766/900] N4.1.10.1
+  SKIP: no VLM cache
+
+[767/900] N4.1.10.2
+  SKIP: no VLM cache
+
+[768/900] N4.1.10.3
+  SKIP: no VLM cache
+
+[769/900] N4.1.10.4
+  SKIP: no VLM cache
+
+[770/900] N4.1.10.5
+  SKIP: no VLM cache
+
+[771/900] N4.1.11.1
+  SKIP: no VLM cache
+
+[772/900] N4.1.11.2
+  SKIP: no VLM cache
+
+[773/900] N4.1.11.3
+  SKIP: no VLM cache
+
+[774/900] N4.1.11.4
+  SKIP: no VLM cache
+
+[775/900] N4.1.11.5
+  SKIP: no VLM cache
+
+[776/900] N4.1.12.1
+  SKIP: no VLM cache
+
+[777/900] N4.1.12.2
+  SKIP: no VLM cache
+
+[778/900] N4.1.12.3
+  SKIP: no VLM cache
+
+[779/900] N4.1.12.4
+  SKIP: no VLM cache
+
+[780/900] N4.1.12.5
+  SKIP: no VLM cache
+
+[781/900] N4.2.1.1
+  SKIP: no VLM cache
+
+[782/900] N4.2.1.2
+  SKIP: no VLM cache
+
+[783/900] N4.2.1.3
+  SKIP: no VLM cache
+
+[784/900] N4.2.1.4
+  SKIP: no VLM cache
+
+[785/900] N4.2.1.5
+  SKIP: no VLM cache
+
+[786/900] N4.2.2.1
+  SKIP: no VLM cache
+
+[787/900] N4.2.2.2
+  SKIP: no VLM cache
+
+[788/900] N4.2.2.3
+  SKIP: no VLM cache
+
+[789/900] N4.2.2.4
+  SKIP: no VLM cache
+
+[790/900] N4.2.2.5
+  SKIP: no VLM cache
+
+[791/900] N4.2.3.1
+  SKIP: no VLM cache
+
+[792/900] N4.2.3.2
+  SKIP: no VLM cache
+
+[793/900] N4.2.3.3
+  SKIP: no VLM cache
+
+[794/900] N4.2.3.4
+  SKIP: no VLM cache
+
+[795/900] N4.2.3.5
+  SKIP: no VLM cache
+
+[796/900] N4.2.4.1
+  SKIP: no VLM cache
+
+[797/900] N4.2.4.2
+  SKIP: no VLM cache
+
+[798/900] N4.2.4.3
+  SKIP: no VLM cache
+
+[799/900] N4.2.4.4
+  SKIP: no VLM cache
+
+[800/900] N4.2.4.5
+  SKIP: no VLM cache
+
+[801/900] N4.2.5.1
+  SKIP: no VLM cache
+
+[802/900] N4.2.5.2
+  SKIP: no VLM cache
+
+[803/900] N4.2.5.3
+  SKIP: no VLM cache
+
+[804/900] N4.2.5.4
+  SKIP: no VLM cache
+
+[805/900] N4.2.5.5
+  SKIP: no VLM cache
+
+[806/900] N4.2.6.1
+  SKIP: no VLM cache
+
+[807/900] N4.2.6.2
+  SKIP: no VLM cache
+
+[808/900] N4.2.6.3
+  SKIP: no VLM cache
+
+[809/900] N4.2.6.4
+  SKIP: no VLM cache
+
+[810/900] N4.2.6.5
+  SKIP: no VLM cache
+
+[811/900] N4.2.7.1
+  SKIP: photo not found
+
+[812/900] N4.2.7.2
+  SKIP: no VLM cache
+
+[813/900] N4.2.7.3
+  SKIP: no VLM cache
+
+[814/900] N4.2.7.4
+  SKIP: no VLM cache
+
+[815/900] N4.2.7.5
+  SKIP: no VLM cache
+
+[816/900] N4.2.8.1
+  SKIP: no VLM cache
+
+[817/900] N4.2.8.2
+  SKIP: no VLM cache
+
+[818/900] N4.2.8.3
+  SKIP: no VLM cache
+
+[819/900] N4.2.8.4
+  SKIP: no VLM cache
+
+[820/900] N4.2.8.5
+  SKIP: no VLM cache
+
+[821/900] N4.2.9.1
+  SKIP: 备注='未计算' (data quality issue)
+
+[822/900] N4.2.9.2
+  SKIP: 备注='未计算' (data quality issue)
+
+[823/900] N4.2.9.3
+  SKIP: 备注='未计算' (data quality issue)
+
+[824/900] N4.2.9.4
+  SKIP: 备注='未计算' (data quality issue)
+
+[825/900] N4.2.9.5
+  SKIP: 备注='未计算' (data quality issue)
+
+[826/900] N4.2.10.1
+  SKIP: 备注='未计算' (data quality issue)
+
+[827/900] N4.2.10.2
+  SKIP: no VLM cache
+
+[828/900] N4.2.10.3
+  SKIP: no VLM cache
+
+[829/900] N4.2.10.4
+  SKIP: no VLM cache
+
+[830/900] N4.2.10.5
+  SKIP: no VLM cache
+
+[831/900] N4.2.11.1
+  SKIP: no VLM cache
+
+[832/900] N4.2.11.2
+  SKIP: no VLM cache
+
+[833/900] N4.2.11.3
+  SKIP: no VLM cache
+
+[834/900] N4.2.11.4
+  SKIP: no VLM cache
+
+[835/900] N4.2.11.5
+  SKIP: no VLM cache
+
+[836/900] N4.2.12.1
+  SKIP: no VLM cache
+
+[837/900] N4.2.12.2
+  SKIP: no VLM cache
+
+[838/900] N4.2.12.3
+  SKIP: no VLM cache
+
+[839/900] N4.2.12.4
+  SKIP: no VLM cache
+
+[840/900] N4.2.12.5
+  SKIP: no VLM cache
+
+[841/900] N4.3.1.1
+  SKIP: no VLM cache
+
+[842/900] N4.3.1.2
+  SKIP: no VLM cache
+
+[843/900] N4.3.1.3
+  SKIP: no VLM cache
+
+[844/900] N4.3.1.4
+  SKIP: no VLM cache
+
+[845/900] N4.3.1.5
+  SKIP: no VLM cache
+
+[846/900] N4.3.2.1
+  SKIP: no VLM cache
+
+[847/900] N4.3.2.2
+  SKIP: no VLM cache
+
+[848/900] N4.3.2.3
+  SKIP: no VLM cache
+
+[849/900] N4.3.2.4
+  SKIP: no VLM cache
+
+[850/900] N4.3.2.5
+  SKIP: no VLM cache
+
+[851/900] N4.3.3.1
+  SKIP: no VLM cache
+
+[852/900] N4.3.3.2
+  SKIP: no VLM cache
+
+[853/900] N4.3.3.3
+  SKIP: no VLM cache
+
+[854/900] N4.3.3.4
+  SKIP: no VLM cache
+
+[855/900] N4.3.3.5
+  SKIP: no VLM cache
+
+[856/900] N4.3.4.1
+  SKIP: no VLM cache
+
+[857/900] N4.3.4.2
+  SKIP: no VLM cache
+
+[858/900] N4.3.4.3
+  SKIP: no VLM cache
+
+[859/900] N4.3.4.4
+  SKIP: no VLM cache
+
+[860/900] N4.3.4.5
+  SKIP: no VLM cache
+
+[861/900] N4.3.5.1
+  SKIP: no VLM cache
+
+[862/900] N4.3.5.2
+  SKIP: no VLM cache
+
+[863/900] N4.3.5.3
+  SKIP: no VLM cache
+
+[864/900] N4.3.5.4
+  SKIP: no VLM cache
+
+[865/900] N4.3.5.5
+  SKIP: no VLM cache
+
+[866/900] N4.3.6.1
+  SKIP: no VLM cache
+
+[867/900] N4.3.6.2
+  SKIP: no VLM cache
+
+[868/900] N4.3.6.3
+  SKIP: no VLM cache
+
+[869/900] N4.3.6.4
+  SKIP: no VLM cache
+
+[870/900] N4.3.6.5
+  SKIP: no VLM cache
+
+[871/900] N4.3.7.1
+  SKIP: no VLM cache
+
+[872/900] N4.3.7.2
+  SKIP: no VLM cache
+
+[873/900] N4.3.7.3
+  SKIP: no VLM cache
+
+[874/900] N4.3.7.4
+  SKIP: no VLM cache
+
+[875/900] N4.3.7.5
+  SKIP: no VLM cache
+
+[876/900] N4.3.8.1
+  SKIP: no VLM cache
+
+[877/900] N4.3.8.2
+  SKIP: no VLM cache
+
+[878/900] N4.3.8.3
+  SKIP: no VLM cache
+
+[879/900] N4.3.8.4
+  SKIP: no VLM cache
+
+[880/900] N4.3.8.5
+  SKIP: no VLM cache
+
+[881/900] N4.3.9.1
+  SKIP: no VLM cache
+
+[882/900] N4.3.9.2
+  SKIP: no VLM cache
+
+[883/900] N4.3.9.3
+  SKIP: no VLM cache
+
+[884/900] N4.3.9.4
+  SKIP: no VLM cache
+
+[885/900] N4.3.9.5
+  SKIP: photo not found
+
+[886/900] N4.3.10.1
+  SKIP: no VLM cache
+
+[887/900] N4.3.10.2
+  SKIP: no VLM cache
+
+[888/900] N4.3.10.3
+  SKIP: no VLM cache
+
+[889/900] N4.3.10.4
+  SKIP: no VLM cache
+
+[890/900] N4.3.10.5
+  SKIP: no VLM cache
+
+[891/900] N4.3.11.1
+  SKIP: no VLM cache
+
+[892/900] N4.3.11.2
+  SKIP: no VLM cache
+
+[893/900] N4.3.11.3
+  SKIP: no VLM cache
+
+[894/900] N4.3.11.4
+  SKIP: no VLM cache
+
+[895/900] N4.3.11.5
+  SKIP: no VLM cache
+
+[896/900] N4.3.12.1
+  SKIP: no VLM cache
+
+[897/900] N4.3.12.2
+  SKIP: no VLM cache
+
+[898/900] N4.3.12.3
+  SKIP: no VLM cache
+
+[899/900] N4.3.12.4
+  SKIP: no VLM cache
+
+[900/900] N4.3.12.5
+  SKIP: no VLM cache
+
+Results saved to: /Users/jack/cv-agent/benchmark_results.csv
+Skipped samples saved to: /Users/jack/cv-agent/benchmark_skipped.csv
+
+============================================================
+  Benchmark Summary
+============================================================
+Processed: 21, Skipped: 879
+
+--- 主花序角果 (F列) ---
+  平均准确率 = 75.4%
+  MAE  = 14.7
+  ME   = +0.4  (正=高估, 负=低估)
+  MAPE = 24.6%
+  RMSE = 17.8
+  R²   = -2.0480
+
+--- 分枝角果 (G列) ---
+  平均准确率 = 62.0%
+  MAE  = 69.9
+  ME   = +69.9  (正=高估, 负=低估)
+  MAPE = 39.1%
+  RMSE = 97.0
+  R²   = -0.6294
+
+--- 单株总角果 (H列) ---
+  平均准确率 = 72.1%
+  MAE  = 72.9
+  ME   = +70.3  (正=高估, 负=低估)
+  MAPE = 28.7%
+  RMSE = 106.7
+  R²   = -0.9491
+
+Summary saved to: /Users/jack/cv-agent/benchmark_summary.txt

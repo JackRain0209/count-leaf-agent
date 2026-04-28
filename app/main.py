@@ -4,6 +4,8 @@ FastAPI backend for rapeseed plant analysis.
 """
 
 import shutil
+import threading
+import time
 import uuid
 from pathlib import Path
 
@@ -16,6 +18,10 @@ from fastapi.staticfiles import StaticFiles
 
 from app.config import UPLOAD_DIR, RESULT_DIR, ONLINE_UPLOAD_DIR, HOST, PORT
 from app.pipeline.analyzer import analyze_plant_image_stream
+
+# ── Batch test state ──
+_batch_cancel = threading.Event()
+_batch_running = threading.Event()
 
 app = FastAPI(title="CV Agent - Plant Phenotyping", version="0.1.0")
 
@@ -57,7 +63,7 @@ async def analyze_online(payload: dict):
     """Analyze an image that already exists under online_uploads. payload: {"path": "relative/path.jpg"}"""
     rel = (payload or {}).get("path", "")
     method = (payload or {}).get("method", "skeleton")
-    if method not in ("skeleton", "graph"):
+    if method not in ("skeleton", "graph", "plantcv"):
         method = "skeleton"
     if not rel:
         raise HTTPException(400, "Missing 'path'")
@@ -125,6 +131,109 @@ def get_result(image_id: str):
     import json
     with open(result_file) as f:
         return json.load(f)
+
+
+@app.post("/api/batch_test")
+async def batch_test():
+    """Run full pipeline (graph method) on all online images. SSE stream of logs."""
+    if _batch_running.is_set():
+        raise HTTPException(409, "Batch test already running")
+
+    _batch_cancel.clear()
+    _batch_running.set()
+    method = "graph"
+
+    def _log(msg):
+        return f"data: {_json.dumps({'type': 'log', 'message': msg}, ensure_ascii=False)}\n\n"
+
+    def _stream():
+        try:
+            images = sorted([
+                p for p in ONLINE_UPLOAD_DIR.rglob("*")
+                if p.is_file() and p.suffix.lower() in _IMG_EXT
+            ])
+            total = len(images)
+            yield _log(f"=== 批量测试开始 (method={method}) ===")
+            yield _log(f"共 {total} 张图片")
+            yield _log("")
+
+            success_count = 0
+            error_count = 0
+            all_results = []
+            batch_t0 = time.time()
+
+            for idx, img_path in enumerate(images):
+                if _batch_cancel.is_set():
+                    yield _log(f"\n⛔ 已在第 {idx}/{total} 张处手动停止")
+                    break
+
+                rel = img_path.relative_to(ONLINE_UPLOAD_DIR).as_posix()
+                yield _log(f"[{idx+1}/{total}] {rel}")
+
+                t0 = time.time()
+                result_data = None
+                step_count = 0
+
+                try:
+                    for event in analyze_plant_image_stream(str(img_path), method=method):
+                        if _batch_cancel.is_set():
+                            break
+                        etype = event.get("type")
+                        if etype == "step":
+                            step_count += 1
+                            desc = event.get("description", "")
+                            if any(kw in desc for kw in ["VLM", "复核", "计数", "角果", "Pods"]):
+                                yield _log(f"  [{step_count}] {desc}")
+                        elif etype == "result":
+                            result_data = event
+                        elif etype == "error":
+                            yield _log(f"  ❌ {event.get('message', 'unknown error')}")
+                            error_count += 1
+                except Exception as e:
+                    yield _log(f"  ❌ Exception: {e}")
+                    error_count += 1
+                    continue
+
+                elapsed = round(time.time() - t0, 1)
+                if result_data:
+                    pods = result_data.get("total_pods", 0)
+                    parts = result_data.get("plant_count", 0)
+                    yield _log(f"  ✅ {parts}部件, {pods}角果, {elapsed}s")
+                    all_results.append({
+                        "image": rel, "pods": pods,
+                        "parts": parts, "time": elapsed,
+                    })
+                    success_count += 1
+
+                yield _log("")
+
+            batch_elapsed = round(time.time() - batch_t0, 1)
+            yield _log(f"{'='*50}")
+            yield _log(f"批量测试完成: 成功={success_count}, 失败={error_count}, 总计={total}")
+            if all_results:
+                total_pods = sum(r["pods"] for r in all_results)
+                avg_time = round(sum(r["time"] for r in all_results) / len(all_results), 1)
+                yield _log(f"总角果数: {total_pods}, 平均耗时: {avg_time}s/张, 总耗时: {batch_elapsed}s")
+
+            yield f"data: {_json.dumps({'type': 'batch_done', 'success': success_count, 'error': error_count, 'total': total}, ensure_ascii=False)}\n\n"
+
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
+            yield _log(f"❌ 批量测试异常: {e}")
+        finally:
+            _batch_running.clear()
+
+    return StreamingResponse(_stream(), media_type="text/event-stream")
+
+
+@app.post("/api/batch_stop")
+async def batch_stop():
+    """Emergency stop for batch test."""
+    if not _batch_running.is_set():
+        return {"status": "not_running"}
+    _batch_cancel.set()
+    return {"status": "stopping"}
 
 
 # Serve frontend (must be after API routes)
