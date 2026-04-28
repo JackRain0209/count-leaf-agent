@@ -33,9 +33,30 @@ Returns:
 import cv2
 import json
 import numpy as np
+from pathlib import Path
 
 from .vlm_counter import _get_client, _image_to_base64, _resize_for_vlm, _parse_json
 from app.config import VLM_MODEL
+
+# ─── Reference images for few-shot VLM prompting ─────────────────────────────
+
+_SUPPORT_DIR = Path(__file__).resolve().parent.parent / "support"
+_IMG_EXTS = {".png", ".jpg", ".jpeg", ".bmp", ".webp"}
+
+def _load_reference_images(max_dim: int = 512) -> list:
+    """Load and encode reference images from app/support/ as base64."""
+    if not _SUPPORT_DIR.is_dir():
+        return []
+    refs = []
+    for f in sorted(_SUPPORT_DIR.iterdir()):
+        if f.suffix.lower() not in _IMG_EXTS:
+            continue
+        img = cv2.imread(str(f))
+        if img is None:
+            continue
+        img = _resize_for_vlm(img, max_dim=max_dim)
+        refs.append(_image_to_base64(img))
+    return refs
 
 
 # ─── Build annotated image for VLM ───────────────────────────────────────────
@@ -175,9 +196,18 @@ def verify_pod_markers(
     pod_markers = [m for m in px_markers if m["type"] == "pod"]
     filtered_markers = [m for m in px_markers if m["type"] == "filtered"]
 
-    prompt = f"""你是油菜角果计数的审核专家。下面有两张图：
+    # Load reference images for dead twig examples
+    ref_images = _load_reference_images()
+    ref_note = ""
+    if ref_images:
+        ref_note = f"""\n\n📎 **参考图（枯枝样例）**：以下 {len(ref_images)} 张图片展示了典型的枯枝外观。
+请仔细观察这些枯枝的特征（暗色、细瘦、等宽、无膨大），在审核时以此为参照判断标注点是否为枯枝。\n"""
+
+    prompt = f"""你是油菜角果计数的审核专家。下面有多张图：
 - 第一张：**原始截图**（干净无标记，用于观察植株真实外观）
 - 第二张：**标注图**（带有编号标记点）
+{f'- 后面 {len(ref_images)} 张：**枯枝参考图**（展示典型枯枝外观，供你对比参照）' if ref_images else ''}
+{ref_note}
 
 标记图说明：
 - **绿色圆点 + P编号**：算法判定为"有效角果"的位置（标在角果尖端）
@@ -188,40 +218,16 @@ def verify_pod_markers(
 
 算法计数结果：有效角果 {len(pod_markers)} 个，已过滤 {len(filtered_markers)} 个
 
---- 算法原理与已知缺陷 ---
-算法通过骨架提取每个分支的**尖端**来计数。但当两个角果交叉时，尖端在骨架上融合，算法只识别出一个 → 漏掉另一个。
-
 {_POD_KNOWLEDGE}
 
 ⚠️ 重要约束：
-- 只关注两件事：**漏掉的有效角果** 和 **混在 P 标记里的枯枝**
+- 只关注一件事：**混在 P 标记里的枯枝**
 - 已标记的正常 P 标记点不需要你确认
-- 其他情况不做讨论
+- 不需要检查漏数，只检查误判
 
-请你完成以下两个审核任务：
-
-**任务 1 — 查漏（用"数果柄"方法）：**
-
-⚠️ 关键方法：不要看尖端，请看**果柄**（角果根部与主干的连接点）。
-即使两个角果在中段或尖端交叉重叠，它们从主干伸出的**果柄一定是分开的**。
-
-请你按以下步骤操作：
-1. 在原始截图中找到**主干**（最粗最长的茎）
-2. 沿主干从一端到另一端慢慢扫描
-3. 数一下主干上有多少个**果柄分叉点**（即有多少根亮黄绿色的角果从主干上伸出来）
-4. 再看标注图，数一下该区域有多少个 **P 标记**
-5. 如果果柄数 > P标记数 → 有漏检
-
-常见的交叉漏检模式：
-- **X 形交叉**：两根角果互相穿越形成 X，但主干上有 2 个分开的果柄连接点，只有 1 个 P 标记
-- **密集并排**：2-3 根角果紧挨着从主干同一侧伸出，尖端靠得很近，但基部果柄是分开的
-- **贴合平行**：一根角果几乎贴着主干或另一根角果生长，容易被忽略
-
-把漏掉的数量填入 missed_count。
-
-**任务 2 — 找枯枝：**
+**审核任务 — 找枯枝：**
 检查绿色 P 标记点中，有没有实际上是**枯枝**却没有被过滤掉的？
-判断方法：沿着该标记点往主干方向回溯，观察这条分支的外形——
+{f'请对比前面的枯枝参考图，' if ref_images else ''}判断方法：沿着该标记点往主干方向回溯，观察这条分支的外形——
 - 如果全程**粗细均匀、没有椭圆形膨大**，而且较短 → 枯枝
 - 如果中段有明显**鼓起/膨大**（纺锤形轮廓） → 有效角果，不需要报告
 如果有枯枝，请列出这些 P 编号。
@@ -229,16 +235,14 @@ def verify_pod_markers(
 ⚠️ 严格按以下 JSON 返回，不要其他文字：
 ```json
 {{
-  "missed_count": 0,
   "false_positive_ids": [],
   "reason": "简短说明审核结论"
 }}
 ```
 
 注意：
-- missed_count：漏掉的角果数量（整数，没有漏就填 0）
 - false_positive_ids：被误判为角果的 P 编号列表，如 [1, 3, 7]（没有误判就填空列表 []）
-- 宁可保守（少报漏判、少报误判），也不要过度纠正
+- 宁可保守（少报误判），也不要过度纠正
 - 如果图片模糊看不清，保持原判定即可"""
 
     print(f"[VLM PodVerify] Sending {len(markers)} markers ({len(pod_markers)} pods, "
@@ -257,6 +261,11 @@ def verify_pod_markers(
                          "image_url": {"url": f"data:image/jpeg;base64,{b64_crop}"}},
                         {"type": "image_url",
                          "image_url": {"url": f"data:image/jpeg;base64,{b64_annotated}"}},
+                        *[
+                            {"type": "image_url",
+                             "image_url": {"url": f"data:image/jpeg;base64,{ref_b64}"}}
+                            for ref_b64 in ref_images
+                        ],
                     ]
                 }
             ],
@@ -293,7 +302,6 @@ def verify_pod_markers(
             "verified_image": debug_image.copy(),
         }
 
-    missed_count = int(parsed.get("missed_count", 0))
     raw_fp = parsed.get("false_positive_ids", [])
     if not isinstance(raw_fp, list):
         raw_fp = []
@@ -310,19 +318,19 @@ def verify_pod_markers(
                 pass
     reason = parsed.get("reason", "")
 
-    # Calculate adjusted count
-    adjusted = pod_count + missed_count - len(false_positive_ids)
+    # Calculate adjusted count (only subtract false positives, no missed_count)
+    adjusted = pod_count - len(false_positive_ids)
     adjusted = max(0, adjusted)
 
-    print(f"[VLM PodVerify] missed={missed_count}, false_pos={false_positive_ids}, "
+    print(f"[VLM PodVerify] false_pos={false_positive_ids}, "
           f"original={pod_count} → adjusted={adjusted}")
 
     # Build verified image (use pixel-space markers)
     verified_img = _build_verified_image(
-        crop_bgr, px_markers, missed_count, false_positive_ids, adjusted)
+        crop_bgr, px_markers, false_positive_ids, adjusted)
 
     return {
-        "missed_count": missed_count,
+        "missed_count": 0,
         "false_positive_ids": false_positive_ids,
         "adjusted_pod_count": adjusted,
         "reason": reason,
@@ -335,7 +343,6 @@ def verify_pod_markers(
 def _build_verified_image(
     crop_bgr: np.ndarray,
     markers: list,
-    missed_count: int,
     false_positive_ids: list,
     adjusted_count: int,
 ) -> np.ndarray:
@@ -379,7 +386,7 @@ def _build_verified_image(
     fs2 = max(0.5, min(h, w) / 500)
     cv2.putText(vis, f"VLM Verified: {adjusted_count}", (5, int(25 * fs2) + 5),
                 cv2.FONT_HERSHEY_SIMPLEX, fs2, (0, 255, 255), max(1, int(fs2 * 2)))
-    detail = f"confirmed={confirmed} missed=+{missed_count} false_pos=-{len(fp_set)}"
+    detail = f"confirmed={confirmed} false_pos=-{len(fp_set)}"
     cv2.putText(vis, detail, (5, int(50 * fs2) + 5),
                 cv2.FONT_HERSHEY_SIMPLEX, fs2 * 0.6, (180, 180, 180), 1)
 

@@ -19,6 +19,7 @@ from .pod_verify_vlm import verify_pod_markers
 from .pod_counter import count_pods_on_branch as _skeleton_counter
 from .pod_counter_graph import count_pods_on_branch as _graph_counter
 from .pod_counter_plantcv import count_pods_on_branch as _plantcv_counter
+from .pod_counter_stalk import count_pods_on_branch as _stalk_counter
 from app.config import RESULT_DIR, CACHE_DIR
 
 
@@ -37,8 +38,14 @@ def analyze_plant_image_stream(image_path: str, method: str = "skeleton"):
 
     stem_name = Path(image_path).stem
     debug_dir = RESULT_DIR / stem_name
+    # Clear old step images to prevent stale cache
+    if debug_dir.exists():
+        for old_file in debug_dir.glob("step_*.png"):
+            old_file.unlink(missing_ok=True)
     debug_dir.mkdir(exist_ok=True)
     step_counter = [0]
+
+    _cache_bust = int(time.time() * 1000)
 
     def _save_step(img, description):
         step_counter[0] += 1
@@ -46,7 +53,7 @@ def analyze_plant_image_stream(image_path: str, method: str = "skeleton"):
         fpath = debug_dir / fname
         cv2.imwrite(str(fpath), img)
         rel = fpath.relative_to(RESULT_DIR)
-        url = f"/results/{rel}"
+        url = f"/results/{rel}?t={_cache_bust}"
         return {"type": "step", "step": step_counter[0], "url": url, "description": description}
 
     # Step: Original
@@ -195,6 +202,8 @@ def analyze_plant_image_stream(image_path: str, method: str = "skeleton"):
             _counter = _graph_counter
         elif method == "plantcv":
             _counter = _plantcv_counter
+        elif method == "stalk":
+            _counter = _stalk_counter
         else:
             _counter = _skeleton_counter
         print(f"[Pipeline] Counting pods on #{pid} {plabel} (method={method})...")

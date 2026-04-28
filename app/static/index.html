@@ -271,6 +271,7 @@
         <div style="margin-bottom: 12px; text-align: center; display: flex; gap: 12px; justify-content: center;">
             <button id="openDbSkeletonBtn" class="btn-primary" style="background: #38bdf8;">🦴 骨架分析</button>
             <button id="openDbGraphBtn" class="btn-primary" style="background: #a78bfa;">🔗 图论分析</button>
+            <button id="openDbStalkBtn" class="btn-primary" style="background: #fb923c;">🌾 果柄分析</button>
             <button id="openDbPlantcvBtn" class="btn-primary" style="background: #4ade80;">🌿 PlantCV 分析</button>
         </div>
         <div class="batch-bar">
@@ -541,6 +542,7 @@
         let currentMethod = 'skeleton';
         document.getElementById('openDbSkeletonBtn').addEventListener('click', () => { currentMethod = 'skeleton'; openDbModal(); });
         document.getElementById('openDbGraphBtn').addEventListener('click', () => { currentMethod = 'graph'; openDbModal(); });
+        document.getElementById('openDbStalkBtn').addEventListener('click', () => { currentMethod = 'stalk'; openDbModal(); });
         document.getElementById('openDbPlantcvBtn').addEventListener('click', () => { currentMethod = 'plantcv'; openDbModal(); });
         dbModal.querySelectorAll('[data-close]').forEach(el =>
             el.addEventListener('click', () => dbModal.classList.remove('active'))
@@ -560,9 +562,9 @@
             dbSelected.textContent = '未选择';
             dbSubmitBtn.disabled = true;
             dbPreview.innerHTML = '<div class="placeholder">← 从左侧选择一张图片查看预览</div>';
-            const mLabel = currentMethod === 'graph' ? '🔗 图论分析' : currentMethod === 'plantcv' ? '🌿 PlantCV 分析' : '🦴 骨架分析';
+            const mLabel = currentMethod === 'stalk' ? '🌾 果柄分析' : currentMethod === 'graph' ? '🔗 图论分析' : currentMethod === 'plantcv' ? '🌿 PlantCV 分析' : '🦴 骨架分析';
             document.getElementById('dbModalTitle').textContent = `📂 在线数据库 — ${mLabel}`;
-            const mShort = currentMethod === 'graph' ? '图论' : currentMethod === 'plantcv' ? 'PlantCV' : '骨架';
+            const mShort = currentMethod === 'stalk' ? '果柄' : currentMethod === 'graph' ? '图论' : currentMethod === 'plantcv' ? 'PlantCV' : '骨架';
             dbSubmitBtn.textContent = `提交${mShort}分析`;
             try {
                 const res = await fetch('/api/online_images');

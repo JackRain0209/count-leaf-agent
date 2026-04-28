@@ -317,7 +317,7 @@ def count_pods_on_branch(
     tip_endpoints = [d[0] for d in branch_data]
 
     # ── 6. Filter: adaptive outlier removal on width and area ──
-    WIDTH_RATIO = 0.55
+    WIDTH_RATIO = 0.70
     AREA_RATIO = 0.25
     MIN_BRANCHES = 4
     real_pods = []

@@ -63,7 +63,7 @@ async def analyze_online(payload: dict):
     """Analyze an image that already exists under online_uploads. payload: {"path": "relative/path.jpg"}"""
     rel = (payload or {}).get("path", "")
     method = (payload or {}).get("method", "skeleton")
-    if method not in ("skeleton", "graph", "plantcv"):
+    if method not in ("skeleton", "graph", "plantcv", "stalk"):
         method = "skeleton"
     if not rel:
         raise HTTPException(400, "Missing 'path'")
@@ -141,7 +141,7 @@ async def batch_test():
 
     _batch_cancel.clear()
     _batch_running.set()
-    method = "graph"
+    method = "stalk"
 
     def _log(msg):
         return f"data: {_json.dumps({'type': 'log', 'message': msg}, ensure_ascii=False)}\n\n"
