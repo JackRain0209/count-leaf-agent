@@ -34,29 +34,106 @@ import cv2
 import json
 import numpy as np
 from pathlib import Path
+from dataclasses import dataclass
+from typing import Dict, List, Tuple
 
 from .vlm_counter import _get_client, _image_to_base64, _resize_for_vlm, _parse_json
-from app.config import VLM_MODEL
+from app.config import VLM_MODEL, VLM_FP_CONFIDENCE_THRESHOLD
 
 # ─── Reference images for few-shot VLM prompting ─────────────────────────────
 
 _SUPPORT_DIR = Path(__file__).resolve().parent.parent / "support"
 _IMG_EXTS = {".png", ".jpg", ".jpeg", ".bmp", ".webp"}
+_DESC_EXTS = {".md", ".markdown", ".txt"}
 
-def _load_reference_images(max_dim: int = 512) -> list:
-    """Load and encode reference images from app/support/ as base64."""
+
+@dataclass
+class _SupportExample:
+    name: str
+    type: str  # "positive" or "negative"
+    description: str
+    image_b64: str
+
+
+def _parse_support_descriptions() -> Dict[str, Tuple[str, str]]:
+    """Parse description markdown/txt files in support directory.
+
+    Returns mapping from basename (without suffix) to (type, description).
+    """
+    mapping: Dict[str, Tuple[str, str]] = {}
     if not _SUPPORT_DIR.is_dir():
-        return []
-    refs = []
-    for f in sorted(_SUPPORT_DIR.iterdir()):
-        if f.suffix.lower() not in _IMG_EXTS:
+        return mapping
+
+    for desc_file in sorted(_SUPPORT_DIR.iterdir()):
+        if desc_file.suffix.lower() not in _DESC_EXTS:
             continue
-        img = cv2.imread(str(f))
+        try:
+            text = desc_file.read_text(encoding="utf-8")
+        except Exception as exc:
+            print(f"[SupportExamples] Failed to read {desc_file}: {exc}")
+            continue
+
+        for raw_line in text.splitlines():
+            line = raw_line.strip()
+            if not line or ":" not in line:
+                continue
+            key, raw_desc = line.split(":", 1)
+            key = key.strip()
+            desc = raw_desc.strip()
+            if not key or not desc:
+                continue
+
+            lower_key = key.lower()
+            if "反例" in lower_key or "negative" in lower_key:
+                ex_type = "negative"
+            elif "正例" in lower_key or "positive" in lower_key:
+                ex_type = "positive"
+            else:
+                # default to negative examples if keyword missing
+                ex_type = "positive"
+            mapping[key] = (ex_type, desc)
+
+    return mapping
+
+
+def _load_support_examples(max_dim: int = 512) -> Tuple[List[_SupportExample], List[_SupportExample]]:
+    """Load labeled support examples (positive & negative) for VLM prompting."""
+    positives: List[_SupportExample] = []
+    negatives: List[_SupportExample] = []
+
+    if not _SUPPORT_DIR.is_dir():
+        return positives, negatives
+
+    desc_map = _parse_support_descriptions()
+    if not desc_map:
+        print("[SupportExamples] No description mapping found; skipping support images")
+        return positives, negatives
+
+    for img_path in sorted(_SUPPORT_DIR.iterdir()):
+        if img_path.suffix.lower() not in _IMG_EXTS:
+            continue
+
+        stem = img_path.stem
+        if stem not in desc_map:
+            print(f"[SupportExamples] Description missing for {stem}, skipping")
+            continue
+
+        ex_type, desc = desc_map[stem]
+
+        img = cv2.imread(str(img_path))
         if img is None:
+            print(f"[SupportExamples] Failed to read image {img_path}")
             continue
         img = _resize_for_vlm(img, max_dim=max_dim)
-        refs.append(_image_to_base64(img))
-    return refs
+        b64 = _image_to_base64(img)
+
+        ex = _SupportExample(name=stem, type=ex_type, description=desc, image_b64=b64)
+        if ex_type == "negative":
+            negatives.append(ex)
+        else:
+            positives.append(ex)
+
+    return positives, negatives
 
 
 # ─── Build annotated image for VLM ───────────────────────────────────────────
@@ -196,18 +273,31 @@ def verify_pod_markers(
     pod_markers = [m for m in px_markers if m["type"] == "pod"]
     filtered_markers = [m for m in px_markers if m["type"] == "filtered"]
 
-    # Load reference images for dead twig examples
-    ref_images = _load_reference_images()
-    ref_note = ""
-    if ref_images:
-        ref_note = f"""\n\n📎 **参考图（枯枝样例）**：以下 {len(ref_images)} 张图片展示了典型的枯枝外观。
-请仔细观察这些枯枝的特征（暗色、细瘦、等宽、无膨大），在审核时以此为参照判断标注点是否为枯枝。\n"""
+    # Load support examples (positives = 枯枝, negatives = 正常角果)
+    positive_examples, negative_examples = _load_support_examples()
+
+    support_text_blocks: List[str] = []
+    if positive_examples:
+        lines = [f"📎 **枯枝正例（应当过滤）**：共 {len(positive_examples)} 张参考图。"]
+        for idx, ex in enumerate(positive_examples, 1):
+            lines.append(f"  - 正例 {idx}（{ex.name}）：{ex.description}")
+        support_text_blocks.append("\n".join(lines))
+    if negative_examples:
+        lines = [f"📎 **枯枝反例 / 正常角果（不应过滤）**：共 {len(negative_examples)} 张参考图。"]
+        for idx, ex in enumerate(negative_examples, 1):
+            lines.append(f"  - 反例 {idx}（{ex.name}）：{ex.description}")
+        support_text_blocks.append("\n".join(lines))
+
+    if support_text_blocks:
+        support_intro = "- 后面的参考图包含枯枝正例与正常角果反例，请结合描述对比判断。\n"
+        support_note = support_intro + "\n\n".join(support_text_blocks)
+    else:
+        support_note = ""
 
     prompt = f"""你是油菜角果计数的审核专家。下面有多张图：
 - 第一张：**原始截图**（干净无标记，用于观察植株真实外观）
 - 第二张：**标注图**（带有编号标记点）
-{f'- 后面 {len(ref_images)} 张：**枯枝参考图**（展示典型枯枝外观，供你对比参照）' if ref_images else ''}
-{ref_note}
+{support_note}
 
 标记图说明：
 - **绿色圆点 + P编号**：算法判定为"有效角果"的位置（标在角果尖端）
@@ -225,51 +315,88 @@ def verify_pod_markers(
 - 已标记的正常 P 标记点不需要你确认
 - 不需要检查漏数，只检查误判
 
+⚠️ **代价不对称（极其重要）**：
+- 误删 1 个真角果 = 漏过 5 个枯枝的代价
+- 默认应当**保留**，只有当你**非常确信（≥80%）**这是枯枝时才列入 false_positive_ids
+- 任何模糊、不确定、看不清、被遮挡的 P 点 → 一律保留，不要报告
+- 单独孤立的 P 点（不在密集簇里）默认保留，它们很可能是真角果
+
+**容易误判的情况（这些请保留，不要剔除）**：
+- 细长且偏暗的真角果（果荚干瘪但仍是角果）
+- 处于图像边缘 / 被遮挡 / 局部模糊的 P 点
+- 短小但中段有轻微膨大轮廓的真角果
+- 颜色与枯枝相近、但形态是纺锤形的角果
+
+**真正的枯枝特征（同时满足才算）**：
+- 沿 P 点回溯整条分支，**从基部到尖端粗细完全均匀**
+- **完全没有任何椭圆/纺锤形膨大轮廓**
+- 通常较短、笔直、像一根光秃秃的小棍
+
 **审核任务 — 找枯枝：**
 检查绿色 P 标记点中，有没有实际上是**枯枝**却没有被过滤掉的？
-{f'请对比前面的枯枝参考图，' if ref_images else ''}判断方法：沿着该标记点往主干方向回溯，观察这条分支的外形——
-- 如果全程**粗细均匀、没有椭圆形膨大**，而且较短 → 枯枝
-- 如果中段有明显**鼓起/膨大**（纺锤形轮廓） → 有效角果，不需要报告
-如果有枯枝，请列出这些 P 编号。
+{('请对比前面的枯枝正例 / 反例参考图，' if support_text_blocks else '')}
 
-⚠️ 严格按以下 JSON 返回，不要其他文字：
+请按以下两步完成：
+
+**Step 1 — 逐点形态分析**（先写出来强迫你看清楚）：
+对你怀疑是枯枝的每个 P 编号，用一句话描述其分支形态，例如：
+- "P3：分支细长笔直、粗细均匀、无膨大 → 枯枝（置信度 0.9）"
+- "P7：中段有轻微膨大但不明显 → 不确定，保留"
+
+**Step 2 — 输出 JSON**：
+基于 Step 1，把**置信度 ≥ 0.8** 的枯枝列入返回。
+
+⚠️ 严格按以下 JSON 返回（Step 1 的分析写在 reason 里）：
 ```json
 {{
-  "false_positive_ids": [],
-  "reason": "简短说明审核结论"
+  "false_positives": [
+    {{"id": 3, "confidence": 0.9}},
+    {{"id": 7, "confidence": 0.85}}
+  ],
+  "reason": "P3 笔直无膨大；P7 短小且粗细均匀..."
 }}
 ```
 
 注意：
-- false_positive_ids：被误判为角果的 P 编号列表，如 [1, 3, 7]（没有误判就填空列表 []）
-- 宁可保守（少报误判），也不要过度纠正
-- 如果图片模糊看不清，保持原判定即可"""
+- false_positives：每项必须是 {{"id": int, "confidence": float}} 的对象
+- confidence ∈ [0,1]，表示你判定该点为枯枝的把握程度
+- 没有误判就填空列表 []
+- 宁可保守（漏报误判），绝不要过度纠正
+- 兼容旧格式：如果你坚持只能输出整数 id 列表，请确保只输出你 ≥0.9 把握的"""
 
     print(f"[VLM PodVerify] Sending {len(markers)} markers ({len(pod_markers)} pods, "
           f"{len(filtered_markers)} filtered) for verification...")
 
     raw = ""
     try:
+        message_content = [
+            {"type": "text", "text": prompt},
+            {"type": "image_url",
+             "image_url": {"url": f"data:image/jpeg;base64,{b64_crop}"}},
+            {"type": "image_url",
+             "image_url": {"url": f"data:image/jpeg;base64,{b64_annotated}"}},
+        ]
+
+        for ex in positive_examples:
+            message_content.append({
+                "type": "image_url",
+                "image_url": {"url": f"data:image/jpeg;base64,{ex.image_b64}"}
+            })
+        for ex in negative_examples:
+            message_content.append({
+                "type": "image_url",
+                "image_url": {"url": f"data:image/jpeg;base64,{ex.image_b64}"}
+            })
+
         response = client.chat.completions.create(
             model=VLM_MODEL,
             messages=[
                 {
                     "role": "user",
-                    "content": [
-                        {"type": "text", "text": prompt},
-                        {"type": "image_url",
-                         "image_url": {"url": f"data:image/jpeg;base64,{b64_crop}"}},
-                        {"type": "image_url",
-                         "image_url": {"url": f"data:image/jpeg;base64,{b64_annotated}"}},
-                        *[
-                            {"type": "image_url",
-                             "image_url": {"url": f"data:image/jpeg;base64,{ref_b64}"}}
-                            for ref_b64 in ref_images
-                        ],
-                    ]
+                    "content": message_content,
                 }
             ],
-            max_tokens=500,
+            max_tokens=1200,
             temperature=0.1,
         )
         raw = response.choices[0].message.content.strip()
@@ -302,20 +429,59 @@ def verify_pod_markers(
             "verified_image": debug_image.copy(),
         }
 
-    raw_fp = parsed.get("false_positive_ids", [])
-    if not isinstance(raw_fp, list):
-        raw_fp = []
-    false_positive_ids = []
-    for x in raw_fp:
+    # 支持两种格式：
+    #   新版：false_positives = [{"id": 3, "confidence": 0.9}, ...]
+    #   旧版：false_positive_ids = [3, 7, ...]（无 confidence，按 0.9 处理）
+    raw_fp_new = parsed.get("false_positives", None)
+    raw_fp_old = parsed.get("false_positive_ids", [])
+
+    def _coerce_id(x):
         if isinstance(x, (int, float)):
-            false_positive_ids.append(int(x))
-        elif isinstance(x, str):
-            # Handle "P8", "P 8", "8" etc.
+            return int(x)
+        if isinstance(x, str):
             cleaned = x.strip().lstrip("PpFf").strip()
             try:
-                false_positive_ids.append(int(cleaned))
+                return int(cleaned)
             except ValueError:
-                pass
+                return None
+        return None
+
+    # 收集 (id, confidence) 对
+    fp_pairs: List[Tuple[int, float]] = []
+    if isinstance(raw_fp_new, list) and raw_fp_new:
+        for item in raw_fp_new:
+            if isinstance(item, dict):
+                _id = _coerce_id(item.get("id"))
+                _conf = item.get("confidence", 0.9)
+                try:
+                    _conf = float(_conf)
+                except (TypeError, ValueError):
+                    _conf = 0.9
+                if _id is not None:
+                    fp_pairs.append((_id, _conf))
+            else:
+                # 退化为裸 id
+                _id = _coerce_id(item)
+                if _id is not None:
+                    fp_pairs.append((_id, 0.9))
+    elif isinstance(raw_fp_old, list):
+        for item in raw_fp_old:
+            _id = _coerce_id(item)
+            if _id is not None:
+                fp_pairs.append((_id, 0.9))
+
+    # 应用置信度阈值过滤
+    threshold = VLM_FP_CONFIDENCE_THRESHOLD
+    kept_pairs = [(i, c) for (i, c) in fp_pairs if c >= threshold]
+    dropped_pairs = [(i, c) for (i, c) in fp_pairs if c < threshold]
+    false_positive_ids = [i for (i, _) in kept_pairs]
+
+    if dropped_pairs:
+        print(f"[VLM PodVerify] Dropped low-confidence FPs (<{threshold}): "
+              f"{dropped_pairs}")
+    if kept_pairs:
+        print(f"[VLM PodVerify] Kept FPs (>={threshold}): {kept_pairs}")
+
     reason = parsed.get("reason", "")
 
     # Calculate adjusted count (only subtract false positives, no missed_count)

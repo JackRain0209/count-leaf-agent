@@ -10,6 +10,7 @@ import numpy as np
 from pathlib import Path
 import time
 import json
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 from .vlm_counter import (
     vlm_label_plants, vlm_detect_adhesion, mask_adhesion_regions,
@@ -77,62 +78,76 @@ def analyze_plant_image_stream(image_path: str, method: str = "skeleton"):
             crop_h, crop_w = crops[pid].shape[:2]
             yield _save_step(crops[pid], f"裁剪 #{pid} {label}：{crop_w}×{crop_h} 像素")
 
-    # ── Step: VLM crop verification ──
-    # Send original + crop + metadata back to VLM, ask it to verify
-    # whether each crop is a complete, single, independent plant.
-    # Possible verdicts: keep / delete / recrop
+    # ── Step: VLM crop verification (parallel) ──
+    # Submit all verify_crop calls concurrently, then process results.
     verify_results = {}
     plants_to_remove = []
-    for p in list(plants):
-        pid = p.get("id")
-        plabel = p.get("label", "")
-        if pid not in crops:
-            continue
-        # Skip the main stem since it's not used for pod counting anyway
-        if plabel == "主干":
-            continue
-        print(f"[Pipeline] Verifying crop #{pid} {plabel}...")
-        verdict = vlm_verify_crop(
-            original_image=image,
-            crop_image=crops[pid],
-            plant=p,
-            all_plants=plants,
-        )
-        verify_results[pid] = verdict
-        action = verdict.get("action", "keep")
-        reason = verdict.get("reason", "")
-        p["verify"] = verdict
+    verify_plants = [p for p in plants
+                     if p.get("id") in crops and p.get("label", "") != "主干"]
 
-        if action == "keep":
-            yield _save_step(crops[pid],
-                             f"[#{pid} {plabel}] ✅ VLM 复核：通过 — {reason}")
-        elif action == "delete":
-            yield _save_step(crops[pid],
-                             f"[#{pid} {plabel}] ❌ VLM 复核：剔除 — {reason}")
-            plants_to_remove.append(pid)
-        elif action == "recrop":
-            new_bbox = verdict.get("new_bbox")
-            if new_bbox:
-                new_crop, new_pixel_bbox = apply_recrop(image, p, new_bbox)
-                # Recompute stem_*_local relative to new bbox if stem_*_px exists
-                ox1, oy1, ox2, oy2 = new_pixel_bbox
-                def _to_local(pt):
-                    if not pt or len(pt) != 2:
-                        return None
-                    lx = max(ox1, min(ox2 - 1, int(pt[0]))) - ox1
-                    ly = max(oy1, min(oy2 - 1, int(pt[1]))) - oy1
-                    return [lx, ly]
-                if p.get("stem_start_px"):
-                    p["stem_start_local"] = _to_local(p.get("stem_start_px"))
-                if p.get("stem_end_px"):
-                    p["stem_end_local"] = _to_local(p.get("stem_end_px"))
-                crops[pid] = new_crop
-                ch, cw = new_crop.shape[:2]
-                yield _save_step(new_crop,
-                                 f"[#{pid} {plabel}] 🔄 VLM 复核：重截 ({cw}×{ch}) — {reason}")
-            else:
+    if verify_plants:
+        print(f"[Pipeline] Verifying {len(verify_plants)} crops in parallel...")
+        with ThreadPoolExecutor(max_workers=len(verify_plants)) as executor:
+            future_map = {}
+            for p in verify_plants:
+                fut = executor.submit(
+                    vlm_verify_crop,
+                    original_image=image,
+                    crop_image=crops[p["id"]],
+                    plant=p,
+                    all_plants=plants,
+                )
+                future_map[fut] = p
+
+            for fut in as_completed(future_map):
+                p = future_map[fut]
+                pid = p.get("id")
+                plabel = p.get("label", "")
+                try:
+                    verdict = fut.result()
+                except Exception as e:
+                    print(f"[Pipeline] Verify #{pid} failed: {e}")
+                    verdict = {"action": "keep", "reason": f"verify error: {e}"}
+                verify_results[pid] = verdict
+
+        # Process results in original order (for consistent step numbering)
+        for p in verify_plants:
+            pid = p.get("id")
+            plabel = p.get("label", "")
+            verdict = verify_results.get(pid, {"action": "keep", "reason": "no result"})
+            action = verdict.get("action", "keep")
+            reason = verdict.get("reason", "")
+            p["verify"] = verdict
+
+            if action == "keep":
                 yield _save_step(crops[pid],
-                                 f"[#{pid} {plabel}] ⚠️ VLM 复核：建议重截但未给新 bbox，保留原图 — {reason}")
+                                 f"[#{pid} {plabel}] ✅ VLM 复核：通过 — {reason}")
+            elif action == "delete":
+                yield _save_step(crops[pid],
+                                 f"[#{pid} {plabel}] ❌ VLM 复核：剔除 — {reason}")
+                plants_to_remove.append(pid)
+            elif action == "recrop":
+                new_bbox = verdict.get("new_bbox")
+                if new_bbox:
+                    new_crop, new_pixel_bbox = apply_recrop(image, p, new_bbox)
+                    ox1, oy1, ox2, oy2 = new_pixel_bbox
+                    def _to_local(pt):
+                        if not pt or len(pt) != 2:
+                            return None
+                        lx = max(ox1, min(ox2 - 1, int(pt[0]))) - ox1
+                        ly = max(oy1, min(oy2 - 1, int(pt[1]))) - oy1
+                        return [lx, ly]
+                    if p.get("stem_start_px"):
+                        p["stem_start_local"] = _to_local(p.get("stem_start_px"))
+                    if p.get("stem_end_px"):
+                        p["stem_end_local"] = _to_local(p.get("stem_end_px"))
+                    crops[pid] = new_crop
+                    ch, cw = new_crop.shape[:2]
+                    yield _save_step(new_crop,
+                                     f"[#{pid} {plabel}] 🔄 VLM 复核：重截 ({cw}×{ch}) — {reason}")
+                else:
+                    yield _save_step(crops[pid],
+                                     f"[#{pid} {plabel}] ⚠️ VLM 复核：建议重截但未给新 bbox，保留原图 — {reason}")
 
     # Apply deletions
     if plants_to_remove:
@@ -192,20 +207,23 @@ def analyze_plant_image_stream(image_path: str, method: str = "skeleton"):
     #         yield _save_step(crops[pid],
     #                          f"[#{pid} {plabel}] 异株检测：未发现其他植株混入")
 
-    # Steps: Pod counting per branch
-    for p in plants:
+    # Steps: Pod counting per branch (CPU, fast)
+    if method == "graph":
+        _counter = _graph_counter
+    elif method == "plantcv":
+        _counter = _plantcv_counter
+    elif method == "stalk":
+        _counter = _stalk_counter
+    else:
+        _counter = _skeleton_counter
+
+    pod_plants = [p for p in plants
+                  if p.get("label", "") != "主干" and p.get("id") in crops]
+    pod_results_map = {}  # pid -> pod_result
+
+    for p in pod_plants:
         pid = p.get("id")
         plabel = p.get("label", "")
-        if plabel == "主干" or pid not in crops:
-            continue
-        if method == "graph":
-            _counter = _graph_counter
-        elif method == "plantcv":
-            _counter = _plantcv_counter
-        elif method == "stalk":
-            _counter = _stalk_counter
-        else:
-            _counter = _skeleton_counter
         print(f"[Pipeline] Counting pods on #{pid} {plabel} (method={method})...")
         pod_result = _counter(
             crops[pid],
@@ -214,46 +232,84 @@ def analyze_plant_image_stream(image_path: str, method: str = "skeleton"):
         )
         p["pod_count"] = pod_result.get("pod_count", 0)
         p["main_stem_length"] = pod_result.get("main_stem_length", 0)
+        pod_results_map[pid] = pod_result
 
         for step_img, step_desc in pod_result.get("step_images", []):
             yield _save_step(step_img, f"[#{pid} {plabel}] {step_desc}")
 
-        # ── VLM pod verification (decoupled post-processor) ──
+    # ── VLM pod verification (parallel) ──
+    vlm_verify_inputs = []
+    for p in pod_plants:
+        pid = p.get("id")
+        pod_result = pod_results_map[pid]
         markers = pod_result.get("markers", [])
         if markers:
-            print(f"[Pipeline] VLM verifying pods on #{pid} {plabel}...")
-            verify_result = verify_pod_markers(
-                crop_bgr=crops[pid],
-                debug_image=pod_result.get("debug_image", crops[pid]),
-                markers=markers,
-                pod_count=p["pod_count"],
-            )
-            missed = verify_result.get("missed_count", 0)
-            fp_ids = verify_result.get("false_positive_ids", [])
-            adjusted = verify_result.get("adjusted_pod_count", p["pod_count"])
-            v_reason = verify_result.get("reason", "")
+            vlm_verify_inputs.append((p, pod_result, markers))
 
-            if missed > 0 or fp_ids:
-                p["pod_count_before_vlm"] = p["pod_count"]
-                p["pod_count"] = adjusted
-                p["vlm_verify"] = {
-                    "missed": missed,
-                    "false_positives": fp_ids,
-                    "reason": v_reason,
-                }
-                change_desc = []
-                if missed > 0:
-                    change_desc.append(f"漏检 +{missed}")
-                if fp_ids:
-                    change_desc.append(f"误判 -{len(fp_ids)} (P{',P'.join(str(x) for x in fp_ids)})")
-                yield _save_step(
-                    verify_result.get("verified_image", crops[pid]),
-                    f"[#{pid} {plabel}] 🔍 VLM 角果复核：{' / '.join(change_desc)}，"
-                    f"{p['pod_count_before_vlm']} → {adjusted} — {v_reason}")
-            else:
-                yield _save_step(
-                    verify_result.get("verified_image", crops[pid]),
-                    f"[#{pid} {plabel}] ✅ VLM 角果复核：计数无调整 — {v_reason}")
+    vlm_verify_results = {}  # pid -> verify_result
+    if vlm_verify_inputs:
+        print(f"[Pipeline] VLM verifying pods on {len(vlm_verify_inputs)} branches in parallel...")
+        with ThreadPoolExecutor(max_workers=len(vlm_verify_inputs)) as executor:
+            future_map = {}
+            for p, pod_result, markers in vlm_verify_inputs:
+                pid = p.get("id")
+                fut = executor.submit(
+                    verify_pod_markers,
+                    crop_bgr=crops[pid],
+                    debug_image=pod_result.get("debug_image", crops[pid]),
+                    markers=markers,
+                    pod_count=p["pod_count"],
+                )
+                future_map[fut] = p
+
+            for fut in as_completed(future_map):
+                p = future_map[fut]
+                pid = p.get("id")
+                try:
+                    vlm_verify_results[pid] = fut.result()
+                except Exception as e:
+                    print(f"[Pipeline] VLM verify #{pid} failed: {e}")
+                    vlm_verify_results[pid] = {
+                        "missed_count": 0, "false_positive_ids": [],
+                        "adjusted_pod_count": p["pod_count"],
+                        "reason": f"VLM error: {e}",
+                        "verified_image": crops[pid].copy(),
+                    }
+
+    # Yield VLM verify results in original order
+    for p, pod_result, markers in vlm_verify_inputs:
+        pid = p.get("id")
+        plabel = p.get("label", "")
+        verify_result = vlm_verify_results.get(pid)
+        if not verify_result:
+            continue
+
+        missed = verify_result.get("missed_count", 0)
+        fp_ids = verify_result.get("false_positive_ids", [])
+        adjusted = verify_result.get("adjusted_pod_count", p["pod_count"])
+        v_reason = verify_result.get("reason", "")
+
+        if missed > 0 or fp_ids:
+            p["pod_count_before_vlm"] = p["pod_count"]
+            p["pod_count"] = adjusted
+            p["vlm_verify"] = {
+                "missed": missed,
+                "false_positives": fp_ids,
+                "reason": v_reason,
+            }
+            change_desc = []
+            if missed > 0:
+                change_desc.append(f"漏检 +{missed}")
+            if fp_ids:
+                change_desc.append(f"误判 -{len(fp_ids)} (P{',P'.join(str(x) for x in fp_ids)})")
+            yield _save_step(
+                verify_result.get("verified_image", crops[pid]),
+                f"[#{pid} {plabel}] 🔍 VLM 角果复核：{' / '.join(change_desc)}，"
+                f"{p['pod_count_before_vlm']} → {adjusted} — {v_reason}")
+        else:
+            yield _save_step(
+                verify_result.get("verified_image", crops[pid]),
+                f"[#{pid} {plabel}] ✅ VLM 角果复核：计数无调整 — {v_reason}")
 
     # Final result
     total_pods = sum(p.get("pod_count", 0) for p in plants)

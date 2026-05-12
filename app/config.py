@@ -20,6 +20,10 @@ ARK_API_KEY = os.getenv("ARK_API_KEY", "")
 ARK_API_BASE = os.getenv("ARK_API_BASE", "https://ark.cn-beijing.volces.com/api/v3")
 VLM_MODEL = os.getenv("VLM_MODEL", "ep-20260420011113-6jvmx")
 
+# VLM Pod Verify — false-positive 复核置信度阈值
+# 只有 VLM 自评 confidence >= 此值的 P 点才会被剔除，越高越保守（越少误删真角果）
+VLM_FP_CONFIDENCE_THRESHOLD = float(os.getenv("VLM_FP_CONFIDENCE_THRESHOLD", "0.8"))
+
 # Server
 HOST = os.getenv("HOST", "0.0.0.0")
 PORT = int(os.getenv("PORT", "8501"))

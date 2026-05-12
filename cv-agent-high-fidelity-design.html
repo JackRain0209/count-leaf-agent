@@ -1,0 +1,2002 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CV Agent 高保真设计稿</title>
+  <style>
+    :root {
+      --bg: #07111f;
+      --bg-soft: #0c1728;
+      --panel: rgba(11, 24, 40, 0.78);
+      --panel-strong: rgba(15, 33, 55, 0.96);
+      --panel-hover: rgba(19, 42, 69, 0.98);
+      --line: rgba(145, 173, 212, 0.16);
+      --line-strong: rgba(111, 190, 255, 0.28);
+      --text: #ecf5ff;
+      --muted: #8ca3bf;
+      --cyan: #4fd5ff;
+      --blue: #6aa7ff;
+      --green: #33d17a;
+      --amber: #ffbb54;
+      --orange: #ff8a5b;
+      --purple: #9f83ff;
+      --red: #ff6b7c;
+      --shadow: 0 24px 80px rgba(0, 0, 0, 0.38);
+      --radius-xl: 28px;
+      --radius-lg: 22px;
+      --radius-md: 16px;
+      --radius-sm: 12px;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      margin: 0;
+      min-height: 100%;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background:
+        radial-gradient(circle at 20% 0%, rgba(79, 213, 255, 0.18), transparent 24%),
+        radial-gradient(circle at 85% 10%, rgba(159, 131, 255, 0.16), transparent 22%),
+        radial-gradient(circle at 50% 100%, rgba(51, 209, 122, 0.12), transparent 25%),
+        linear-gradient(180deg, #06111f 0%, #091628 46%, #07111f 100%);
+      color: var(--text);
+    }
+
+    body {
+      display: flex;
+      overflow: hidden;
+    }
+
+    .watermark {
+      position: fixed;
+      inset: auto 40px 28px auto;
+      color: rgba(255, 255, 255, 0.08);
+      font-size: 18px;
+      font-weight: 700;
+      letter-spacing: 0.28em;
+      pointer-events: none;
+      user-select: none;
+      z-index: 0;
+    }
+
+    .sidebar {
+      width: 280px;
+      padding: 28px 20px 24px;
+      border-right: 1px solid rgba(145, 173, 212, 0.12);
+      background: linear-gradient(180deg, rgba(6, 15, 28, 0.96), rgba(8, 19, 34, 0.88));
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+      position: relative;
+      z-index: 2;
+    }
+
+    .brand {
+      padding: 18px;
+      border: 1px solid var(--line);
+      background: linear-gradient(180deg, rgba(18, 36, 59, 0.88), rgba(12, 24, 41, 0.82));
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow);
+    }
+
+    .brand-top {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      margin-bottom: 12px;
+    }
+
+    .brand-logo {
+      width: 46px;
+      height: 46px;
+      border-radius: 15px;
+      display: grid;
+      place-items: center;
+      font-size: 21px;
+      background: linear-gradient(135deg, rgba(79, 213, 255, 0.22), rgba(159, 131, 255, 0.28));
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.12);
+    }
+
+    .brand h1 {
+      margin: 0;
+      font-size: 20px;
+      letter-spacing: 0.01em;
+    }
+
+    .brand p {
+      margin: 6px 0 0;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.6;
+    }
+
+    .design-stamp {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 14px;
+      padding: 8px 10px;
+      border-radius: 999px;
+      font-size: 12px;
+      color: #d8e8ff;
+      background: rgba(79, 213, 255, 0.08);
+      border: 1px solid rgba(79, 213, 255, 0.16);
+    }
+
+    .nav-group {
+      padding: 8px;
+      background: rgba(10, 21, 38, 0.72);
+      border: 1px solid var(--line);
+      border-radius: 20px;
+    }
+
+    .nav-label {
+      padding: 10px 12px 6px;
+      color: #6f87a6;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.18em;
+    }
+
+    .nav-item {
+      width: 100%;
+      border: 0;
+      background: transparent;
+      color: #dceaff;
+      border-radius: 16px;
+      padding: 14px 14px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      cursor: pointer;
+      transition: 0.22s ease;
+      text-align: left;
+      margin-bottom: 4px;
+    }
+
+    .nav-item:hover {
+      background: rgba(255, 255, 255, 0.05);
+    }
+
+    .nav-item.active {
+      background: linear-gradient(135deg, rgba(79, 213, 255, 0.16), rgba(106, 167, 255, 0.14));
+      border: 1px solid rgba(111, 190, 255, 0.28);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.06);
+    }
+
+    .nav-icon {
+      width: 34px;
+      height: 34px;
+      border-radius: 12px;
+      display: grid;
+      place-items: center;
+      font-size: 16px;
+      background: rgba(255, 255, 255, 0.06);
+      flex-shrink: 0;
+    }
+
+    .nav-copy strong {
+      display: block;
+      font-size: 14px;
+      margin-bottom: 3px;
+    }
+
+    .nav-copy span {
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.4;
+    }
+
+    .side-footer {
+      margin-top: auto;
+      padding: 16px;
+      border-radius: 20px;
+      background: rgba(13, 26, 44, 0.9);
+      border: 1px solid var(--line);
+    }
+
+    .side-footer h3 {
+      margin: 0 0 10px;
+      font-size: 14px;
+    }
+
+    .legend {
+      display: grid;
+      gap: 10px;
+    }
+
+    .legend-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .legend-tag {
+      min-width: 74px;
+      text-align: center;
+      border-radius: 999px;
+      padding: 5px 8px;
+      font-weight: 700;
+      font-size: 11px;
+      color: #f5fbff;
+    }
+
+    .t1 { background: rgba(79, 213, 255, 0.18); }
+    .t2 { background: rgba(51, 209, 122, 0.18); }
+    .t3 { background: rgba(255, 187, 84, 0.18); }
+    .t4 { background: rgba(255, 107, 124, 0.18); }
+
+    .main {
+      flex: 1;
+      min-width: 0;
+      overflow: auto;
+      padding: 28px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .topbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 24px;
+      margin-bottom: 24px;
+    }
+
+    .headline h2 {
+      margin: 0;
+      font-size: 30px;
+      letter-spacing: -0.02em;
+    }
+
+    .headline p {
+      margin: 10px 0 0;
+      color: var(--muted);
+      font-size: 14px;
+      max-width: 920px;
+      line-height: 1.7;
+    }
+
+    .top-actions {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+
+    .badge,
+    .ghost-btn,
+    .primary-btn,
+    .chip {
+      border-radius: 999px;
+      border: 1px solid transparent;
+      padding: 11px 16px;
+      font-size: 13px;
+      font-weight: 700;
+      color: #f0f8ff;
+      background: rgba(255, 255, 255, 0.04);
+    }
+
+    .badge {
+      background: rgba(79, 213, 255, 0.08);
+      border-color: rgba(79, 213, 255, 0.18);
+      color: #b7ebff;
+    }
+
+    .ghost-btn {
+      cursor: pointer;
+      transition: 0.2s ease;
+    }
+
+    .ghost-btn:hover {
+      background: rgba(255, 255, 255, 0.08);
+      border-color: rgba(255, 255, 255, 0.12);
+    }
+
+    .primary-btn {
+      cursor: pointer;
+      color: #08111f;
+      background: linear-gradient(135deg, #62ddff, #7ca8ff);
+      box-shadow: 0 18px 32px rgba(79, 213, 255, 0.22);
+    }
+
+    .primary-btn:hover {
+      filter: brightness(1.05);
+    }
+
+    .hero {
+      display: grid;
+      grid-template-columns: 1.5fr 0.9fr;
+      gap: 20px;
+      margin-bottom: 22px;
+    }
+
+    .hero-main,
+    .hero-side,
+    .panel,
+    .metric,
+    .queue-item,
+    .sample-card,
+    .task-card,
+    .stat-card,
+    .timeline-card,
+    .log-card,
+    .table-card,
+    .editor-card,
+    .insight-card {
+      border: 1px solid var(--line);
+      background: var(--panel);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border-radius: var(--radius-xl);
+      box-shadow: var(--shadow);
+    }
+
+    .hero-main {
+      padding: 26px;
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+      min-height: 260px;
+      background:
+        radial-gradient(circle at 82% 0%, rgba(79, 213, 255, 0.18), transparent 25%),
+        linear-gradient(135deg, rgba(14, 28, 47, 0.94), rgba(10, 19, 33, 0.88));
+    }
+
+    .hero-main-top {
+      display: flex;
+      justify-content: space-between;
+      gap: 16px;
+      align-items: flex-start;
+    }
+
+    .hero-main h3 {
+      margin: 0;
+      font-size: 28px;
+      line-height: 1.2;
+      max-width: 620px;
+    }
+
+    .hero-main p {
+      margin: 10px 0 0;
+      color: #9fb5d2;
+      line-height: 1.8;
+      font-size: 14px;
+      max-width: 680px;
+    }
+
+    .algorithm-switch {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .chip {
+      cursor: pointer;
+      transition: 0.18s ease;
+      background: rgba(255,255,255,0.05);
+      border-color: rgba(255,255,255,0.06);
+      color: #d9e8ff;
+    }
+
+    .chip.active {
+      color: #08111f;
+      background: linear-gradient(135deg, #67e0ff, #7bafff);
+      border-color: transparent;
+    }
+
+    .hero-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 14px;
+    }
+
+    .metric {
+      padding: 16px 18px;
+      border-radius: 22px;
+      background: rgba(255, 255, 255, 0.04);
+    }
+
+    .metric-label {
+      color: #9ab0cc;
+      font-size: 12px;
+      margin-bottom: 8px;
+    }
+
+    .metric-value {
+      font-size: 28px;
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      margin-bottom: 6px;
+    }
+
+    .metric-sub {
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .hero-side {
+      padding: 24px;
+      display: grid;
+      gap: 16px;
+      align-content: start;
+      background: linear-gradient(180deg, rgba(17, 33, 55, 0.94), rgba(10, 20, 34, 0.92));
+    }
+
+    .score-ring {
+      position: relative;
+      width: 164px;
+      height: 164px;
+      margin: 0 auto;
+      border-radius: 50%;
+      background: conic-gradient(#62ddff 0 281deg, rgba(255,255,255,0.06) 281deg 360deg);
+      display: grid;
+      place-items: center;
+      box-shadow: inset 0 0 28px rgba(0,0,0,0.25), 0 20px 50px rgba(79,213,255,0.18);
+    }
+
+    .score-ring::before {
+      content: "";
+      width: 118px;
+      height: 118px;
+      border-radius: 50%;
+      background: #091322;
+      border: 1px solid rgba(255,255,255,0.07);
+      position: absolute;
+    }
+
+    .score-ring span {
+      position: relative;
+      font-size: 30px;
+      font-weight: 800;
+    }
+
+    .side-metrics {
+      display: grid;
+      gap: 12px;
+    }
+
+    .side-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px 14px;
+      border-radius: 16px;
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.06);
+    }
+
+    .side-row strong {
+      font-size: 13px;
+    }
+
+    .side-row span {
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .workspace-tabs {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-bottom: 18px;
+    }
+
+    .workspace-tab {
+      border: 1px solid rgba(255,255,255,0.08);
+      background: rgba(255,255,255,0.03);
+      color: #cfe1f8;
+      padding: 12px 16px;
+      border-radius: 16px;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: 0.18s ease;
+    }
+
+    .workspace-tab.active {
+      background: rgba(79, 213, 255, 0.13);
+      border-color: rgba(79, 213, 255, 0.24);
+      color: #f5fbff;
+    }
+
+    .workspace {
+      display: none;
+      gap: 18px;
+    }
+
+    .workspace.active {
+      display: grid;
+    }
+
+    .workspace-grid-2 {
+      display: grid;
+      grid-template-columns: 1.18fr 0.82fr;
+      gap: 18px;
+    }
+
+    .workspace-grid-3 {
+      display: grid;
+      grid-template-columns: 1.05fr 1fr 0.9fr;
+      gap: 18px;
+    }
+
+    .panel {
+      padding: 20px;
+    }
+
+    .panel-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 12px;
+      margin-bottom: 18px;
+    }
+
+    .panel-title h3,
+    .panel-title h4 {
+      margin: 0;
+      font-size: 18px;
+    }
+
+    .panel-title p {
+      margin: 8px 0 0;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.6;
+    }
+
+    .panel-tools {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+
+    .mini-btn {
+      padding: 9px 12px;
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 12px;
+      background: rgba(255,255,255,0.04);
+      color: #dceaff;
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .upload-visual {
+      border-radius: 24px;
+      border: 1px dashed rgba(79, 213, 255, 0.34);
+      min-height: 240px;
+      display: grid;
+      place-items: center;
+      background:
+        radial-gradient(circle at 50% 45%, rgba(79, 213, 255, 0.1), transparent 30%),
+        linear-gradient(180deg, rgba(13, 29, 48, 0.88), rgba(10, 19, 34, 0.88));
+      margin-bottom: 18px;
+      text-align: center;
+      padding: 24px;
+    }
+
+    .upload-visual strong {
+      display: block;
+      font-size: 22px;
+      margin-bottom: 10px;
+    }
+
+    .upload-visual span {
+      color: var(--muted);
+      max-width: 420px;
+      line-height: 1.8;
+      font-size: 14px;
+    }
+
+    .queue {
+      display: grid;
+      gap: 12px;
+    }
+
+    .queue-item {
+      padding: 16px;
+      border-radius: 20px;
+      background: rgba(255,255,255,0.04);
+      display: grid;
+      grid-template-columns: 1.2fr 0.85fr 0.7fr;
+      gap: 14px;
+      align-items: center;
+    }
+
+    .file-meta strong {
+      display: block;
+      font-size: 14px;
+      margin-bottom: 6px;
+    }
+
+    .file-meta span,
+    .queue-side,
+    .queue-status {
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .progress-bar {
+      width: 100%;
+      height: 8px;
+      border-radius: 999px;
+      background: rgba(255,255,255,0.06);
+      overflow: hidden;
+      margin-top: 8px;
+    }
+
+    .progress-bar i {
+      display: block;
+      height: 100%;
+      border-radius: inherit;
+      background: linear-gradient(90deg, #62ddff, #7ca8ff);
+    }
+
+    .status-pill {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 7px 10px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 800;
+    }
+
+    .s-running { color: #09202e; background: #73e4ff; }
+    .s-queued { color: #3d2704; background: #ffcf74; }
+    .s-done { color: #042717; background: #54e2a2; }
+    .s-alert { color: #390a12; background: #ff8ba0; }
+
+    .stack {
+      display: grid;
+      gap: 14px;
+    }
+
+    .stat-strip {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .stat-card {
+      padding: 16px;
+      border-radius: 18px;
+      background: rgba(255,255,255,0.04);
+    }
+
+    .stat-card b {
+      display: block;
+      font-size: 24px;
+      margin-top: 8px;
+      letter-spacing: -0.03em;
+    }
+
+    .flow-list,
+    .console-list,
+    .review-list,
+    .report-list,
+    .tag-list {
+      display: grid;
+      gap: 10px;
+    }
+
+    .flow-step,
+    .console-row,
+    .review-item,
+    .report-row,
+    .tag-pill {
+      border-radius: 16px;
+      padding: 12px 14px;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.05);
+    }
+
+    .flow-step {
+      display: flex;
+      gap: 12px;
+      align-items: flex-start;
+    }
+
+    .flow-no {
+      width: 32px;
+      height: 32px;
+      border-radius: 11px;
+      display: grid;
+      place-items: center;
+      font-size: 12px;
+      font-weight: 800;
+      color: #07111f;
+      background: linear-gradient(135deg, #67e0ff, #7baeff);
+      flex-shrink: 0;
+    }
+
+    .flow-copy strong,
+    .review-item strong,
+    .report-row strong {
+      display: block;
+      font-size: 13px;
+      margin-bottom: 6px;
+    }
+
+    .flow-copy span,
+    .review-item span,
+    .report-row span,
+    .console-row span {
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.65;
+    }
+
+    .console-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      font-family: "SFMono-Regular", ui-monospace, Menlo, monospace;
+    }
+
+    .console-row b {
+      font-size: 11px;
+      color: #9dd0ff;
+      white-space: nowrap;
+    }
+
+    .image-stage {
+      border-radius: 24px;
+      min-height: 540px;
+      overflow: hidden;
+      position: relative;
+      background:
+        linear-gradient(180deg, rgba(8, 17, 29, 0.82), rgba(8, 17, 29, 0.9)),
+        linear-gradient(135deg, rgba(98, 221, 255, 0.06), rgba(124, 168, 255, 0.04));
+      border: 1px solid rgba(255,255,255,0.06);
+    }
+
+    .stage-toolbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 16px 18px;
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+      background: rgba(255,255,255,0.03);
+    }
+
+    .toolbar-group {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .canvas-wrap {
+      padding: 18px;
+      display: grid;
+      grid-template-columns: 1fr 280px;
+      gap: 16px;
+      height: calc(100% - 69px);
+    }
+
+    .mock-canvas {
+      border-radius: 20px;
+      position: relative;
+      overflow: hidden;
+      border: 1px solid rgba(255,255,255,0.08);
+      background:
+        radial-gradient(circle at 54% 26%, rgba(110, 85, 43, 0.16), transparent 21%),
+        radial-gradient(circle at 48% 55%, rgba(49, 123, 71, 0.18), transparent 25%),
+        linear-gradient(180deg, #1b2f22 0%, #112018 52%, #0b1512 100%);
+    }
+
+    .mock-photo {
+      position: absolute;
+      inset: 0;
+      background:
+        radial-gradient(circle at 56% 18%, rgba(230, 217, 177, 0.22), transparent 14%),
+        radial-gradient(circle at 52% 62%, rgba(127, 176, 94, 0.18), transparent 19%),
+        radial-gradient(circle at 30% 70%, rgba(84, 131, 63, 0.15), transparent 13%);
+      opacity: 0.9;
+    }
+
+    .branch {
+      position: absolute;
+      background: linear-gradient(180deg, rgba(172, 150, 91, 0.96), rgba(95, 128, 66, 0.65));
+      border-radius: 999px;
+      box-shadow: 0 0 0 1px rgba(255,255,255,0.03);
+      transform-origin: top center;
+    }
+
+    .b1 { width: 10px; height: 360px; left: 46%; top: 14%; }
+    .b2 { width: 7px; height: 220px; left: 39%; top: 21%; transform: rotate(-28deg); }
+    .b3 { width: 7px; height: 200px; left: 52%; top: 25%; transform: rotate(22deg); }
+    .b4 { width: 6px; height: 140px; left: 34%; top: 44%; transform: rotate(-48deg); }
+    .b5 { width: 6px; height: 150px; left: 58%; top: 46%; transform: rotate(48deg); }
+
+    .marker {
+      position: absolute;
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+      font-size: 11px;
+      font-weight: 800;
+      box-shadow: 0 10px 22px rgba(0, 0, 0, 0.28);
+      border: 2px solid rgba(255,255,255,0.92);
+    }
+
+    .marker.p {
+      background: #22c55e;
+      color: #fff;
+    }
+
+    .marker.f {
+      background: #ef4444;
+      color: #fff;
+    }
+
+    .m1 { left: 33%; top: 31%; }
+    .m2 { left: 37%; top: 45%; }
+    .m3 { left: 41%; top: 58%; }
+    .m4 { left: 49%; top: 36%; }
+    .m5 { left: 56%; top: 29%; }
+    .m6 { left: 59%; top: 54%; }
+    .m7 { left: 64%; top: 44%; }
+    .m8 { left: 45%; top: 70%; }
+    .m9 { left: 54%; top: 68%; }
+    .m10 { left: 30%; top: 62%; }
+
+    .inspector {
+      display: grid;
+      gap: 12px;
+      align-content: start;
+    }
+
+    .insight-card {
+      padding: 14px;
+      border-radius: 18px;
+      background: rgba(255,255,255,0.04);
+    }
+
+    .insight-card h4 {
+      margin: 0 0 8px;
+      font-size: 13px;
+    }
+
+    .insight-card p,
+    .insight-card li {
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.7;
+      margin: 0;
+    }
+
+    .insight-card ul {
+      padding-left: 18px;
+      margin: 0;
+    }
+
+    .delta {
+      font-size: 26px;
+      font-weight: 800;
+      margin: 6px 0;
+    }
+
+    .review-toolbar {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-bottom: 14px;
+    }
+
+    .review-item.selected {
+      border-color: rgba(79, 213, 255, 0.26);
+      background: rgba(79, 213, 255, 0.08);
+    }
+
+    .review-grid {
+      display: grid;
+      grid-template-columns: 1.15fr 0.85fr;
+      gap: 18px;
+    }
+
+    .decision-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .decision-card {
+      padding: 14px;
+      border-radius: 18px;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.06);
+    }
+
+    .decision-card strong {
+      display: block;
+      margin-bottom: 8px;
+      font-size: 14px;
+    }
+
+    .decision-card span {
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.7;
+    }
+
+    .decision-actions {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 10px;
+      margin-top: 14px;
+    }
+
+    .decision-actions button {
+      border: 0;
+      padding: 12px 8px;
+      border-radius: 14px;
+      font-weight: 800;
+      font-size: 12px;
+      cursor: pointer;
+      color: #fff;
+    }
+
+    .btn-pass { background: linear-gradient(135deg, #2ccc77, #18a85d); }
+    .btn-recrop { background: linear-gradient(135deg, #ffbb54, #ff8a5b); }
+    .btn-reject { background: linear-gradient(135deg, #ff7187, #ed4861); }
+
+    .tag-list {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .tag-pill {
+      font-size: 12px;
+      color: #dceaff;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    .tag-pill small {
+      color: var(--muted);
+    }
+
+    .batch-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 18px;
+    }
+
+    .batch-kpis {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+
+    .timeline {
+      display: grid;
+      gap: 12px;
+    }
+
+    .timeline-card {
+      padding: 15px 16px;
+      border-radius: 18px;
+      background: rgba(255,255,255,0.04);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .timeline-copy strong {
+      display: block;
+      font-size: 13px;
+      margin-bottom: 5px;
+    }
+
+    .timeline-copy span,
+    .timeline-tag {
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .timeline-tag {
+      padding: 7px 10px;
+      border-radius: 999px;
+      background: rgba(255,255,255,0.06);
+      white-space: nowrap;
+    }
+
+    .log-card {
+      padding: 0;
+      overflow: hidden;
+    }
+
+    .log-head {
+      padding: 16px 18px;
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: rgba(255,255,255,0.03);
+    }
+
+    .log-body {
+      max-height: 360px;
+      overflow: auto;
+      padding: 16px;
+      display: grid;
+      gap: 10px;
+      background: linear-gradient(180deg, rgba(3, 8, 16, 0.68), rgba(8, 17, 29, 0.82));
+      font-family: "SFMono-Regular", ui-monospace, Menlo, monospace;
+    }
+
+    .log-line {
+      font-size: 12px;
+      line-height: 1.7;
+      color: #cae0fb;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+
+    .log-line.error { color: #ff98a6; }
+    .log-line.warn { color: #ffd48a; }
+    .log-line.good { color: #87f0c0; }
+    .log-line.info { color: #8adfff; }
+
+    .sample-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 14px;
+    }
+
+    .sample-card {
+      padding: 16px;
+      border-radius: 22px;
+      background: rgba(255,255,255,0.04);
+    }
+
+    .sample-visual {
+      height: 148px;
+      border-radius: 18px;
+      margin-bottom: 14px;
+      position: relative;
+      overflow: hidden;
+      background: linear-gradient(135deg, rgba(24, 52, 38, 0.92), rgba(12, 24, 22, 0.92));
+      border: 1px solid rgba(255,255,255,0.06);
+    }
+
+    .sample-visual.bad { background: linear-gradient(135deg, rgba(79, 59, 31, 0.92), rgba(22, 20, 18, 0.92)); }
+    .sample-visual::before,
+    .sample-visual::after {
+      content: "";
+      position: absolute;
+      border-radius: 999px;
+      background: linear-gradient(180deg, rgba(188, 170, 102, 0.95), rgba(84, 111, 61, 0.68));
+    }
+
+    .sample-visual::before {
+      width: 10px;
+      height: 120px;
+      left: 48%;
+      top: 12px;
+    }
+
+    .sample-visual::after {
+      width: 6px;
+      height: 90px;
+      left: 38%;
+      top: 34px;
+      transform: rotate(-30deg);
+    }
+
+    .sample-card h4 {
+      margin: 0 0 8px;
+      font-size: 15px;
+    }
+
+    .sample-card p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.75;
+    }
+
+    .sample-meta {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 14px;
+      color: var(--muted);
+      font-size: 11px;
+    }
+
+    .table-card {
+      padding: 0;
+      overflow: hidden;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    th,
+    td {
+      padding: 14px 16px;
+      text-align: left;
+      font-size: 13px;
+      border-bottom: 1px solid rgba(255,255,255,0.05);
+    }
+
+    th {
+      color: #9eb6d4;
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      background: rgba(255,255,255,0.03);
+    }
+
+    td {
+      color: #eaf4ff;
+    }
+
+    tr:hover td {
+      background: rgba(255,255,255,0.02);
+    }
+
+    .cell-muted {
+      color: var(--muted);
+    }
+
+    .cell-score.good { color: #7fe7b8; }
+    .cell-score.warn { color: #ffd48a; }
+    .cell-score.bad { color: #ff95a4; }
+
+    .report-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 18px;
+    }
+
+    .editor-card {
+      padding: 20px;
+      border-radius: 24px;
+      background: rgba(255,255,255,0.04);
+    }
+
+    .editor-shell {
+      border-radius: 18px;
+      background: rgba(7, 17, 31, 0.86);
+      border: 1px solid rgba(255,255,255,0.06);
+      padding: 16px;
+      min-height: 310px;
+      color: #d9e9ff;
+      font-size: 13px;
+      line-height: 1.8;
+      white-space: pre-wrap;
+    }
+
+    .report-list {
+      margin-top: 14px;
+    }
+
+    .report-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .report-row i {
+      color: var(--muted);
+      font-style: normal;
+      font-size: 12px;
+      white-space: nowrap;
+    }
+
+    .footer {
+      margin-top: 22px;
+      padding: 18px 22px;
+      border-radius: 24px;
+      background: rgba(10, 21, 38, 0.72);
+      border: 1px solid var(--line);
+      color: var(--muted);
+      display: flex;
+      justify-content: space-between;
+      gap: 20px;
+      flex-wrap: wrap;
+      font-size: 12px;
+      line-height: 1.8;
+    }
+
+    .footer strong {
+      color: #dfeeff;
+    }
+
+    @media (max-width: 1440px) {
+      .hero,
+      .workspace-grid-2,
+      .workspace-grid-3,
+      .review-grid,
+      .report-grid,
+      .batch-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .canvas-wrap {
+        grid-template-columns: 1fr;
+      }
+
+      .hero-grid,
+      .batch-kpis,
+      .sample-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+
+    @media (max-width: 1180px) {
+      body {
+        overflow: auto;
+        display: block;
+      }
+
+      .sidebar {
+        width: 100%;
+        border-right: 0;
+        border-bottom: 1px solid rgba(145, 173, 212, 0.12);
+      }
+
+      .main {
+        padding: 18px;
+      }
+    }
+
+    @media (max-width: 860px) {
+      .hero-grid,
+      .stat-strip,
+      .decision-grid,
+      .decision-actions,
+      .tag-list,
+      .batch-kpis,
+      .sample-grid,
+      .report-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .queue-item {
+        grid-template-columns: 1fr;
+      }
+
+      .topbar,
+      .hero-main-top,
+      .panel-head,
+      .footer {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+
+      .watermark {
+        display: none;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="watermark">重庆舟瀚数字科技有限公司 · 高保真设计稿</div>
+
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="brand-top">
+        <div class="brand-logo">🌱</div>
+        <div>
+          <h1>CV Agent Pro</h1>
+          <p>油菜植株表型分析与智能复核平台</p>
+        </div>
+      </div>
+      <p>服务于算法展示、交互评审、业务路演与高保真视觉确认，聚焦多算法分析、批量任务、人工核对、报告闭环。</p>
+      <div class="design-stamp">重庆舟瀚数字科技有限公司 · 设计稿</div>
+    </div>
+
+    <div class="nav-group">
+      <div class="nav-label">Navigation</div>
+      <button class="nav-item active" data-view-target="overview">
+        <div class="nav-icon">🏠</div>
+        <div class="nav-copy"><strong>总览驾驶舱</strong><span>指标看板、算法状态、项目入口</span></div>
+      </button>
+      <button class="nav-item" data-view-target="analysis">
+        <div class="nav-icon">🧪</div>
+        <div class="nav-copy"><strong>单图分析台</strong><span>上传、在线图库、SSE 分析流水线</span></div>
+      </button>
+      <button class="nav-item" data-view-target="review">
+        <div class="nav-icon">🧐</div>
+        <div class="nav-copy"><strong>人工核对中心</strong><span>误判修正、重截、复核结论回填</span></div>
+      </button>
+      <button class="nav-item" data-view-target="batch">
+        <div class="nav-icon">📦</div>
+        <div class="nav-copy"><strong>批量任务中心</strong><span>批量导入、批量测试、急停和日志</span></div>
+      </button>
+      <button class="nav-item" data-view-target="assets">
+        <div class="nav-icon">🧬</div>
+        <div class="nav-copy"><strong>算法与样本库</strong><span>支持样例、阈值策略、参考图管理</span></div>
+      </button>
+      <button class="nav-item" data-view-target="reports">
+        <div class="nav-icon">📑</div>
+        <div class="nav-copy"><strong>报告与追踪</strong><span>准确率报表、结果留痕、导出</span></div>
+      </button>
+    </div>
+
+    <div class="side-footer">
+      <h3>本稿重点能力</h3>
+      <div class="legend">
+        <div class="legend-row"><span>多算法入口</span><span class="legend-tag t1">4 模式</span></div>
+        <div class="legend-row"><span>人工核对闭环</span><span class="legend-tag t2">可追踪</span></div>
+        <div class="legend-row"><span>批量测试与 GT</span><span class="legend-tag t3">指标化</span></div>
+        <div class="legend-row"><span>异常与误判修正</span><span class="legend-tag t4">可干预</span></div>
+      </div>
+    </div>
+  </aside>
+
+  <main class="main">
+    <div class="topbar">
+      <div class="headline">
+        <h2>CV Agent 油菜表型分析平台 · 高保真交互设计稿</h2>
+        <p>围绕你当前的算法链路构建：VLM 部件识别、裁剪复核、骨架 / 图论 / 果柄 / PlantCV 四算法切换、VLM 角果复核、批量测试、GT 对比、人工核对、报告导出。该页面为纯 HTML 单文件原型，可直接用于视觉评审与功能对齐。</p>
+      </div>
+      <div class="top-actions">
+        <span class="badge">重庆舟瀚数字科技有限公司</span>
+        <button class="ghost-btn">分享设计链接</button>
+        <button class="ghost-btn">导出 PNG 视图</button>
+        <button class="primary-btn">进入评审演示模式</button>
+      </div>
+    </div>
+
+    <section class="hero">
+      <div class="hero-main">
+        <div class="hero-main-top">
+          <div>
+            <span class="badge">Rapeseed Phenotyping · VLM + CV</span>
+            <h3>一个面向算法验证、生产分析与人工闭环的智能工作台</h3>
+            <p>支持单张分析、在线数据库选图、批量导入、人工核对、样本参考图管理与批量指标回看。设计上突出“状态透明”“可追溯”“便于演示”和“便于人工接管”。</p>
+          </div>
+          <div class="panel-tools">
+            <button class="mini-btn">版本 v1.0-stable-vlm</button>
+            <button class="mini-btn">SSE 实时流水</button>
+          </div>
+        </div>
+        <div class="algorithm-switch" id="algorithmSwitch">
+          <button class="chip active">骨架分析</button>
+          <button class="chip">图论分析</button>
+          <button class="chip">果柄分析</button>
+          <button class="chip">PlantCV 分析</button>
+          <button class="chip">VLM 角果复核</button>
+        </div>
+        <div class="hero-grid">
+          <div class="metric">
+            <div class="metric-label">在线图片库存</div>
+            <div class="metric-value">932</div>
+            <div class="metric-sub">支持在线预览、筛选、批量发起任务</div>
+          </div>
+          <div class="metric">
+            <div class="metric-label">GT 有效样本</div>
+            <div class="metric-value">886</div>
+            <div class="metric-sub">Excel 真值匹配，支持脏数据剔除</div>
+          </div>
+          <div class="metric">
+            <div class="metric-label">当前总体准确率</div>
+            <div class="metric-value">78.2%</div>
+            <div class="metric-sub">主枝 82.4% / 分枝 71.5%</div>
+          </div>
+          <div class="metric">
+            <div class="metric-label">单图平均耗时</div>
+            <div class="metric-value">16.8s</div>
+            <div class="metric-sub">含 VLM 识别、CV 计数与复核</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="hero-side">
+        <div class="score-ring"><span>78%</span></div>
+        <div class="side-metrics">
+          <div class="side-row"><div><strong>批量测试状态</strong><span>stalk 默认基线</span></div><strong>运行稳定</strong></div>
+          <div class="side-row"><div><strong>人工复核队列</strong><span>待处理误判样本</span></div><strong>18 条</strong></div>
+          <div class="side-row"><div><strong>Few-shot 样本</strong><span>正例 / 反例配对</span></div><strong>5 组</strong></div>
+          <div class="side-row"><div><strong>重点风险项</strong><span>尖端粘连、异株干扰</span></div><strong>2 类</strong></div>
+        </div>
+      </div>
+    </section>
+
+    <div class="workspace-tabs">
+      <button class="workspace-tab active" data-workspace="overview">总览</button>
+      <button class="workspace-tab" data-workspace="analysis">单图分析</button>
+      <button class="workspace-tab" data-workspace="review">人工核对</button>
+      <button class="workspace-tab" data-workspace="batch">批量任务</button>
+      <button class="workspace-tab" data-workspace="assets">算法与样本</button>
+      <button class="workspace-tab" data-workspace="reports">报告导出</button>
+    </div>
+
+    <section class="workspace active" id="workspace-overview">
+      <div class="workspace-grid-2">
+        <div class="panel">
+          <div class="panel-head">
+            <div class="panel-title">
+              <h3>核心工作流总览</h3>
+              <p>从导入到算法执行，再到人工校正与报告输出，尽量覆盖你当前项目能做的所有关键功能节点。</p>
+            </div>
+            <div class="panel-tools">
+              <button class="mini-btn">切换生产模式</button>
+              <button class="mini-btn">查看接口映射</button>
+            </div>
+          </div>
+          <div class="flow-list">
+            <div class="flow-step"><div class="flow-no">01</div><div class="flow-copy"><strong>批量导入 / 在线选图</strong><span>拖拽上传本地图片、从在线数据库筛选样本，支持标签、批次号、品种、重复号联动。</span></div></div>
+            <div class="flow-step"><div class="flow-no">02</div><div class="flow-copy"><strong>VLM 部件识别与裁剪</strong><span>自动标注主干、主枝、分枝，输出裁剪图并记录 bbox，异常裁剪进入人工复核队列。</span></div></div>
+            <div class="flow-step"><div class="flow-no">03</div><div class="flow-copy"><strong>多算法计数</strong><span>骨架、图论、果柄、PlantCV 四路方案可切换或并行跑分，支持关键步骤图可视化。</span></div></div>
+            <div class="flow-step"><div class="flow-no">04</div><div class="flow-copy"><strong>VLM 角果复核</strong><span>结合正例 / 反例 Few-shot 参考图，只纠正绿色 P 标记中的枯枝误判，减少过度纠正。</span></div></div>
+            <div class="flow-step"><div class="flow-no">05</div><div class="flow-copy"><strong>人工核对与回填</strong><span>支持保留、剔除、重截、备注、人工修订计数，保留操作轨迹，用于后续算法优化。</span></div></div>
+            <div class="flow-step"><div class="flow-no">06</div><div class="flow-copy"><strong>批量指标与报告闭环</strong><span>对比 Excel GT，输出总体准确率、主枝/分枝准确率、MAE、RMSE，并可按批次导出。</span></div></div>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-head">
+            <div class="panel-title">
+              <h3>实时状态卡</h3>
+              <p>适合路演时展示当前系统的稳定性、吞吐和人工闭环效率。</p>
+            </div>
+          </div>
+          <div class="stack">
+            <div class="stat-strip">
+              <div class="stat-card"><span>进行中任务</span><b>12</b></div>
+              <div class="stat-card"><span>待人工复核</span><b>18</b></div>
+              <div class="stat-card"><span>今日已导出报告</span><b>7</b></div>
+            </div>
+            <div class="console-list">
+              <div class="console-row"><b>10:21:13</b><span>批量测试已启动，method=stalk，载入 GT 886 条。</span></div>
+              <div class="console-row"><b>10:22:05</b><span>#N0.1.1.4 完成 VLM 角果复核，误判 -2，人工复核建议：无需干预。</span></div>
+              <div class="console-row"><b>10:22:48</b><span>#N0.1.1.7 出现裁剪边界偏移，已自动进入人工核对中心。</span></div>
+              <div class="console-row"><b>10:23:10</b><span>图论分析与果柄分析结果差异超阈值，触发差异标红。</span></div>
+            </div>
+            <div class="review-list">
+              <div class="review-item selected"><strong>高优先级问题</strong><span>尖端粘连导致 tip 丢失，建议进入人工复核并回看同批次样本。</span></div>
+              <div class="review-item"><strong>中优先级问题</strong><span>VLM 裁剪误判为主枝，建议启用重截并保存修正框。</span></div>
+              <div class="review-item"><strong>低优先级问题</strong><span>Few-shot 正例覆盖不足，建议补充暗色、细瘦、末端成簇枯枝样本。</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="workspace" id="workspace-analysis">
+      <div class="workspace-grid-2">
+        <div class="panel">
+          <div class="panel-head">
+            <div class="panel-title">
+              <h3>单图分析工作台</h3>
+              <p>支持拖拽上传、本地单张分析、在线数据库选图、方法切换、结果回看和关键步骤追踪。</p>
+            </div>
+            <div class="panel-tools">
+              <button class="mini-btn">导入单张</button>
+              <button class="mini-btn">在线图库</button>
+              <button class="mini-btn">清空队列</button>
+            </div>
+          </div>
+          <div class="upload-visual">
+            <div>
+              <strong>拖拽植株照片到此处，或从在线数据库选择</strong>
+              <span>支持 JPG / PNG / BMP / TIFF。可附带品种、重复号、样本批次、分析算法和人工核对策略。上传后按 SSE 实时展示每一步处理结果。</span>
+            </div>
+          </div>
+          <div class="queue">
+            <div class="queue-item">
+              <div class="file-meta"><strong>N0.1.1.4.jpg</strong><span>批次 A-2026-05 / 品种 YC-12 / 3024×4032 / 本地上传</span></div>
+              <div class="queue-side">已完成 VLM 识别、CV 计数、VLM 枯枝复核<div class="progress-bar"><i style="width: 100%"></i></div></div>
+              <div class="queue-status"><span class="status-pill s-done">已完成</span></div>
+            </div>
+            <div class="queue-item">
+              <div class="file-meta"><strong>N0.1.1.7.jpg</strong><span>在线图库 / 文件夹 N0/1/1 / 图论 + 果柄对比模式</span></div>
+              <div class="queue-side">已进入裁剪人工复核<div class="progress-bar"><i style="width: 72%"></i></div></div>
+              <div class="queue-status"><span class="status-pill s-alert">待复核</span></div>
+            </div>
+            <div class="queue-item">
+              <div class="file-meta"><strong>N1.2.3.5.jpg</strong><span>批量导入队列 / 正在等待资源</span></div>
+              <div class="queue-side">等待 GPU / API 资源<div class="progress-bar"><i style="width: 28%"></i></div></div>
+              <div class="queue-status"><span class="status-pill s-queued">排队中</span></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-head">
+            <div class="panel-title">
+              <h3>分析摘要</h3>
+              <p>展示部件数、总角果数、VLM 修正量、关键步骤和人工建议。</p>
+            </div>
+            <div class="panel-tools">
+              <button class="mini-btn">查看原图</button>
+              <button class="mini-btn">下载结果</button>
+            </div>
+          </div>
+          <div class="stack">
+            <div class="stat-strip">
+              <div class="stat-card"><span>部件数</span><b>6</b></div>
+              <div class="stat-card"><span>角果总数</span><b>174</b></div>
+              <div class="stat-card"><span>总耗时</span><b>16.8s</b></div>
+            </div>
+            <div class="review-list">
+              <div class="review-item"><strong>VLM 识别结论</strong><span>识别主干 1 个、主枝 2 个、分枝 3 个，裁剪质量评分 92 分。</span></div>
+              <div class="review-item"><strong>CV 计数结果</strong><span>果柄分析 176，图论分析 171，骨架分析 168，推荐输出为果柄分析结果。</span></div>
+              <div class="review-item"><strong>VLM 枯枝复核</strong><span>检测到 P3、P7 为疑似枯枝，自动从 176 修正为 174。</span></div>
+              <div class="review-item"><strong>人工建议</strong><span>该样本无需人工干预，可直接纳入批量统计报表；建议保留作“正常通过”示例。</span></div>
+            </div>
+            <div class="flow-list">
+              <div class="flow-step"><div class="flow-no">①</div><div class="flow-copy"><strong>原始图像接入</strong><span>图像分辨率 3024×4032，自动清除旧缓存步骤图。</span></div></div>
+              <div class="flow-step"><div class="flow-no">②</div><div class="flow-copy"><strong>VLM 部件识别</strong><span>输出主干、主枝、分枝 bbox 与裁剪结果。</span></div></div>
+              <div class="flow-step"><div class="flow-no">③</div><div class="flow-copy"><strong>计数与复核</strong><span>按所选算法生成 markers，并调用 VLM 做枯枝误判过滤。</span></div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head">
+          <div class="panel-title">
+            <h3>实时流水与关键日志</h3>
+            <p>模拟后端 SSE 流式返回效果，便于设计评审时观察“每步图像 + 每步文案 + 状态变化”。</p>
+          </div>
+          <div class="panel-tools">
+            <button class="mini-btn">展开全部步骤图</button>
+            <button class="mini-btn">仅看异常步骤</button>
+          </div>
+        </div>
+        <div class="workspace-grid-2">
+          <div class="flow-list">
+            <div class="flow-step"><div class="flow-no">01</div><div class="flow-copy"><strong>原始图片</strong><span>载入图像成功，准备发送至 Doubao Vision。</span></div></div>
+            <div class="flow-step"><div class="flow-no">02</div><div class="flow-copy"><strong>VLM 部件识别</strong><span>豆包视觉模型标注主干、主枝、分枝，生成彩色框。</span></div></div>
+            <div class="flow-step"><div class="flow-no">03</div><div class="flow-copy"><strong>裁剪图复核</strong><span>对非主干部件进行 keep / delete / recrop 判断，疑似偏移样本进入人工队列。</span></div></div>
+            <div class="flow-step"><div class="flow-no">04</div><div class="flow-copy"><strong>多算法计数</strong><span>按当前算法输出主干长度、角果数量、关键中间图。</span></div></div>
+            <div class="flow-step"><div class="flow-no">05</div><div class="flow-copy"><strong>VLM 角果复核</strong><span>发送原始裁剪图、标注图和枯枝 few-shot 参考图，仅纠正绿色 P 点中的误判。</span></div></div>
+            <div class="flow-step"><div class="flow-no">06</div><div class="flow-copy"><strong>结果汇总</strong><span>输出总角果、部件详情、VLM 修正说明、总耗时与步骤数。</span></div></div>
+          </div>
+          <div class="log-card">
+            <div class="log-head"><strong>分析日志</strong><span class="badge">SSE Stream</span></div>
+            <div class="log-body">
+              <div class="log-line info">[Pipeline] Sending 3024x4032 to Doubao Vision...</div>
+              <div class="log-line good">[Pipeline] Verifying 5 crops in parallel...</div>
+              <div class="log-line">[Pipeline] Counting pods on #2 主枝 (method=stalk)...</div>
+              <div class="log-line">[Pipeline] Counting pods on #4 分枝 (method=stalk)...</div>
+              <div class="log-line info">[Pipeline] VLM verifying pods on 4 branches in parallel...</div>
+              <div class="log-line warn">[VLM PodVerify] Sending 18 markers (13 pods, 5 filtered) for verification...</div>
+              <div class="log-line good">[VLM PodVerify] false_pos=[3,7], original=176 → adjusted=174</div>
+              <div class="log-line">[Done] time: 16.8s, steps: 74</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="workspace" id="workspace-review">
+      <div class="review-grid">
+        <div class="panel">
+          <div class="panel-head">
+            <div class="panel-title">
+              <h3>人工核对中心</h3>
+              <p>围绕“裁剪错误”“P 点误判”“计数差异过大”三类问题设计，支持放大、框选、打标签、回填结果。</p>
+            </div>
+            <div class="panel-tools">
+              <button class="mini-btn">上一张</button>
+              <button class="mini-btn">下一张</button>
+              <button class="mini-btn">提交审核</button>
+            </div>
+          </div>
+          <div class="image-stage">
+            <div class="stage-toolbar">
+              <div class="toolbar-group">
+                <button class="mini-btn">原图</button>
+                <button class="mini-btn">标注图</button>
+                <button class="mini-btn">仅看 P 点</button>
+                <button class="mini-btn">仅看 F 点</button>
+              </div>
+              <div class="toolbar-group">
+                <button class="mini-btn">1x</button>
+                <button class="mini-btn">2x</button>
+                <button class="mini-btn">对比模式</button>
+              </div>
+            </div>
+            <div class="canvas-wrap">
+              <div class="mock-canvas">
+                <div class="mock-photo"></div>
+                <div class="branch b1"></div>
+                <div class="branch b2"></div>
+                <div class="branch b3"></div>
+                <div class="branch b4"></div>
+                <div class="branch b5"></div>
+                <div class="marker p m1">P1</div>
+                <div class="marker p m2">P2</div>
+                <div class="marker f m3">F1</div>
+                <div class="marker p m4">P3</div>
+                <div class="marker p m5">P4</div>
+                <div class="marker f m6">F2</div>
+                <div class="marker p m7">P5</div>
+                <div class="marker p m8">P6</div>
+                <div class="marker f m9">F3</div>
+                <div class="marker p m10">P7</div>
+              </div>
+              <div class="inspector">
+                <div class="insight-card">
+                  <h4>当前样本</h4>
+                  <p>N0.1.1.7 / 图论 + 果柄对比 / 裁剪复核已触发</p>
+                </div>
+                <div class="insight-card">
+                  <h4>算法差异</h4>
+                  <div class="delta">171 ↔ 178</div>
+                  <p>图论与果柄分析结果差异 7 个，超过阈值 5，建议人工确认主枝末端区域。</p>
+                </div>
+                <div class="insight-card">
+                  <h4>VLM 复核建议</h4>
+                  <ul>
+                    <li>P3 疑似暗色细瘦枯枝</li>
+                    <li>P7 与主干连接处存在粘连</li>
+                    <li>F2 可回看是否误过滤正常角果</li>
+                  </ul>
+                </div>
+                <div class="insight-card">
+                  <h4>人工操作历史</h4>
+                  <p>09:40 李工查看原图<br>09:42 王工标记“需要重截”<br>09:44 系统加入高优先级队列</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-head">
+            <div class="panel-title">
+              <h3>复核决策面板</h3>
+              <p>支持审核结论、标签归因、备注说明、回填计数和保留操作留痕。</p>
+            </div>
+          </div>
+          <div class="review-toolbar">
+            <span class="badge">待办 18</span>
+            <span class="badge">高优先级 6</span>
+            <span class="badge">已锁定样本 2</span>
+          </div>
+          <div class="decision-grid">
+            <div class="decision-card"><strong>算法原始结果</strong><span>果柄分析 178，图论分析 171，VLM 复核后推荐 174。</span></div>
+            <div class="decision-card"><strong>建议人工结论</strong><span>保留 P1/P2/P4/P5/P6，剔除 P3/P7，F2 回退为有效角果。</span></div>
+          </div>
+          <div class="decision-actions">
+            <button class="btn-pass">通过当前结果</button>
+            <button class="btn-recrop">要求重截</button>
+            <button class="btn-reject">退回重算</button>
+          </div>
+          <div class="panel" style="margin-top: 16px; padding: 16px; background: rgba(255,255,255,0.03);">
+            <div class="panel-title">
+              <h4>核对标签</h4>
+              <p>用于积累误判类型与后续算法迭代数据。</p>
+            </div>
+            <div class="tag-list">
+              <div class="tag-pill"><span>尖端粘连</span><small>12</small></div>
+              <div class="tag-pill"><span>裁剪偏移</span><small>8</small></div>
+              <div class="tag-pill"><span>枯枝误判</span><small>21</small></div>
+              <div class="tag-pill"><span>分枝混入</span><small>5</small></div>
+              <div class="tag-pill"><span>光照过暗</span><small>9</small></div>
+              <div class="tag-pill"><span>需补样例</span><small>4</small></div>
+            </div>
+          </div>
+          <div class="review-list" style="margin-top: 16px;">
+            <div class="review-item selected"><strong>N0.1.1.7</strong><span>差异超阈值，已选中。</span></div>
+            <div class="review-item"><strong>N0.1.1.8</strong><span>裁剪边界偏窄，建议重截。</span></div>
+            <div class="review-item"><strong>N1.2.3.2</strong><span>VLM 枯枝复核返回保守，人工可跳过。</span></div>
+            <div class="review-item"><strong>N1.2.3.6</strong><span>分枝存在遮挡，建议保留备注。</span></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="workspace" id="workspace-batch">
+      <div class="panel">
+        <div class="panel-head">
+          <div class="panel-title">
+            <h3>批量导入与批量测试中心</h3>
+            <p>适合大规模任务调度：支持批次命名、算法选择、GT 对比、进度监控、异常急停和阶段性小结。</p>
+          </div>
+          <div class="panel-tools">
+            <button class="mini-btn">新建批次</button>
+            <button class="mini-btn">导入 Excel GT</button>
+            <button class="mini-btn">导出日志</button>
+          </div>
+        </div>
+        <div class="batch-kpis">
+          <div class="metric"><div class="metric-label">当前批次</div><div class="metric-value">A-2026-05</div><div class="metric-sub">默认 method = stalk</div></div>
+          <div class="metric"><div class="metric-label">已完成 / 总数</div><div class="metric-value">127 / 186</div><div class="metric-sub">成功 121 / 失败 6</div></div>
+          <div class="metric"><div class="metric-label">平均 Acc</div><div class="metric-value">78.2%</div><div class="metric-sub">主枝 82.4% / 分枝 71.5%</div></div>
+          <div class="metric"><div class="metric-label">MAE / RMSE</div><div class="metric-value">6.3 / 8.9</div><div class="metric-sub">每 10 张自动小结</div></div>
+        </div>
+        <div class="batch-grid">
+          <div class="panel" style="padding: 18px; background: rgba(255,255,255,0.03);">
+            <div class="panel-head">
+              <div class="panel-title">
+                <h4>批次配置</h4>
+                <p>先导入图片与 GT，再配置算法、并发和人工复核策略。</p>
+              </div>
+            </div>
+            <div class="timeline">
+              <div class="timeline-card"><div class="timeline-copy"><strong>导入图片目录</strong><span>/online_uploads/2026-05-batch/</span></div><div class="timeline-tag">已连接</div></div>
+              <div class="timeline-card"><div class="timeline-copy"><strong>GT Excel</strong><span>农生院卢坤-合川考种照片-整理20260414终版.xlsx</span></div><div class="timeline-tag">886 条</div></div>
+              <div class="timeline-card"><div class="timeline-copy"><strong>算法模式</strong><span>果柄分析为主，图论分析做对照，差异超阈值自动入人工队列。</span></div><div class="timeline-tag">双轨</div></div>
+              <div class="timeline-card"><div class="timeline-copy"><strong>任务策略</strong><span>支持急停、断点恢复、失败重跑、人工复核优先级分流。</span></div><div class="timeline-tag">智能调度</div></div>
+            </div>
+          </div>
+          <div class="log-card">
+            <div class="log-head"><strong>批量测试日志</strong><span class="badge">Run · method=stalk</span></div>
+            <div class="log-body">
+              <div class="log-line info">=== 批量测试开始 (method=stalk) ===</div>
+              <div class="log-line">共 186 张图片, GT数据 886 条</div>
+              <div class="log-line">▶ [41/186] N0.1.1.4 开始分析...</div>
+              <div class="log-line">  [12] VLM 部件识别：豆包视觉模型标注主干、主枝、分枝</div>
+              <div class="log-line">  [36] #2 主枝 果柄计数：检测到 42 个有效角果</div>
+              <div class="log-line good">N0.1.1.4       169   174    +5  97.0%  95.6%  92.4%  15.8s</div>
+              <div class="log-line">  主枝: GT=79 算=81 err=+2  分枝: GT=90 算=93 err=+3  部件=5</div>
+              <div class="log-line warn">  #4 分枝: 18个 VLM:-2</div>
+              <div class="log-line error">▶ [42/186] N0.1.1.7 触发人工复核：图论 / 果柄差异 > 5</div>
+              <div class="log-line info">── 前 40 张小结 ── 总体Acc=77.8% 平均耗时=16.3s</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="workspace-grid-2">
+        <div class="table-card">
+          <table>
+            <thead>
+              <tr>
+                <th>样本</th>
+                <th>GT</th>
+                <th>Algo</th>
+                <th>误差</th>
+                <th>主枝Acc</th>
+                <th>分枝Acc</th>
+                <th>状态</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr><td>N0.1.1.4</td><td>169</td><td>174</td><td class="cell-score warn">+5</td><td class="cell-score good">95.6%</td><td class="cell-score good">92.4%</td><td>已完成</td></tr>
+              <tr><td>N0.1.1.7</td><td>183</td><td>174</td><td class="cell-score bad">-9</td><td class="cell-score warn">83.1%</td><td class="cell-score bad">68.2%</td><td>待人工复核</td></tr>
+              <tr><td>N1.2.3.2</td><td>151</td><td>149</td><td class="cell-score good">-2</td><td class="cell-score good">96.2%</td><td class="cell-score good">91.8%</td><td>已完成</td></tr>
+              <tr><td>N1.2.3.6</td><td>142</td><td>158</td><td class="cell-score bad">+16</td><td class="cell-score warn">80.5%</td><td class="cell-score bad">61.0%</td><td>异常</td></tr>
+              <tr><td>N2.1.2.1</td><td>177</td><td>175</td><td class="cell-score good">-2</td><td class="cell-score good">94.8%</td><td class="cell-score good">90.4%</td><td>已完成</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="panel">
+          <div class="panel-head">
+            <div class="panel-title">
+              <h3>批量任务操作台</h3>
+              <p>可直接启动、停止、重试、导出阶段汇总，并支持人工优先复核名单生成。</p>
+            </div>
+          </div>
+          <div class="stack">
+            <div class="decision-actions">
+              <button class="btn-pass">启动批量测试</button>
+              <button class="btn-recrop">暂停 / 急停</button>
+              <button class="btn-reject">失败样本重跑</button>
+            </div>
+            <div class="review-item"><strong>异常提取规则</strong><span>当算法差异超阈值、裁剪被建议重截、VLM 误判数量过多时，自动加入人工复核中心。</span></div>
+            <div class="review-item"><strong>阶段性汇总</strong><span>每 10 张生成一段小结：MAE、RMSE、平均 Acc、主枝 Acc、分枝 Acc 和耗时。</span></div>
+            <div class="review-item"><strong>导出物</strong><span>支持 CSV、Markdown 报告、截图快照、日志包与人工修正清单。</span></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="workspace" id="workspace-assets">
+      <div class="workspace-grid-2">
+        <div class="panel">
+          <div class="panel-head">
+            <div class="panel-title">
+              <h3>Few-shot 支持样例中心</h3>
+              <p>针对 VLM 角果复核场景，集中管理枯枝正例与正常角果反例，支持补图、补描述、启用状态切换。</p>
+            </div>
+            <div class="panel-tools">
+              <button class="mini-btn">上传新样例</button>
+              <button class="mini-btn">批量补描述</button>
+            </div>
+          </div>
+          <div class="sample-grid">
+            <div class="sample-card">
+              <div class="sample-visual bad"></div>
+              <h4>枯枝正例 1</h4>
+              <p>末端细小的单个枯枝，细瘦、暗色、无明显膨大，建议作为“应当过滤”的高置信示例。</p>
+              <div class="sample-meta"><span>类型：正例</span><span>启用中</span></div>
+            </div>
+            <div class="sample-card">
+              <div class="sample-visual bad"></div>
+              <h4>枯枝正例 2</h4>
+              <p>末端一组多个枯枝，颜色偏暗淡，适合覆盖簇状细瘦误判场景。</p>
+              <div class="sample-meta"><span>类型：正例</span><span>启用中</span></div>
+            </div>
+            <div class="sample-card">
+              <div class="sample-visual"></div>
+              <h4>枯枝反例 1</h4>
+              <p>饱满的正常角果，具备明显纺锤形膨大，不应被过滤。</p>
+              <div class="sample-meta"><span>类型：反例</span><span>启用中</span></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-head">
+            <div class="panel-title">
+              <h3>算法策略配置</h3>
+              <p>为设计稿预留策略层，便于后续接入真实参数面板、模型版本和阈值调整能力。</p>
+            </div>
+          </div>
+          <div class="timeline">
+            <div class="timeline-card"><div class="timeline-copy"><strong>默认方法</strong><span>stalk 果柄分析</span></div><div class="timeline-tag">Primary</div></div>
+            <div class="timeline-card"><div class="timeline-copy"><strong>差异阈值</strong><span>图论 / 果柄差异大于 5 时进入人工复核</span></div><div class="timeline-tag">Threshold</div></div>
+            <div class="timeline-card"><div class="timeline-copy"><strong>VLM 修正规则</strong><span>只扣减 false_positive_ids，不处理漏检补数</span></div><div class="timeline-tag">Strict</div></div>
+            <div class="timeline-card"><div class="timeline-copy"><strong>异常优先级</strong><span>裁剪偏移 ＞ 枯枝误判 ＞ 低清晰度 ＞ GT 缺失</span></div><div class="timeline-tag">Priority</div></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head">
+          <div class="panel-title">
+            <h3>数据资产与算法回灌</h3>
+            <p>设计上为后续“人工修正反哺样本库”“错误模式聚类”“案例沉淀”留出入口。</p>
+          </div>
+        </div>
+        <div class="workspace-grid-3">
+          <div class="review-item"><strong>误判案例池</strong><span>按“尖端粘连 / 光照不足 / 异株干扰 / 枯枝成簇”聚类，供算法回看。</span></div>
+          <div class="review-item"><strong>人工修正记录</strong><span>保留修改前后结果、操作人、时间、标签和修正原因，便于质检与训练数据回收。</span></div>
+          <div class="review-item"><strong>样本追踪链路</strong><span>从原图到裁剪图，再到 markers、VLM 判断与最终结果，可整链路追踪。</span></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="workspace" id="workspace-reports">
+      <div class="report-grid">
+        <div class="editor-card">
+          <div class="panel-head">
+            <div class="panel-title">
+              <h3>报告编排器</h3>
+              <p>适合面向客户、领导或科研同事导出阶段成果说明。</p>
+            </div>
+            <div class="panel-tools">
+              <button class="mini-btn">插入图表</button>
+              <button class="mini-btn">导出 PDF</button>
+            </div>
+          </div>
+          <div class="editor-shell">CV Agent 批量测试阶段报告
+
+一、项目背景
+本系统基于 VLM + CV 的混合方案，对油菜植株进行主干 / 主枝 / 分枝识别与角果计数。
+
+二、本次批量测试概览
+- 测试批次：A-2026-05
+- 总图片数：186
+- GT 匹配数：173
+- 默认算法：果柄分析（stalk）
+- 对照算法：图论分析
+
+三、核心结果
+- 总体准确率：78.2%
+- 主枝准确率：82.4%
+- 分枝准确率：71.5%
+- MAE：6.3
+- RMSE：8.9
+
+四、问题分析
+- 尖端粘连仍是主要误差来源
+- 某些裁剪框偏移会显著影响分枝计数
+- few-shot 样例数量仍可继续扩充
+
+五、建议动作
+- 将差异超阈值样本优先送人工核对
+- 补充暗光场景下的正例与反例参考图
+- 保留人工修正日志，用于后续策略优化</div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-head">
+            <div class="panel-title">
+              <h3>导出内容清单</h3>
+              <p>设计上支持多种交付物，满足展示、汇报、复盘与追责场景。</p>
+            </div>
+          </div>
+          <div class="report-list">
+            <div class="report-row"><div><strong>批量测试总结 PDF</strong><span>包含总体指标、误差分析、关键截图</span></div><i>导出</i></div>
+            <div class="report-row"><div><strong>人工修正清单 CSV</strong><span>包含样本编号、修改前后、原因、审核人</span></div><i>导出</i></div>
+            <div class="report-row"><div><strong>运行日志包 ZIP</strong><span>收集 SSE 日志、批量日志、异常日志</span></div><i>导出</i></div>
+            <div class="report-row"><div><strong>案例截图集</strong><span>自动汇总高风险样本的关键步骤图</span></div><i>导出</i></div>
+            <div class="report-row"><div><strong>设计评审版 HTML</strong><span>当前高保真单文件原型，可继续迭代为真实前端</span></div><i>保存</i></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="workspace-grid-2">
+        <div class="table-card">
+          <table>
+            <thead>
+              <tr>
+                <th>报告名称</th>
+                <th>生成时间</th>
+                <th>内容范围</th>
+                <th>状态</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr><td>batch_A_2026_05_summary.pdf</td><td>2026-05-08 13:20</td><td>批量测试总体指标</td><td>已归档</td></tr>
+              <tr><td>manual_review_delta.csv</td><td>2026-05-08 13:26</td><td>人工核对差异记录</td><td>待确认</td></tr>
+              <tr><td>high_risk_cases.zip</td><td>2026-05-08 13:31</td><td>异常样本截图包</td><td>已生成</td></tr>
+              <tr><td>client_demo_design.html</td><td>2026-05-08 13:37</td><td>高保真设计稿</td><td>当前版本</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="panel">
+          <div class="panel-head">
+            <div class="panel-title">
+              <h3>展示建议</h3>
+              <p>这份设计稿适合向客户或团队重点展示的几个卖点。</p>
+            </div>
+          </div>
+          <div class="review-list">
+            <div class="review-item"><strong>卖点 1：状态透明</strong><span>分析步骤、复核结论、人工干预点都可视化，便于客户理解算法不是黑盒。</span></div>
+            <div class="review-item"><strong>卖点 2：闭环可追溯</strong><span>从批量导入到报告导出，每个节点都可留痕、可复查、可导出。</span></div>
+            <div class="review-item"><strong>卖点 3：适合业务落地</strong><span>不仅能单图分析，还能批量测试、人工核对、积累样本库，具备走向生产系统的产品形态。</span></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <div class="footer">
+      <div><strong>设计稿声明</strong><br>本页面为纯 HTML 高保真原型，已根据当前 `cv-agent` 项目的算法与工作流进行功能扩展式设计，不直接依赖真实后端接口。</div>
+      <div><strong>设计标识</strong><br>重庆舟瀚数字科技有限公司 · CV Agent 油菜表型分析平台 · 高保真设计稿</div>
+      <div><strong>建议下一步</strong><br>如果你认可这版结构，我可以继续把它落成可联调的真实前端页面，或拆成多页面产品方案。</div>
+    </div>
+  </main>
+
+  <script>
+    const workspaceTabs = document.querySelectorAll('.workspace-tab');
+    const workspaces = document.querySelectorAll('.workspace');
+    const navItems = document.querySelectorAll('.nav-item');
+    const algorithmChips = document.querySelectorAll('#algorithmSwitch .chip');
+
+    function activateWorkspace(name) {
+      workspaceTabs.forEach(tab => tab.classList.toggle('active', tab.dataset.workspace === name));
+      workspaces.forEach(panel => panel.classList.toggle('active', panel.id === `workspace-${name}`));
+      navItems.forEach(item => item.classList.toggle('active', item.dataset.viewTarget === name));
+    }
+
+    workspaceTabs.forEach(tab => {
+      tab.addEventListener('click', () => activateWorkspace(tab.dataset.workspace));
+    });
+
+    navItems.forEach(item => {
+      item.addEventListener('click', () => activateWorkspace(item.dataset.viewTarget));
+    });
+
+    algorithmChips.forEach(chip => {
+      chip.addEventListener('click', () => {
+        algorithmChips.forEach(btn => btn.classList.remove('active'));
+        chip.classList.add('active');
+      });
+    });
+  </script>
+</body>
+</html>
