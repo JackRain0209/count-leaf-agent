@@ -101,7 +101,7 @@
         .modal-backdrop { position: absolute; inset: 0; background: rgba(0,0,0,0.7); }
         .modal-panel {
             position: relative; background: #1e293b; border: 1px solid #334155;
-            border-radius: 12px; width: min(1100px, 92vw); max-height: 88vh;
+            border-radius: 12px; width: min(1280px, 96vw); max-height: 88vh;
             display: flex; flex-direction: column; overflow: hidden;
         }
         .modal-header {
@@ -125,11 +125,27 @@
         }
         .modal-toolbar input:focus { outline: none; border-color: #38bdf8; }
         .muted { color: #64748b; font-size: 13px; }
+        .db-tabs {
+            display: flex; flex-wrap: wrap; gap: 12px; padding: 14px 20px;
+            border-bottom: 1px solid #334155; background: #172033;
+        }
+        .db-tab {
+            background: #0f172a; color: #94a3b8; border: 1px solid #334155;
+            min-height: 44px; min-width: 220px; flex: 1 1 220px;
+            padding: 10px 18px; border-radius: 8px; font-size: 14px;
+            font-weight: 650; cursor: pointer; white-space: nowrap;
+            display: flex; align-items: center; justify-content: center;
+        }
+        .db-tab:hover { color: #e2e8f0; border-color: #475569; }
+        .db-tab.active {
+            background: #1e3a5f; color: #e2e8f0; border-color: #38bdf8;
+            box-shadow: inset 0 0 0 1px #38bdf8;
+        }
         .modal-body {
             flex: 1; display: flex; min-height: 0;
         }
         .db-list {
-            width: 360px; flex-shrink: 0; overflow-y: auto;
+            width: 420px; flex-shrink: 0; overflow-y: auto;
             border-right: 1px solid #334155; padding: 8px;
         }
         .db-item {
@@ -298,6 +314,7 @@
                     <input type="text" id="dbSearch" placeholder="按文件名/文件夹过滤...">
                     <span id="dbCount" class="muted">加载中...</span>
                 </div>
+                <div class="db-tabs" id="dbTabs"></div>
                 <div class="modal-body">
                     <div class="db-list" id="dbList"></div>
                     <div class="db-preview" id="dbPreview">
@@ -441,6 +458,18 @@
                 data.plants.forEach(p => {
                     let info = `<b>#${p.id} ${p.label}</b>`;
                     if (p.pod_count != null) info += `，角果 ${p.pod_count} 个`;
+                    if (p.vlm_verify) {
+                        if (p.vlm_verify.false_positives?.length) {
+                            const conf = p.vlm_verify.false_positive_confidences || {};
+                            const fps = p.vlm_verify.false_positives.map(id => {
+                                const c = conf[String(id)] ?? conf[id];
+                                return c == null ? `P${id}` : `P${id}(${Number(c).toFixed(2)})`;
+                            }).join(', ');
+                            info += `，VLM剔除 ${fps}`;
+                        } else {
+                            info += '，VLM复核无剔除';
+                        }
+                    }
                     if (p.description) info += ` — ${p.description}`;
                     notes.push(info);
                 });
@@ -533,10 +562,17 @@
         const dbList = document.getElementById('dbList');
         const dbPreview = document.getElementById('dbPreview');
         const dbCount = document.getElementById('dbCount');
+        const dbTabs = document.getElementById('dbTabs');
         const dbSearch = document.getElementById('dbSearch');
         const dbSelected = document.getElementById('dbSelected');
         const dbSubmitBtn = document.getElementById('dbSubmitBtn');
+        const dbDatasets = [
+            { id: 'hechuan', label: '合川考种照片', prefix: '农生院卢坤-合川考种照片-整理20260414/' },
+            { id: 'spring2026', label: '2026上半年拷种照片', prefix: '2026上半年拷种照片/' },
+            { id: 'all', label: '全部图片', prefix: '' },
+        ];
         let dbItems = [];
+        let dbActiveDataset = 'hechuan';
         let dbSelectedPath = null;
 
         let currentMethod = 'skeleton';
@@ -570,19 +606,52 @@
                 const res = await fetch('/api/online_images');
                 const data = await res.json();
                 dbItems = data.items || [];
-                dbCount.textContent = `共 ${dbItems.length} 张图片`;
+                renderDbTabs();
                 renderDbList('');
             } catch (e) {
                 dbList.innerHTML = `<div class="error">加载失败: ${e.message}</div>`;
             }
         }
 
+        function renderDbTabs() {
+            dbTabs.innerHTML = dbDatasets.map(ds => {
+                const count = ds.prefix
+                    ? dbItems.filter(it => it.path.startsWith(ds.prefix)).length
+                    : dbItems.length;
+                return `
+                    <button class="db-tab${ds.id === dbActiveDataset ? ' active' : ''}" data-dataset="${ds.id}">
+                        ${ds.label} (${count})
+                    </button>
+                `;
+            }).join('');
+            dbTabs.querySelectorAll('.db-tab').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    dbActiveDataset = btn.dataset.dataset;
+                    dbSelectedPath = null;
+                    dbSelected.textContent = '未选择';
+                    dbSubmitBtn.disabled = true;
+                    dbPreview.innerHTML = '<div class="placeholder">← 从左侧选择一张图片查看预览</div>';
+                    renderDbTabs();
+                    renderDbList(dbSearch.value.trim().toLowerCase());
+                });
+            });
+        }
+
+        function getActiveDatasetItems() {
+            const dataset = dbDatasets.find(ds => ds.id === dbActiveDataset) || dbDatasets[0];
+            if (!dataset.prefix) return dbItems;
+            return dbItems.filter(it => it.path.startsWith(dataset.prefix));
+        }
+
         function renderDbList(filter) {
+            const datasetItems = getActiveDatasetItems();
             const filtered = filter
-                ? dbItems.filter(it =>
+                ? datasetItems.filter(it =>
                     it.name.toLowerCase().includes(filter) ||
                     it.folder.toLowerCase().includes(filter))
-                : dbItems;
+                : datasetItems;
+            const dataset = dbDatasets.find(ds => ds.id === dbActiveDataset) || dbDatasets[0];
+            dbCount.textContent = `${dataset.label}：${filtered.length} / ${datasetItems.length} 张`;
             if (!filtered.length) {
                 dbList.innerHTML = '<div class="muted" style="text-align:center;padding:40px">无匹配图片</div>';
                 return;

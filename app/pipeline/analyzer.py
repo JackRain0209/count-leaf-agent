@@ -286,6 +286,7 @@ def analyze_plant_image_stream(image_path: str, method: str = "skeleton"):
 
         missed = verify_result.get("missed_count", 0)
         fp_ids = verify_result.get("false_positive_ids", [])
+        fp_conf = verify_result.get("false_positive_confidences", {})
         adjusted = verify_result.get("adjusted_pod_count", p["pod_count"])
         v_reason = verify_result.get("reason", "")
 
@@ -295,18 +296,32 @@ def analyze_plant_image_stream(image_path: str, method: str = "skeleton"):
             p["vlm_verify"] = {
                 "missed": missed,
                 "false_positives": fp_ids,
+                "false_positive_confidences": fp_conf,
                 "reason": v_reason,
             }
             change_desc = []
             if missed > 0:
                 change_desc.append(f"漏检 +{missed}")
             if fp_ids:
-                change_desc.append(f"误判 -{len(fp_ids)} (P{',P'.join(str(x) for x in fp_ids)})")
+                fp_items = []
+                for fp_id in fp_ids:
+                    conf = fp_conf.get(str(fp_id), fp_conf.get(fp_id))
+                    if conf is None:
+                        fp_items.append(f"P{fp_id}")
+                    else:
+                        fp_items.append(f"P{fp_id}({float(conf):.2f})")
+                change_desc.append(f"误判 -{len(fp_ids)} ({','.join(fp_items)})")
             yield _save_step(
                 verify_result.get("verified_image", crops[pid]),
                 f"[#{pid} {plabel}] 🔍 VLM 角果复核：{' / '.join(change_desc)}，"
                 f"{p['pod_count_before_vlm']} → {adjusted} — {v_reason}")
         else:
+            p["vlm_verify"] = {
+                "missed": 0,
+                "false_positives": [],
+                "false_positive_confidences": {},
+                "reason": v_reason,
+            }
             yield _save_step(
                 verify_result.get("verified_image", crops[pid]),
                 f"[#{pid} {plabel}] ✅ VLM 角果复核：计数无调整 — {v_reason}")

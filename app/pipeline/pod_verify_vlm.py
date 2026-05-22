@@ -475,6 +475,7 @@ def verify_pod_markers(
     kept_pairs = [(i, c) for (i, c) in fp_pairs if c >= threshold]
     dropped_pairs = [(i, c) for (i, c) in fp_pairs if c < threshold]
     false_positive_ids = [i for (i, _) in kept_pairs]
+    false_positive_confidences = {str(i): c for (i, c) in kept_pairs}
 
     if dropped_pairs:
         print(f"[VLM PodVerify] Dropped low-confidence FPs (<{threshold}): "
@@ -498,6 +499,7 @@ def verify_pod_markers(
     return {
         "missed_count": 0,
         "false_positive_ids": false_positive_ids,
+        "false_positive_confidences": false_positive_confidences,
         "adjusted_pod_count": adjusted,
         "reason": reason,
         "verified_image": verified_img,
@@ -516,7 +518,7 @@ def _build_verified_image(
     Regenerate the debug image after VLM verification:
     - Green = confirmed valid pods
     - Red strikethrough = false positives (VLM says not a pod)
-    - Filtered markers stay in gray
+    - Red F markers = dead twigs already filtered by the CV algorithm
     - Text overlay with adjusted count
     """
     vis = crop_bgr.copy()
@@ -525,6 +527,7 @@ def _build_verified_image(
     fp_set = set(false_positive_ids)
 
     confirmed = 0
+    cv_filtered = 0
     for m in markers:
         mid = m["id"]
         mx, my = int(m["x"]), int(m["y"])
@@ -545,14 +548,18 @@ def _build_verified_image(
                 cv2.putText(vis, str(confirmed), (mx + 8, my - 4),
                             cv2.FONT_HERSHEY_SIMPLEX, fs * 0.9, (0, 255, 0), max(1, int(fs * 2)))
         else:
-            # Filtered — gray
-            cv2.circle(vis, (mx, my), 3, (150, 150, 150), -1)
+            # CV-filtered dead twig — red F marker
+            cv_filtered += 1
+            cv2.circle(vis, (mx, my), 5, (0, 0, 255), -1)
+            cv2.circle(vis, (mx, my), 7, (255, 255, 255), 1)
+            cv2.putText(vis, f"F{mid}", (mx + 8, my - 4),
+                        cv2.FONT_HERSHEY_SIMPLEX, fs * 0.85, (0, 0, 255), max(1, int(fs * 2)))
 
     # Overlay adjusted count
     fs2 = max(0.5, min(h, w) / 500)
     cv2.putText(vis, f"VLM Verified: {adjusted_count}", (5, int(25 * fs2) + 5),
                 cv2.FONT_HERSHEY_SIMPLEX, fs2, (0, 255, 255), max(1, int(fs2 * 2)))
-    detail = f"confirmed={confirmed} false_pos=-{len(fp_set)}"
+    detail = f"confirmed={confirmed} vlm_fp=-{len(fp_set)} cv_filtered={cv_filtered}"
     cv2.putText(vis, detail, (5, int(50 * fs2) + 5),
                 cv2.FONT_HERSHEY_SIMPLEX, fs2 * 0.6, (180, 180, 180), 1)
 
