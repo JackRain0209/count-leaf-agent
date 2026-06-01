@@ -11,6 +11,10 @@ Key advantage over tip-based counting:
   When two pods cross at their tips, the skeleton merges tips → undercounts.
   But their stalks (果柄) attach to the main stem at separate points,
   so counting stalks avoids the tip-merging problem.
+
+Filtering rule:
+  Candidate paths that pass through/near non-main junctions are protected from
+  adaptive width/area twig filtering. Very short noise is still removed first.
 """
 
 import cv2
@@ -148,6 +152,21 @@ def count_pods_on_branch(
     adj_p1 = _graph_adjacency(nodes_p1, edges_p1)
     attach_nodes_p1 = set(n for n, t in nodes_p1.items() if t == 'attach')
     tip_nodes_p1 = [n for n, t in nodes_p1.items() if t == 'tip']
+    junction_nodes_p1 = set(n for n, t in nodes_p1.items() if t == 'junction')
+    CROSSING_GUARD_RADIUS = 3
+    junction_guard_mask = None
+    if junction_nodes_p1:
+        junction_guard_mask = np.zeros((h, w), dtype=np.uint8)
+        for r, c in junction_nodes_p1:
+            junction_guard_mask[r, c] = 255
+        k = CROSSING_GUARD_RADIUS * 2 + 1
+        kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (k, k))
+        junction_guard_mask = cv2.dilate(junction_guard_mask, kernel, iterations=1)
+
+    def _is_crossing_related(path_pixels):
+        if junction_guard_mask is None:
+            return False
+        return any(junction_guard_mask[r, c] > 0 for r, c in path_pixels)
 
     # BFS from each tip → nearest attach (same as graph method)
     branch_data = []
@@ -198,7 +217,8 @@ def count_pods_on_branch(
             continue
         area = sum(float(dist[r, c]) * 2.0 for (r, c) in full_path)
         avg_w = area / len(full_path) if full_path else 0.0
-        branch_data.append((tip, full_path, found_attach, area, avg_w))
+        crossing_related = _is_crossing_related(full_path)
+        branch_data.append((tip, full_path, found_attach, area, avg_w, crossing_related))
 
     # Filter: dead twigs (width/area) + noise (short complete branches)
     WIDTH_RATIO = 0.70
@@ -207,6 +227,8 @@ def count_pods_on_branch(
     MIN_BRANCH_LEN = 10  # denoising: complete branches shorter than this are noise
     rejected_pixels = set()
     rejected_branches = []
+    crossing_guard_count = 0
+    crossing_protected_ids = set()
 
     # Step A: remove very short complete branches (denoising)
     for item in branch_data:
@@ -228,8 +250,12 @@ def count_pods_on_branch(
         for item in remaining:
             area_val = item[3]
             avg_w_val = item[4]
+            crossing_related = item[5]
             if area_val >= area_fence and avg_w_val >= width_fence:
                 pass  # keep
+            elif crossing_related:
+                crossing_guard_count += 1
+                crossing_protected_ids.add(id(item))
             else:
                 rejected_branches.append(item)
                 rejected_pixels.update(item[1])
@@ -238,6 +264,7 @@ def count_pods_on_branch(
               f"noise(<{MIN_BRANCH_LEN}px)={noise_count}, "
               f"med_area={median_area:.0f} fence={area_fence:.0f}, "
               f"med_w={median_width:.1f} fence={width_fence:.1f}, "
+              f"cross_guard={crossing_guard_count}, "
               f"twigs={twig_count}")
     else:
         print(f"  [PodStalk] Pass1: branches={len(branch_data)}, "
@@ -257,9 +284,15 @@ def count_pods_on_branch(
     for item in kept_p1:
         for p in item[1]:
             cv2.circle(p1_vis, (p[1], p[0]), 1, (180, 180, 180), -1)
+    guarded_p1 = [item for item in kept_p1 if id(item) in crossing_protected_ids]
+    for item in guarded_p1:
+        for p in item[1]:
+            cv2.circle(p1_vis, (p[1], p[0]), 1, (0, 215, 255), -1)
+        cv2.circle(p1_vis, (item[0][1], item[0][0]), 4, (0, 215, 255), -1)
     step_images.append((
         p1_vis,
-        f"Pass1 枯枝过滤：粉色=枯枝({len(rejected_branches)})，灰色=保留({len(kept_p1)})"
+        f"Pass1 枯枝过滤：粉色=枯枝({len(rejected_branches)})，"
+        f"黄色=交叉保护保留({len(guarded_p1)})，灰色=其他保留({len(kept_p1) - len(guarded_p1)})"
     ))
 
     # ══════════════════════════════════════════════════════════════════
