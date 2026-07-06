@@ -37,6 +37,29 @@ python -m app.main
 # 访问 http://localhost:8501
 ```
 
+## Docker 运行
+
+项目已支持 Docker。先准备 `.env`：
+
+```bash
+cp .env.example .env
+# 编辑 .env 填入 ARK_API_KEY
+```
+
+启动：
+
+```bash
+docker compose up --build
+```
+
+访问：
+
+```text
+http://localhost:8501
+```
+
+打包到另一台电脑的步骤见 [DOCKER.md](DOCKER.md)。
+
 ## API
 
 ### POST /api/analyze

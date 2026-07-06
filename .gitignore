@@ -15,3 +15,12 @@ benchmark_summary.txt
 server.log
 online_uploads/
 *.zip
+*.tar.gz
+*.screen.log
+.playwright-mcp/
+logs/
+reports/
+*_backup/
+*_backup_*/
+benchmark_cache_backup_*/
+old_experiment_artifacts_*/

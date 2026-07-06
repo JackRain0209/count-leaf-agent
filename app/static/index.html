@@ -22,19 +22,40 @@
         .upload-icon { font-size: 48px; margin-bottom: 12px; }
         .upload-text { color: #94a3b8; }
 
-        .results {
-            background: #1e293b; border-radius: 12px; padding: 24px;
-            border: 1px solid #334155; margin-bottom: 32px;
+        .results { margin-bottom: 32px; }
+        .results h2 { font-size: 20px; margin-bottom: 14px; color: #e2e8f0; }
+        .sample-id-badge {
+            display: inline-block; vertical-align: middle;
+            background: linear-gradient(135deg, #7c3aed, #a855f7);
+            color: #fff; font-size: 14px; font-weight: 600;
+            padding: 3px 12px; border-radius: 6px;
+            margin-left: 10px;
         }
-        .results h2 { font-size: 20px; margin-bottom: 16px; color: #38bdf8; }
-        .result-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; }
+        .sample-id-badge:empty { display: none; }
+        .result-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; }
         .result-item {
-            background: #0f172a; border-radius: 8px; padding: 16px;
-            border: 1px solid #1e293b;
+            background: linear-gradient(180deg, #172033 0%, #101827 100%);
+            border-radius: 8px; padding: 15px 16px;
+            border: 1px solid #2f415d; min-height: 94px;
+            display: flex; flex-direction: column; justify-content: space-between;
         }
-        .result-item .label { font-size: 12px; color: #64748b; margin-bottom: 4px; }
-        .result-item .value { font-size: 24px; font-weight: 700; color: #f1f5f9; }
+        .result-item.primary { border-color: #38bdf8; box-shadow: 0 0 0 1px rgba(56,189,248,0.15) inset; }
+        .result-item .label { font-size: 12px; color: #94a3b8; margin-bottom: 8px; }
+        .result-item .value {
+            font-size: 26px; line-height: 1.1; font-weight: 750; color: #f8fafc;
+            word-break: break-word;
+        }
+        .result-item .value.compact { font-size: 17px; line-height: 1.35; font-weight: 650; }
+        .result-item .value.blank { color: #64748b; }
         .result-item .unit { font-size: 14px; color: #94a3b8; }
+        .result-meta {
+            grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 8px;
+            color: #94a3b8; font-size: 12px;
+        }
+        .result-meta span {
+            border: 1px solid #334155; border-radius: 999px;
+            padding: 4px 8px; background: #0f172a;
+        }
 
         .loading { text-align: center; padding: 48px; color: #94a3b8; }
         .spinner { display: inline-block; width: 32px; height: 32px; border: 3px solid #334155; border-top-color: #38bdf8; border-radius: 50%; animation: spin 0.8s linear infinite; margin-bottom: 12px; }
@@ -59,9 +80,76 @@
             font-size: 18px; font-weight: 700; color: #38bdf8;
         }
         .step-content { flex: 1; padding: 12px 16px 12px 0; display: flex; gap: 16px; align-items: flex-start; flex-wrap: wrap; }
+        .step-media { display: flex; align-items: flex-start; gap: 10px; flex-shrink: 0; }
         .step-img-wrap { flex-shrink: 0; max-width: 400px; min-width: 200px; }
+        .pipeline-step-editable .step-media { width: min(960px, 100%); max-width: 100%; }
+        .pipeline-step-editable .step-img-wrap.editable-image-wrap {
+            flex: 1 1 auto; min-width: min(280px, 100%); max-width: none; width: auto;
+        }
         .step-img-wrap img { width: 100%; border-radius: 8px; cursor: pointer; transition: transform 0.2s; }
         .step-img-wrap img:hover { transform: scale(1.02); }
+        .editable-image-wrap {
+            position: relative; overflow: hidden; border-radius: 8px;
+            background: #020617;
+        }
+        .editable-image-wrap img { display: block; }
+        .editable-image-wrap img:hover { transform: none; }
+        .editable-image-wrap.adding img,
+        .editable-image-wrap.adding .annotation-layer { cursor: crosshair; }
+        .editable-image-wrap.deleting img,
+        .editable-image-wrap.deleting .annotation-layer { cursor: cell; }
+        .annotation-layer {
+            position: absolute; inset: 0; z-index: 2; pointer-events: none;
+        }
+        .editable-image-wrap.editing .annotation-layer { pointer-events: auto; }
+        .annotation-marker {
+            position: absolute; width: 10px; height: 10px; border-radius: 50%;
+            transform: translate(-50%, -50%); pointer-events: none;
+            box-shadow: 0 0 0 1px rgba(15, 23, 42, 0.9), 0 1px 6px rgba(0,0,0,0.35);
+        }
+        .editable-image-wrap.editing .annotation-marker { pointer-events: auto; }
+        .annotation-marker.green { background: #22c55e; border: 1px solid #bbf7d0; }
+        .annotation-marker.red { background: #ef4444; border: 1px solid #fecaca; }
+        .annotation-marker.purple { background: #a855f7; border: 1px solid #e9d5ff; }
+        .annotation-tools {
+            flex-shrink: 0; display: flex; flex-direction: column; align-items: stretch;
+            gap: 8px; min-width: 48px;
+        }
+        .annotation-edit-btn,
+        .annotation-tool-btn {
+            min-width: 44px; height: 36px; border: 1px solid #334155;
+            border-radius: 8px; background: #0f172a; color: #cbd5e1;
+            font-size: 14px; font-weight: 700; cursor: pointer;
+        }
+        .annotation-edit-btn:hover,
+        .annotation-tool-btn:hover { border-color: #38bdf8; color: #f8fafc; }
+        .annotation-edit-btn.active,
+        .annotation-tool-btn.active {
+            background: #1e3a5f; border-color: #38bdf8; color: #e0f2fe;
+        }
+        .annotation-tool-panel { display: flex; flex-direction: column; gap: 8px; position: relative; }
+        .annotation-tool-panel.hidden,
+        .annotation-color-menu.hidden { display: none; }
+        .annotation-color-menu {
+            position: absolute; left: 48px; top: 0; z-index: 20;
+            min-width: 92px; padding: 6px; border-radius: 8px;
+            background: #0f172a; border: 1px solid #334155;
+            box-shadow: 0 12px 28px rgba(0,0,0,0.35);
+        }
+        .annotation-color-menu button {
+            width: 100%; display: flex; align-items: center; gap: 8px;
+            background: transparent; border: 0; color: #cbd5e1;
+            padding: 7px 8px; border-radius: 6px; cursor: pointer;
+            font-size: 13px; white-space: nowrap;
+        }
+        .annotation-color-menu button:hover { background: #1e293b; color: #fff; }
+        .point-swatch {
+            width: 12px; height: 12px; border-radius: 50%; display: inline-block;
+            box-shadow: 0 0 0 1px rgba(255,255,255,0.7);
+        }
+        .point-swatch.green { background: #22c55e; }
+        .point-swatch.red { background: #ef4444; }
+        .point-swatch.purple { background: #a855f7; }
         .step-desc {
             flex: 1; min-width: 200px; font-size: 14px; color: #cbd5e1; line-height: 1.6;
             padding-top: 4px;
@@ -223,54 +311,6 @@
             background: rgba(56,189,248,0.15); color: #38bdf8;
         }
 
-        /* Batch test console */
-        .batch-bar {
-            display: flex; gap: 12px; align-items: center; justify-content: center;
-            margin-top: 12px; margin-bottom: 24px;
-        }
-        .btn-batch {
-            background: #f59e0b; color: #0f172a; border: 0;
-            padding: 10px 20px; font-size: 14px; font-weight: 600;
-            border-radius: 8px; cursor: pointer; transition: background 0.2s;
-        }
-        .btn-batch:hover:not(:disabled) { background: #d97706; }
-        .btn-batch:disabled { background: #334155; color: #64748b; cursor: not-allowed; }
-        .btn-stop {
-            background: #ef4444; color: #fff; border: 0;
-            padding: 10px 20px; font-size: 14px; font-weight: 600;
-            border-radius: 8px; cursor: pointer; transition: background 0.2s;
-            animation: pulse-stop 1.2s ease-in-out infinite;
-        }
-        .btn-stop:hover { background: #dc2626; }
-        @keyframes pulse-stop {
-            0%, 100% { box-shadow: 0 0 0 0 rgba(239,68,68,0.4); }
-            50% { box-shadow: 0 0 0 8px rgba(239,68,68,0); }
-        }
-        .batch-console {
-            background: #0c0c0c; border: 1px solid #334155; border-radius: 12px;
-            margin-bottom: 32px; overflow: hidden;
-        }
-        .batch-console-header {
-            display: flex; align-items: center; justify-content: space-between;
-            padding: 10px 16px; background: #1a1a2e; border-bottom: 1px solid #334155;
-        }
-        .batch-console-header h3 { font-size: 14px; color: #38bdf8; margin: 0; }
-        .batch-console-header .batch-status {
-            font-size: 12px; padding: 2px 10px; border-radius: 10px;
-        }
-        .batch-status-running { background: rgba(245,158,11,0.2); color: #f59e0b; }
-        .batch-status-done { background: rgba(34,197,94,0.2); color: #22c55e; }
-        .batch-status-stopped { background: rgba(239,68,68,0.2); color: #ef4444; }
-        .batch-log {
-            height: 400px; overflow-y: auto; padding: 12px 16px;
-            font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
-            font-size: 12px; line-height: 1.6; color: #a0a0a0;
-            white-space: pre-wrap; word-break: break-all;
-        }
-        .batch-log .log-success { color: #22c55e; }
-        .batch-log .log-error { color: #ef4444; }
-        .batch-log .log-header { color: #38bdf8; font-weight: 600; }
-        .batch-log .log-info { color: #94a3b8; }
     </style>
 </head>
 <body>
@@ -284,23 +324,8 @@
             <input type="file" id="fileInput" accept=".jpg,.jpeg,.png,.bmp,.tiff">
         </div>
 
-        <div style="margin-bottom: 12px; text-align: center; display: flex; gap: 12px; justify-content: center;">
-            <button id="openDbSkeletonBtn" class="btn-primary" style="background: #38bdf8;">🦴 骨架分析</button>
-            <button id="openDbGraphBtn" class="btn-primary" style="background: #a78bfa;">🔗 图论分析</button>
-            <button id="openDbStalkBtn" class="btn-primary" style="background: #fb923c;">🌾 果柄分析</button>
-            <button id="openDbPlantcvBtn" class="btn-primary" style="background: #4ade80;">🌿 PlantCV 分析</button>
-        </div>
-        <div class="batch-bar">
-            <button id="batchTestBtn" class="btn-batch">🧪 批量测试（图论）</button>
-            <button id="batchStopBtn" class="btn-stop hidden">⏹ 急停</button>
-        </div>
-
-        <div id="batchConsole" class="batch-console hidden">
-            <div class="batch-console-header">
-                <h3>📋 批量测试日志</h3>
-                <span id="batchStatus" class="batch-status batch-status-running">运行中</span>
-            </div>
-            <div id="batchLog" class="batch-log"></div>
+        <div style="margin-bottom: 24px; text-align: center;">
+            <button id="openDbStalkBtn" class="btn-primary" style="background: #fb923c;">🌾 在线图片果柄分析</button>
         </div>
 
         <div class="modal" id="dbModal">
@@ -337,7 +362,7 @@
 
         <div id="resultSection" class="hidden">
             <div class="results">
-                <h2>📊 分析结果</h2>
+                <h2>📊 分析结果 <span class="sample-id-badge" id="sampleIdBadge"></span></h2>
                 <div class="result-grid" id="resultGrid"></div>
                 <div class="vlm-notes" id="vlmNotes"></div>
             </div>
@@ -359,6 +384,8 @@
         const loading = document.getElementById('loading');
         const errorBox = document.getElementById('errorBox');
         const resultSection = document.getElementById('resultSection');
+        let activeAnalysisToken = 0;
+        let activeAnalysisController = null;
 
         uploadArea.addEventListener('click', () => fileInput.click());
         uploadArea.addEventListener('dragover', e => { e.preventDefault(); uploadArea.classList.add('dragover'); });
@@ -375,11 +402,271 @@
             document.getElementById('lightbox').classList.add('active');
         }
 
+        function beginAnalysisRun() {
+            if (activeAnalysisController) {
+                activeAnalysisController.abort();
+            }
+            activeAnalysisToken += 1;
+            activeAnalysisController = new AbortController();
+            resetAnalysisUI();
+            return {
+                token: activeAnalysisToken,
+                controller: activeAnalysisController,
+            };
+        }
+
+        function isActiveAnalysis(token) {
+            return token === activeAnalysisToken;
+        }
+
+        function noCacheUrl(url, key) {
+            const sep = url.includes('?') ? '&' : '?';
+            return `${url}${sep}v=${encodeURIComponent(key)}`;
+        }
+
         function getTag(desc) {
             if (desc.includes('VLM') || desc.includes('豆包')) return '<span class="tag tag-vlm">VLM</span>';
             if (desc.includes('裁剪')) return '<span class="tag tag-crop">裁剪</span>';
             if (desc.includes('结果') || desc.includes('原始')) return '<span class="tag tag-result">输出</span>';
             return '<span class="tag tag-cv">CV</span>';
+        }
+
+        function isEditableFinalImage(desc) {
+            return desc.includes('VLM 角果复核');
+        }
+
+        function isBlankMetric(value) {
+            return value === null || value === undefined || value === '';
+        }
+
+        function buildResultSummary(data) {
+            const plants = Array.isArray(data.plants) ? data.plants : [];
+            const branches = plants.filter(p => p.label === '分枝');
+            const mainBranches = plants.filter(p => p.label === '主枝');
+            const summary = data.summary || {};
+            const branchBreakdown = Array.isArray(summary.branch_pod_breakdown)
+                ? summary.branch_pod_breakdown
+                : branches.map(p => ({
+                    id: p.id,
+                    label: p.label,
+                    pod_count: Number(p.pod_count || 0),
+                }));
+            const branchPodCount = summary.branch_total_pod_count
+                ?? summary.branch_pod_count
+                ?? data.branch_total_pod_count
+                ?? data.branch_pod_count
+                ?? branches.reduce((sum, p) => sum + Number(p.pod_count || 0), 0);
+            return {
+                branchCount: summary.branch_count
+                    ?? data.branch_count
+                    ?? branchBreakdown.length,
+                mainPods: summary.main_inflorescence_pod_count
+                    ?? data.main_inflorescence_pod_count
+                    ?? mainBranches.reduce((sum, p) => sum + Number(p.pod_count || 0), 0),
+                mainStemPlusMainPods: summary.main_stem_plus_main_pod_count
+                    ?? data.main_stem_plus_main_pod_count
+                    ?? '',
+                branchPods: summary.branch_pod_count
+                    ?? data.branch_pod_count
+                    ?? branchPodCount,
+                branchTotalPods: branchPodCount,
+                totalPods: summary.total_pod_count ?? data.total_pods ?? 0,
+                mainStemLength: summary.main_stem_length ?? data.main_stem_length ?? '',
+                mainStemLengthCm: summary.main_stem_length_cm ?? data.main_stem_length_cm ?? '',
+                sampleId: summary.sample_id ?? data.sample_id ?? '',
+                rulerFound: summary.ruler_found ?? data.ruler_found ?? false,
+                labelFound: summary.label_found ?? data.label_found ?? false,
+                branchBreakdown,
+            };
+        }
+
+        function formatBranchBreakdown(items, fallback) {
+            if (!items.length) return String(fallback ?? 0);
+            const shown = items.slice(0, 4).map(item => `#${item.id ?? '-'}:${item.pod_count ?? 0}`);
+            if (items.length > shown.length) shown.push(`+${items.length - shown.length}`);
+            return shown.join(' / ');
+        }
+
+        function resultMetric(label, value, unit = '', options = {}) {
+            const blank = isBlankMetric(value);
+            const classes = [
+                'result-item',
+                options.primary ? 'primary' : '',
+            ].filter(Boolean).join(' ');
+            const valueClass = [
+                'value',
+                options.compact ? 'compact' : '',
+                blank ? 'blank' : '',
+            ].filter(Boolean).join(' ');
+            return `
+                <div class="${classes}">
+                    <div class="label">${label}</div>
+                    <div class="${valueClass}">${blank ? '--' : value}${!blank && unit ? ` <span class="unit">${unit}</span>` : ''}</div>
+                </div>
+            `;
+        }
+
+        function clamp01(value) {
+            return Math.max(0, Math.min(1, value));
+        }
+
+        function getPointerRatio(wrap, event) {
+            const rect = wrap.getBoundingClientRect();
+            return {
+                x: clamp01((event.clientX - rect.left) / rect.width),
+                y: clamp01((event.clientY - rect.top) / rect.height),
+            };
+        }
+
+        function renderAnnotationMarker(state, marker) {
+            const el = document.createElement('div');
+            el.className = `annotation-marker ${marker.color}`;
+            el.style.left = `${marker.x * 100}%`;
+            el.style.top = `${marker.y * 100}%`;
+            el.setAttribute('aria-hidden', 'true');
+            el.title = marker.label || (marker.color === 'green' ? '绿点' : marker.color === 'purple' ? '紫点' : '红点');
+            el.addEventListener('click', event => {
+                if (state.editing) event.stopPropagation();
+            });
+            el.addEventListener('contextmenu', event => {
+                if (!state.editing || state.mode !== 'delete') return;
+                event.preventDefault();
+                event.stopPropagation();
+                removeAnnotationMarker(state, marker);
+            });
+            marker.el = el;
+            state.layer.appendChild(el);
+        }
+
+        function addAnnotationMarker(state, color, x, y, source = 'added', meta = {}) {
+            const marker = {
+                id: ++state.nextMarkerId,
+                color,
+                x: clamp01(x),
+                y: clamp01(y),
+                source,
+                label: meta.label || '',
+                data: meta.data || null,
+                el: null,
+            };
+            state.markers.push(marker);
+            renderAnnotationMarker(state, marker);
+            return marker;
+        }
+
+        function removeAnnotationMarker(state, marker) {
+            if (marker.el) marker.el.remove();
+            state.markers = state.markers.filter(item => item !== marker);
+        }
+
+        function findNearestMarker(state, x, y) {
+            const rect = state.wrap.getBoundingClientRect();
+            let nearest = null;
+            let nearestDist = Infinity;
+            state.markers.forEach(marker => {
+                const dx = (marker.x - x) * rect.width;
+                const dy = (marker.y - y) * rect.height;
+                const dist = Math.hypot(dx, dy);
+                if (dist < nearestDist) {
+                    nearestDist = dist;
+                    nearest = marker;
+                }
+            });
+            return nearestDist <= 22 ? nearest : null;
+        }
+
+        function setAnnotationMode(state, mode) {
+            state.mode = mode;
+            state.wrap.classList.toggle('adding', mode === 'add');
+            state.wrap.classList.toggle('deleting', mode === 'delete');
+            state.addBtn.classList.toggle('active', mode === 'add');
+            state.deleteBtn.classList.toggle('active', mode === 'delete');
+        }
+
+        function initEditableFinalImage(stepEl, imgUrl, initialPoints = []) {
+            const wrap = stepEl.querySelector('.editable-image-wrap');
+            const img = wrap.querySelector('img');
+            const panel = stepEl.querySelector('.annotation-tool-panel');
+            const editBtn = stepEl.querySelector('.annotation-edit-btn');
+            const addBtn = stepEl.querySelector('.annotation-add-btn');
+            const deleteBtn = stepEl.querySelector('.annotation-delete-btn');
+            const colorMenu = stepEl.querySelector('.annotation-color-menu');
+            const state = {
+                wrap,
+                img,
+                layer: wrap.querySelector('.annotation-layer'),
+                editBtn,
+                addBtn,
+                deleteBtn,
+                colorMenu,
+                editing: false,
+                mode: null,
+                selectedColor: null,
+                nextMarkerId: 0,
+                markers: [],
+            };
+            initialPoints.forEach(point => {
+                const color = (point.color === 'red' || point.color === 'purple')
+                    ? point.color : 'green';
+                const prefix = point.source === 'filtered'
+                    ? (point.state === 'restored' ? 'R' : 'F')
+                    : (point.state === 'false_positive' ? 'X' : 'P');
+                const colorLabel = color === 'green' ? '绿点' : color === 'purple' ? '紫点' : '红点';
+                addAnnotationMarker(state, color, point.x, point.y, 'initial', {
+                    label: `${colorLabel} ${prefix}${point.id}`,
+                    data: point,
+                });
+            });
+
+            editBtn.addEventListener('click', () => {
+                state.editing = !state.editing;
+                wrap.classList.toggle('editing', state.editing);
+                editBtn.classList.toggle('active', state.editing);
+                panel.classList.toggle('hidden', !state.editing);
+                colorMenu.classList.add('hidden');
+                if (state.editing) {
+                    setAnnotationMode(state, null);
+                } else {
+                    setAnnotationMode(state, null);
+                }
+            });
+
+            addBtn.addEventListener('click', () => {
+                if (!state.editing) return;
+                colorMenu.classList.toggle('hidden');
+            });
+
+            colorMenu.querySelectorAll('button[data-color]').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    state.selectedColor = btn.dataset.color;
+                    colorMenu.classList.add('hidden');
+                    setAnnotationMode(state, 'add');
+                });
+            });
+
+            deleteBtn.addEventListener('click', () => {
+                if (!state.editing) return;
+                colorMenu.classList.add('hidden');
+                setAnnotationMode(state, 'delete');
+            });
+
+            wrap.addEventListener('click', event => {
+                if (!state.editing) {
+                    openLightbox(imgUrl);
+                    return;
+                }
+                if (state.mode !== 'add' || !state.selectedColor) return;
+                const pos = getPointerRatio(wrap, event);
+                addAnnotationMarker(state, state.selectedColor, pos.x, pos.y, 'added');
+            });
+
+            wrap.addEventListener('contextmenu', event => {
+                if (!state.editing || state.mode !== 'delete') return;
+                event.preventDefault();
+                const pos = getPointerRatio(wrap, event);
+                const marker = findNearestMarker(state, pos.x, pos.y);
+                if (marker) removeAnnotationMarker(state, marker);
+            });
         }
 
         function removeProcessingCard() {
@@ -402,19 +689,42 @@
             card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
         }
 
-        function appendStep(step) {
+        function appendStep(step, token) {
+            if (!isActiveAnalysis(token)) return;
             removeProcessingCard();
             const container = document.getElementById('pipelineSteps');
             const div = document.createElement('div');
-            div.className = 'pipeline-step';
+            const imgUrl = noCacheUrl(step.url, step.run_id || token);
+            const editableFinal = isEditableFinalImage(step.description);
+            const editablePoints = Array.isArray(step.editable_points) ? step.editable_points : [];
+            const displayImgUrl = noCacheUrl(step.editable_base_url || step.url, step.run_id || token);
+            div.className = `pipeline-step${editableFinal ? ' pipeline-step-editable' : ''}`;
             div.style.opacity = '0';
             div.style.transform = 'translateY(12px)';
             div.style.transition = 'opacity 0.3s, transform 0.3s';
             div.innerHTML = `
                 <div class="step-number">${step.step}</div>
                 <div class="step-content">
-                    <div class="step-img-wrap">
-                        <img src="${step.url}" alt="Step ${step.step}" onclick="openLightbox('${step.url}')">
+                    <div class="step-media">
+                        <div class="step-img-wrap${editableFinal ? ' editable-image-wrap' : ''}">
+                            <img src="${displayImgUrl}" alt="Step ${step.step}">
+                            ${editableFinal ? `
+                                <div class="annotation-layer"></div>
+                            ` : ''}
+                        </div>
+                        ${editableFinal ? `
+                            <div class="annotation-tools">
+                                <button class="annotation-edit-btn" type="button" title="编辑点位">编辑</button>
+                                <div class="annotation-tool-panel hidden">
+                                    <button class="annotation-tool-btn annotation-add-btn" type="button" title="添加点">+</button>
+                                    <div class="annotation-color-menu hidden">
+                                        <button type="button" data-color="green"><span class="point-swatch green"></span>绿点</button>
+                                        <button type="button" data-color="red"><span class="point-swatch red"></span>红点</button>
+                                    </div>
+                                    <button class="annotation-tool-btn annotation-delete-btn" type="button" title="删除点">-</button>
+                                </div>
+                            </div>
+                        ` : ''}
                     </div>
                     <div class="step-desc">
                         ${getTag(step.description)}
@@ -423,6 +733,12 @@
                 </div>
             `;
             container.appendChild(div);
+            if (editableFinal) {
+                initEditableFinalImage(div, imgUrl, editablePoints);
+            } else {
+                const img = div.querySelector('.step-img-wrap img');
+                img.addEventListener('click', () => openLightbox(imgUrl));
+            }
             requestAnimationFrame(() => {
                 div.style.opacity = '1';
                 div.style.transform = 'translateY(0)';
@@ -432,26 +748,20 @@
             div.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
         }
 
-        function showResult(data) {
+        function showResult(data, token) {
+            if (!isActiveAnalysis(token)) return;
             removeProcessingCard();
             const grid = document.getElementById('resultGrid');
+            const summary = buildResultSummary(data);
+            const badge = document.getElementById('sampleIdBadge');
+            badge.textContent = summary.sampleId || '';
             grid.innerHTML = `
-                <div class="result-item">
-                    <div class="label">部件数</div>
-                    <div class="value">${data.plant_count ?? 0} <span class="unit">个</span></div>
-                </div>
-                <div class="result-item">
-                    <div class="label">角果总数</div>
-                    <div class="value">${data.total_pods ?? 0} <span class="unit">个</span></div>
-                </div>
-                <div class="result-item">
-                    <div class="label">处理步骤</div>
-                    <div class="value">${data.total_steps ?? 0} <span class="unit">步</span></div>
-                </div>
-                <div class="result-item">
-                    <div class="label">耗时</div>
-                    <div class="value">${data.processing_time_s} <span class="unit">秒</span></div>
-                </div>
+                ${resultMetric('分支总数', summary.branchCount, '个', { primary: true })}
+                ${resultMetric('主花序角果数', summary.mainPods, '个', { primary: true })}
+                ${resultMetric('主干+主枝角果数', summary.mainStemPlusMainPods, '个', { primary: true })}
+                ${resultMetric('分枝角果数', summary.branchPods, '个', { primary: true })}
+                ${resultMetric('总角果数', summary.totalPods, '个', { primary: true })}
+                ${resultMetric('主干长度', summary.mainStemLengthCm || summary.mainStemLength, summary.mainStemLengthCm ? 'cm' : '')}
             `;
             const notes = [];
             if (data.plants?.length) {
@@ -459,6 +769,7 @@
                     let info = `<b>#${p.id} ${p.label}</b>`;
                     if (p.pod_count != null) info += `，角果 ${p.pod_count} 个`;
                     if (p.vlm_verify) {
+                        let adjustedByVlm = false;
                         if (p.vlm_verify.false_positives?.length) {
                             const conf = p.vlm_verify.false_positive_confidences || {};
                             const fps = p.vlm_verify.false_positives.map(id => {
@@ -466,8 +777,19 @@
                                 return c == null ? `P${id}` : `P${id}(${Number(c).toFixed(2)})`;
                             }).join(', ');
                             info += `，VLM剔除 ${fps}`;
-                        } else {
-                            info += '，VLM复核无剔除';
+                            adjustedByVlm = true;
+                        }
+                        if (p.vlm_verify.restored_filtered?.length) {
+                            const conf = p.vlm_verify.restored_filtered_confidences || {};
+                            const restored = p.vlm_verify.restored_filtered.map(id => {
+                                const c = conf[String(id)] ?? conf[id];
+                                return c == null ? `F${id}` : `F${id}(${Number(c).toFixed(2)})`;
+                            }).join(', ');
+                            info += `，VLM补回 ${restored}`;
+                            adjustedByVlm = true;
+                        }
+                        if (!adjustedByVlm) {
+                            info += '，VLM复核无调整';
                         }
                     }
                     if (p.description) info += ` — ${p.description}`;
@@ -480,11 +802,15 @@
             requestAnimationFrame(() => { document.querySelector('.results').style.opacity = '1'; });
         }
 
-        async function consumeStream(res) {
+        async function consumeStream(res, token) {
             const reader = res.body.getReader();
             const decoder = new TextDecoder();
             let buffer = '';
             while (true) {
+                if (!isActiveAnalysis(token)) {
+                    await reader.cancel();
+                    break;
+                }
                 const { done, value } = await reader.read();
                 if (done) break;
                 buffer += decoder.decode(value, { stream: true });
@@ -496,9 +822,11 @@
                     if (!jsonStr) continue;
                     try {
                         const event = JSON.parse(jsonStr);
-                        if (event.type === 'step') appendStep(event);
-                        else if (event.type === 'result') showResult(event);
+                        if (!isActiveAnalysis(token)) return;
+                        if (event.type === 'step') appendStep(event, token);
+                        else if (event.type === 'result') showResult(event, token);
                         else if (event.type === 'error') {
+                            if (!isActiveAnalysis(token)) return;
                             removeProcessingCard();
                             errorBox.textContent = `分析失败: ${event.message}`;
                             errorBox.classList.remove('hidden');
@@ -515,45 +843,56 @@
             document.getElementById('pipelineSteps').innerHTML = '';
             document.getElementById('resultGrid').innerHTML = '';
             document.getElementById('vlmNotes').innerHTML = '';
+            document.getElementById('sampleIdBadge').textContent = '';
             showProcessingCard('正在启动分析流水线');
         }
 
         async function handleFile(file) {
-            resetAnalysisUI();
+            const { token, controller } = beginAnalysisRun();
             const form = new FormData();
             form.append('file', file);
             try {
                 form.append('method', currentMethod);
-                const res = await fetch('/api/analyze', { method: 'POST', body: form });
+                const res = await fetch('/api/analyze', {
+                    method: 'POST',
+                    body: form,
+                    signal: controller.signal,
+                });
+                if (!isActiveAnalysis(token)) return;
                 if (!res.ok) throw new Error(await res.text());
                 loading.classList.add('hidden');
-                await consumeStream(res);
+                await consumeStream(res, token);
             } catch (e) {
+                if (!isActiveAnalysis(token) || e.name === 'AbortError') return;
                 removeProcessingCard();
                 errorBox.textContent = `分析失败: ${e.message}`;
                 errorBox.classList.remove('hidden');
             } finally {
-                loading.classList.add('hidden');
+                if (isActiveAnalysis(token)) loading.classList.add('hidden');
+                fileInput.value = '';
             }
         }
 
         async function analyzeOnline(relPath) {
-            resetAnalysisUI();
+            const { token, controller } = beginAnalysisRun();
             try {
                 const res = await fetch('/api/analyze_online', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ path: relPath, method: currentMethod }),
+                    signal: controller.signal,
                 });
+                if (!isActiveAnalysis(token)) return;
                 if (!res.ok) throw new Error(await res.text());
                 loading.classList.add('hidden');
-                await consumeStream(res);
+                await consumeStream(res, token);
             } catch (e) {
+                if (!isActiveAnalysis(token) || e.name === 'AbortError') return;
                 removeProcessingCard();
                 errorBox.textContent = `分析失败: ${e.message}`;
                 errorBox.classList.remove('hidden');
             } finally {
-                loading.classList.add('hidden');
+                if (isActiveAnalysis(token)) loading.classList.add('hidden');
             }
         }
 
@@ -575,11 +914,8 @@
         let dbActiveDataset = 'hechuan';
         let dbSelectedPath = null;
 
-        let currentMethod = 'skeleton';
-        document.getElementById('openDbSkeletonBtn').addEventListener('click', () => { currentMethod = 'skeleton'; openDbModal(); });
-        document.getElementById('openDbGraphBtn').addEventListener('click', () => { currentMethod = 'graph'; openDbModal(); });
-        document.getElementById('openDbStalkBtn').addEventListener('click', () => { currentMethod = 'stalk'; openDbModal(); });
-        document.getElementById('openDbPlantcvBtn').addEventListener('click', () => { currentMethod = 'plantcv'; openDbModal(); });
+        const currentMethod = 'stalk';
+        document.getElementById('openDbStalkBtn').addEventListener('click', openDbModal);
         dbModal.querySelectorAll('[data-close]').forEach(el =>
             el.addEventListener('click', () => dbModal.classList.remove('active'))
         );
@@ -598,10 +934,8 @@
             dbSelected.textContent = '未选择';
             dbSubmitBtn.disabled = true;
             dbPreview.innerHTML = '<div class="placeholder">← 从左侧选择一张图片查看预览</div>';
-            const mLabel = currentMethod === 'stalk' ? '🌾 果柄分析' : currentMethod === 'graph' ? '🔗 图论分析' : currentMethod === 'plantcv' ? '🌿 PlantCV 分析' : '🦴 骨架分析';
-            document.getElementById('dbModalTitle').textContent = `📂 在线数据库 — ${mLabel}`;
-            const mShort = currentMethod === 'stalk' ? '果柄' : currentMethod === 'graph' ? '图论' : currentMethod === 'plantcv' ? 'PlantCV' : '骨架';
-            dbSubmitBtn.textContent = `提交${mShort}分析`;
+            document.getElementById('dbModalTitle').textContent = '📂 在线数据库 — 🌾 果柄分析';
+            dbSubmitBtn.textContent = '提交果柄分析';
             try {
                 const res = await fetch('/api/online_images');
                 const data = await res.json();
@@ -688,92 +1022,6 @@
                 });
             });
         }
-        // ── 批量测试 ──
-        const batchTestBtn = document.getElementById('batchTestBtn');
-        const batchStopBtn = document.getElementById('batchStopBtn');
-        const batchConsole = document.getElementById('batchConsole');
-        const batchLog = document.getElementById('batchLog');
-        const batchStatus = document.getElementById('batchStatus');
-        let batchRunning = false;
-
-        function batchAppendLog(msg) {
-            let cls = '';
-            if (msg.includes('✅')) cls = 'log-success';
-            else if (msg.includes('❌') || msg.includes('⛔')) cls = 'log-error';
-            else if (msg.startsWith('===') || msg.startsWith('==')) cls = 'log-header';
-            else if (msg.startsWith('  [')) cls = 'log-info';
-            const span = document.createElement('span');
-            if (cls) span.className = cls;
-            span.textContent = msg + '\n';
-            batchLog.appendChild(span);
-            batchLog.scrollTop = batchLog.scrollHeight;
-        }
-
-        batchTestBtn.addEventListener('click', async () => {
-            if (batchRunning) return;
-            batchRunning = true;
-            batchTestBtn.disabled = true;
-            batchStopBtn.classList.remove('hidden');
-            batchConsole.classList.remove('hidden');
-            batchLog.innerHTML = '';
-            batchStatus.textContent = '运行中';
-            batchStatus.className = 'batch-status batch-status-running';
-
-            try {
-                const res = await fetch('/api/batch_test', { method: 'POST' });
-                if (!res.ok) {
-                    batchAppendLog('❌ 启动失败: ' + (await res.text()));
-                    return;
-                }
-                const reader = res.body.getReader();
-                const decoder = new TextDecoder();
-                let buffer = '';
-                while (true) {
-                    const { done, value } = await reader.read();
-                    if (done) break;
-                    buffer += decoder.decode(value, { stream: true });
-                    const lines = buffer.split('\n');
-                    buffer = lines.pop();
-                    for (const line of lines) {
-                        if (!line.startsWith('data: ')) continue;
-                        const jsonStr = line.slice(6).trim();
-                        if (!jsonStr) continue;
-                        try {
-                            const evt = JSON.parse(jsonStr);
-                            if (evt.type === 'log') {
-                                batchAppendLog(evt.message);
-                            } else if (evt.type === 'batch_done') {
-                                batchStatus.textContent = '已完成';
-                                batchStatus.className = 'batch-status batch-status-done';
-                            }
-                        } catch (e) { /* skip */ }
-                    }
-                }
-            } catch (e) {
-                batchAppendLog('❌ 连接中断: ' + e.message);
-                batchStatus.textContent = '异常中断';
-                batchStatus.className = 'batch-status batch-status-stopped';
-            } finally {
-                batchRunning = false;
-                batchTestBtn.disabled = false;
-                batchStopBtn.classList.add('hidden');
-                if (batchStatus.textContent === '运行中') {
-                    batchStatus.textContent = '已停止';
-                    batchStatus.className = 'batch-status batch-status-stopped';
-                }
-            }
-        });
-
-        batchStopBtn.addEventListener('click', async () => {
-            batchAppendLog('\n⏹ 正在停止...');
-            batchStatus.textContent = '停止中...';
-            batchStatus.className = 'batch-status batch-status-stopped';
-            try {
-                await fetch('/api/batch_stop', { method: 'POST' });
-            } catch (e) {
-                batchAppendLog('急停请求失败: ' + e.message);
-            }
-        });
     </script>
 </body>
 </html>

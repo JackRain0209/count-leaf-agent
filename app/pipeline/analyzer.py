@@ -10,67 +10,261 @@ import numpy as np
 from pathlib import Path
 import time
 import json
+import re
+import uuid
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from typing import Optional
 
 from .vlm_counter import (
     vlm_label_plants, vlm_detect_adhesion, mask_adhesion_regions,
-    vlm_verify_crop, apply_recrop,
+    vlm_verify_crop, apply_recrop, measure_ruler_yellow,
 )
 from .pod_verify_vlm import verify_pod_markers
-from .pod_counter import count_pods_on_branch as _skeleton_counter
-from .pod_counter_graph import count_pods_on_branch as _graph_counter
-from .pod_counter_plantcv import count_pods_on_branch as _plantcv_counter
 from .pod_counter_stalk import count_pods_on_branch as _stalk_counter
 from app.config import RESULT_DIR, CACHE_DIR
 
 
-def analyze_plant_image_stream(image_path: str, method: str = "skeleton"):
+def _safe_run_part(value: str, fallback: str = "image") -> str:
+    safe = re.sub(r"[^A-Za-z0-9._-]+", "_", value).strip("._-")
+    return safe[:80] or fallback
+
+
+def _new_run_id(image_path: str) -> str:
+    stem = _safe_run_part(Path(image_path).stem)
+    return f"{stem}__{int(time.time() * 1000)}__{uuid.uuid4().hex[:8]}"
+
+
+def _upscale_annotation_image(img: np.ndarray) -> np.ndarray:
+    h, w = img.shape[:2]
+    scale = min(3.0, max(1.0, 1800 / max(1, max(h, w))))
+    if scale <= 1.01:
+        return img
+    return cv2.resize(
+        img,
+        (int(round(w * scale)), int(round(h * scale))),
+        interpolation=cv2.INTER_CUBIC,
+    )
+
+
+def analyze_plant_image_stream(
+    image_path: str,
+    method: str = "stalk",
+    run_id: Optional[str] = None,
+    cache_key: Optional[str] = None,
+    source_label: Optional[str] = None,
+):
     """
     Generator that yields each pipeline step as it completes.
     Yields: dict with "type" = "step" | "result"
-      - step:   {"type":"step", "step":N, "url":..., "description":...}
-      - result: {"type":"result", "plant_count":..., "total_pods":..., "plants":..., ...}
+      - step:   {"type":"step", "run_id":..., "step":N, "url":..., "description":...}
+      - result: {"type":"result", "run_id":..., "plant_count":..., "total_pods":..., "plants":..., ...}
     """
     t0 = time.time()
+    run_id = _safe_run_part(run_id) if run_id else _new_run_id(image_path)
+    source_path = str(Path(image_path).resolve())
+    source_label = source_label or Path(image_path).name
+    if method != "stalk":
+        yield {
+            "type": "error",
+            "run_id": run_id,
+            "message": f"Unsupported method: {method}. Only 'stalk' is available.",
+        }
+        return
+
     image = cv2.imread(image_path)
     if image is None:
-        yield {"type": "error", "message": f"Cannot read image: {image_path}"}
+        yield {"type": "error", "run_id": run_id, "message": f"Cannot read image: {image_path}"}
         return
 
     stem_name = Path(image_path).stem
-    debug_dir = RESULT_DIR / stem_name
-    # Clear old step images to prevent stale cache
-    if debug_dir.exists():
-        for old_file in debug_dir.glob("step_*.png"):
-            old_file.unlink(missing_ok=True)
-    debug_dir.mkdir(exist_ok=True)
+    debug_dir = RESULT_DIR / run_id
+    debug_dir.mkdir(parents=True, exist_ok=True)
     step_counter = [0]
 
-    _cache_bust = int(time.time() * 1000)
-
-    def _save_step(img, description):
+    def _save_step(img, description, *, base_img=None, editable_points=None):
         step_counter[0] += 1
         fname = f"step_{step_counter[0]:02d}.png"
         fpath = debug_dir / fname
         cv2.imwrite(str(fpath), img)
         rel = fpath.relative_to(RESULT_DIR)
-        url = f"/results/{rel}?t={_cache_bust}"
-        return {"type": "step", "step": step_counter[0], "url": url, "description": description}
+        event = {
+            "type": "step",
+            "run_id": run_id,
+            "step": step_counter[0],
+            "url": f"/results/{rel}",
+            "description": description,
+        }
+        if base_img is not None:
+            base_fname = f"step_{step_counter[0]:02d}_base.png"
+            base_path = debug_dir / base_fname
+            cv2.imwrite(str(base_path), base_img)
+            base_rel = base_path.relative_to(RESULT_DIR)
+            event["editable_base_url"] = f"/results/{base_rel}"
+        if editable_points:
+            event["editable_points"] = editable_points
+        return event
+
+    def _write_debug_json(fname, payload):
+        try:
+            fpath = debug_dir / fname
+            with open(fpath, "w", encoding="utf-8") as f:
+                json.dump(payload, f, ensure_ascii=False, indent=2, default=str)
+        except Exception as e:
+            print(f"[Debug] failed to write {fname}: {e}")
+
+    def _write_debug_text(fname, text):
+        try:
+            fpath = debug_dir / fname
+            with open(fpath, "w", encoding="utf-8") as f:
+                f.write(text or "")
+        except Exception as e:
+            print(f"[Debug] failed to write {fname}: {e}")
+
+    def _editable_points_from_markers(markers, fp_ids, restored_ids):
+        fp_set = set(fp_ids or [])
+        restored_set = set(restored_ids or [])
+        points = []
+        for m in markers:
+            mid = m.get("id")
+            mtype = m.get("type")
+            if mid is None or "x_norm" not in m or "y_norm" not in m:
+                continue
+            if mtype == "pod":
+                color = "purple" if mid in fp_set else "green"
+                state = "false_positive" if mid in fp_set else "confirmed"
+            else:
+                color = "green" if mid in restored_set else "red"
+                state = "restored" if mid in restored_set else "filtered"
+            points.append({
+                "id": mid,
+                "source": mtype,
+                "state": state,
+                "color": color,
+                "x": float(m["x_norm"]),
+                "y": float(m["y_norm"]),
+            })
+        return points
 
     # Step: Original
-    yield _save_step(image, f"原始图片：{image.shape[1]}×{image.shape[0]} 像素")
+    yield _save_step(image, f"原始图片：{source_label}，{image.shape[1]}×{image.shape[0]} 像素")
 
     # Step: VLM
     print(f"[Pipeline] Sending {image.shape[1]}x{image.shape[0]} to Doubao Vision...")
     vlm_result = vlm_label_plants(image)
+    plants = vlm_result.get("plants", []) or []
+    crops = vlm_result.get("crops", {}) or {}
+    raw_response = vlm_result.get("raw_response", "")
+
+    _write_debug_text("vlm_label_raw.txt", raw_response)
+    _write_debug_json("vlm_label_debug.json", {
+        "source_image": source_path,
+        "source_label": source_label,
+        "image_width": int(image.shape[1]),
+        "image_height": int(image.shape[0]),
+        "parsed_plant_count": len(plants),
+        "parsed_crop_count": len(crops),
+        "parse_error": bool(vlm_result.get("parse_error")),
+        "partial_json": bool(vlm_result.get("partial_json")),
+        "plants": plants,
+        "ruler": vlm_result.get("ruler"),
+        "label_tag": vlm_result.get("label_tag"),
+        "sample_id": vlm_result.get("sample_id", ""),
+        "raw_response_preview": raw_response[:1000],
+    })
+    print(f"[Pipeline] VLM parsed plants={len(plants)}, crops={len(crops)}")
 
     labeled_img = vlm_result.get("labeled_image")
     if labeled_img is not None:
-        yield _save_step(labeled_img, "VLM 部件识别：豆包视觉模型标注主干、主枝、分枝（彩色框）")
+        if plants:
+            desc = "VLM 部件识别：豆包视觉模型标注主干、主枝、分枝（彩色框）"
+        else:
+            desc = "VLM 部件识别：未返回任何主干/主枝/分枝，已保存 VLM 调试文件"
+        yield _save_step(labeled_img, desc)
+
+    if not plants:
+        yield {
+            "type": "error",
+            "run_id": run_id,
+            "message": (
+                "VLM 结构识别没有返回任何主干/主枝/分枝，本次已停止。"
+                f"调试文件已保存到 {debug_dir / 'vlm_label_debug.json'} 和 "
+                f"{debug_dir / 'vlm_label_raw.txt'}。"
+            ),
+            "result_dir": str(debug_dir),
+        }
+        return
+
+    if not crops:
+        yield {
+            "type": "error",
+            "run_id": run_id,
+            "message": (
+                "VLM 返回了结构文本，但没有任何有效 bbox 可用于裁剪，本次已停止。"
+                f"调试文件已保存到 {debug_dir / 'vlm_label_debug.json'}。"
+            ),
+            "result_dir": str(debug_dir),
+        }
+        return
+
+    # ── Ruler detection + CV measurement ──
+    px_per_cm = None
+    ruler_found = False
+    ruler_pixel_length = None
+
+    ruler_data = vlm_result.get("ruler", {})
+    if ruler_data and ruler_data.get("found"):
+        ruler_bbox_norm = ruler_data["bbox"]
+        h_img, w_img = image.shape[:2]
+        rx1 = max(0, int(ruler_bbox_norm[0] / 1000.0 * w_img))
+        ry1 = max(0, int(ruler_bbox_norm[1] / 1000.0 * h_img))
+        rx2 = min(w_img, int(ruler_bbox_norm[2] / 1000.0 * w_img))
+        ry2 = min(h_img, int(ruler_bbox_norm[3] / 1000.0 * h_img))
+        if rx2 > rx1 and ry2 > ry1:
+            ruler_crop = image[ry1:ry2, rx1:rx2].copy()
+            ruler_meas = measure_ruler_yellow(ruler_crop)
+            if ruler_meas.get("detected"):
+                ruler_found = True
+                px_per_cm = ruler_meas["px_per_cm"]
+                ruler_pixel_length = ruler_meas["yellow_length_px"]
+                debug_img = ruler_meas.get("debug_image")
+                if debug_img is not None:
+                    yield _save_step(debug_img,
+                        f"直尺检测：黄色段 {ruler_pixel_length:.0f} px, "
+                        f"比例 {px_per_cm:.2f} px/cm（1m = 100cm）")
+            else:
+                print("[Pipeline] Ruler bbox found but CV yellow detection failed")
+        else:
+            print(f"[Pipeline] Invalid ruler bbox: {ruler_bbox_norm}")
+
+    # ── Label tag processing ──
+    sample_id = vlm_result.get("sample_id", "")
+    label_found = False
+    label_is_flipped = False
+
+    label_data = vlm_result.get("label_tag", {})
+    if label_data and label_data.get("found"):
+        label_found = True
+        label_is_flipped = label_data.get("is_flipped", False)
+        label_rows = label_data.get("rows", ["", "", ""])
+        if label_is_flipped:
+            sample_id += " (标签翻转)"
+        yield _save_step(
+            cv2.resize(image, (800, int(800 * image.shape[0] / image.shape[1]))),
+            f"标签识别：sample_id = {sample_id}"
+            f"{'（检测到标签倒置）' if label_is_flipped else ''}"
+        )
+
+    # Write ruler/label debug info
+    _write_debug_json("ruler_label_debug.json", {
+        "ruler_found": ruler_found,
+        "ruler_pixel_length": ruler_pixel_length,
+        "px_per_cm": px_per_cm,
+        "label_found": label_found,
+        "sample_id": sample_id,
+        "label_is_flipped": label_is_flipped,
+    })
 
     # Step: Crops
-    crops = vlm_result.get("crops", {})
-    plants = vlm_result.get("plants", [])
     for p in plants:
         pid = p.get("id")
         if pid in crops:
@@ -158,7 +352,7 @@ def analyze_plant_image_stream(image_path: str, method: str = "skeleton"):
     # ── Cache verified crops (post-VLM-verification) ──
     # Saves after keep/delete/recrop so downstream --cv-only runs use clean data.
     try:
-        _cache_dir = CACHE_DIR / stem_name
+        _cache_dir = CACHE_DIR / (cache_key or stem_name)
         _cache_dir.mkdir(parents=True, exist_ok=True)
         _crop_files = {}
         for p in plants:
@@ -207,19 +401,33 @@ def analyze_plant_image_stream(image_path: str, method: str = "skeleton"):
     #         yield _save_step(crops[pid],
     #                          f"[#{pid} {plabel}] 异株检测：未发现其他植株混入")
 
-    # Steps: Pod counting per branch (CPU, fast)
-    if method == "graph":
-        _counter = _graph_counter
-    elif method == "plantcv":
-        _counter = _plantcv_counter
-    elif method == "stalk":
-        _counter = _stalk_counter
-    else:
-        _counter = _skeleton_counter
-
+    # Steps: pod counting per branch (CPU, fast)
+    _counter = _stalk_counter
     pod_plants = [p for p in plants
                   if p.get("label", "") != "主干" and p.get("id") in crops]
     pod_results_map = {}  # pid -> pod_result
+
+    # Also run the stalk counter on trunk — same logic as branches, just take
+    # main_stem_length (pod count on trunk is ~0, we don't care).
+    trunk_plant = next((p for p in plants
+                        if p.get("label", "") == "主干" and p.get("id") in crops), None)
+    trunk_pixel_len = 0
+    if trunk_plant:
+        tid = trunk_plant.get("id")
+        print(f"[Pipeline] Measuring trunk #{tid} for stem length...")
+        trunk_result = _counter(
+            crops[tid],
+            stem_start_local=trunk_plant.get("stem_start_local"),
+            stem_end_local=trunk_plant.get("stem_end_local"),
+            skip_ruler_rejection=True,
+        )
+        trunk_pixel_len = trunk_result.get("main_stem_length", 0)
+        trunk_plant["pod_count"] = trunk_result.get("pod_count", 0)
+        trunk_plant["main_stem_length"] = trunk_pixel_len
+        pod_results_map[tid] = trunk_result
+        for step_img, step_desc in trunk_result.get("step_images", []):
+            yield _save_step(step_img, f"[#{tid} 主干] {step_desc}")
+        print(f"  [Trunk] main_stem_length = {trunk_pixel_len}px")
 
     for p in pod_plants:
         pid = p.get("id")
@@ -246,6 +454,12 @@ def analyze_plant_image_stream(image_path: str, method: str = "skeleton"):
         if markers:
             vlm_verify_inputs.append((p, pod_result, markers))
 
+    # Also verify trunk pods
+    if trunk_plant and trunk_pixel_len > 0:
+        trunk_markers = trunk_result.get("markers", [])
+        if trunk_markers:
+            vlm_verify_inputs.append((trunk_plant, trunk_result, trunk_markers))
+
     vlm_verify_results = {}  # pid -> verify_result
     if vlm_verify_inputs:
         print(f"[Pipeline] VLM verifying pods on {len(vlm_verify_inputs)} branches in parallel...")
@@ -270,7 +484,11 @@ def analyze_plant_image_stream(image_path: str, method: str = "skeleton"):
                 except Exception as e:
                     print(f"[Pipeline] VLM verify #{pid} failed: {e}")
                     vlm_verify_results[pid] = {
-                        "missed_count": 0, "false_positive_ids": [],
+                        "missed_count": 0,
+                        "restored_filtered_ids": [],
+                        "restored_filtered_confidences": {},
+                        "false_positive_ids": [],
+                        "false_positive_confidences": {},
                         "adjusted_pod_count": p["pod_count"],
                         "reason": f"VLM error: {e}",
                         "verified_image": crops[pid].copy(),
@@ -285,23 +503,37 @@ def analyze_plant_image_stream(image_path: str, method: str = "skeleton"):
             continue
 
         missed = verify_result.get("missed_count", 0)
+        restored_ids = verify_result.get("restored_filtered_ids", [])
+        restored_conf = verify_result.get("restored_filtered_confidences", {})
         fp_ids = verify_result.get("false_positive_ids", [])
         fp_conf = verify_result.get("false_positive_confidences", {})
         adjusted = verify_result.get("adjusted_pod_count", p["pod_count"])
         v_reason = verify_result.get("reason", "")
 
-        if missed > 0 or fp_ids:
+        if missed > 0 or restored_ids or fp_ids:
             p["pod_count_before_vlm"] = p["pod_count"]
             p["pod_count"] = adjusted
             p["vlm_verify"] = {
                 "missed": missed,
+                "restored_filtered": restored_ids,
+                "restored_filtered_confidences": restored_conf,
                 "false_positives": fp_ids,
                 "false_positive_confidences": fp_conf,
                 "reason": v_reason,
             }
             change_desc = []
             if missed > 0:
-                change_desc.append(f"漏检 +{missed}")
+                restore_items = []
+                for rid in restored_ids:
+                    conf = restored_conf.get(str(rid), restored_conf.get(rid))
+                    if conf is None:
+                        restore_items.append(f"F{rid}")
+                    else:
+                        restore_items.append(f"F{rid}({float(conf):.2f})")
+                if restore_items:
+                    change_desc.append(f"补回 +{len(restored_ids)} ({','.join(restore_items)})")
+                else:
+                    change_desc.append(f"漏检 +{missed}")
             if fp_ids:
                 fp_items = []
                 for fp_id in fp_ids:
@@ -314,25 +546,85 @@ def analyze_plant_image_stream(image_path: str, method: str = "skeleton"):
             yield _save_step(
                 verify_result.get("verified_image", crops[pid]),
                 f"[#{pid} {plabel}] 🔍 VLM 角果复核：{' / '.join(change_desc)}，"
-                f"{p['pod_count_before_vlm']} → {adjusted} — {v_reason}")
+                f"{p['pod_count_before_vlm']} → {adjusted} — {v_reason}",
+                base_img=_upscale_annotation_image(crops[pid]),
+                editable_points=_editable_points_from_markers(markers, fp_ids, restored_ids),
+            )
         else:
             p["vlm_verify"] = {
                 "missed": 0,
+                "restored_filtered": [],
+                "restored_filtered_confidences": {},
                 "false_positives": [],
                 "false_positive_confidences": {},
                 "reason": v_reason,
             }
             yield _save_step(
                 verify_result.get("verified_image", crops[pid]),
-                f"[#{pid} {plabel}] ✅ VLM 角果复核：计数无调整 — {v_reason}")
+                f"[#{pid} {plabel}] ✅ VLM 角果复核：计数无调整 — {v_reason}",
+                base_img=_upscale_annotation_image(crops[pid]),
+                editable_points=_editable_points_from_markers(markers, [], []),
+            )
 
     # Final result
+    trunk_pod_count = int(trunk_plant.get("pod_count", 0)) if trunk_plant else 0
+    main_pod_count = sum(int(p.get("pod_count", 0)) for p in plants if p.get("label") == "主枝")
+    main_stem_plus_main_pods = trunk_pod_count + main_pod_count
+    branch_pod_count = sum(int(p.get("pod_count", 0)) for p in plants if p.get("label") == "分枝")
+    branch_pod_breakdown = [
+        {
+            "id": p.get("id"),
+            "label": p.get("label"),
+            "pod_count": int(p.get("pod_count", 0)),
+        }
+        for p in plants
+        if p.get("label") == "分枝"
+    ]
+    branch_count = len(branch_pod_breakdown)
     total_pods = sum(p.get("pod_count", 0) for p in plants)
     elapsed = round(time.time() - t0, 2)
+
+    # Compute real-world stem length
+    main_stem_length_cm = None
+    if trunk_pixel_len > 0 and px_per_cm and px_per_cm > 0:
+        main_stem_length_cm = round(trunk_pixel_len / px_per_cm, 1)
+
     yield {
         "type": "result",
+        "run_id": run_id,
+        "source_image": source_path,
+        "source_label": source_label,
+        "result_dir": str(debug_dir),
         "plant_count": len(plants),
+        "branch_count": branch_count,
+        "main_inflorescence_pod_count": main_pod_count,
+        "main_stem_plus_main_pod_count": main_stem_plus_main_pods,
+        "branch_pod_count": branch_pod_count,
+        "branch_total_pod_count": branch_pod_count,
+        "main_stem_length": trunk_pixel_len or None,
+        "main_stem_length_cm": main_stem_length_cm,
         "total_pods": total_pods,
+        "sample_id": sample_id or "",
+        "ruler_found": ruler_found,
+        "ruler_pixel_length": ruler_pixel_length,
+        "px_per_cm": px_per_cm,
+        "label_found": label_found,
+        "label_is_flipped": label_is_flipped,
+        "summary": {
+            "branch_count": branch_count,
+            "predicted_branch_count": branch_count,
+            "main_inflorescence_pod_count": main_pod_count,
+            "main_stem_plus_main_pod_count": main_stem_plus_main_pods,
+            "branch_pod_count": branch_pod_count,
+            "branch_total_pod_count": branch_pod_count,
+            "total_pod_count": total_pods,
+            "main_stem_length": trunk_pixel_len or None,
+            "main_stem_length_cm": main_stem_length_cm,
+            "sample_id": sample_id or "",
+            "ruler_found": ruler_found,
+            "label_found": label_found,
+            "branch_pod_breakdown": branch_pod_breakdown,
+        },
         "plants": plants,
         "processing_time_s": elapsed,
         "total_steps": step_counter[0],

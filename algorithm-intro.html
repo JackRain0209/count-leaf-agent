@@ -1,0 +1,1107 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>果柄法油菜角果计数算法</title>
+<style>
+  :root {
+    --green-dark:  #1a4731;
+    --green:       #2d7a4f;
+    --green-light: #4caf78;
+    --green-pale:  #e8f5ee;
+    --orange:      #e07b39;
+    --orange-pale: #fdf3ec;
+    --purple:      #8b5cf6;
+    --purple-pale: #f3f0ff;
+    --blue:        #3b82f6;
+    --blue-pale:   #eff6ff;
+    --red:         #ef4444;
+    --yellow:      #f59e0b;
+    --gray-50:     #f9fafb;
+    --gray-100:    #f3f4f6;
+    --gray-200:    #e5e7eb;
+    --gray-400:    #9ca3af;
+    --gray-600:    #4b5563;
+    --gray-800:    #1f2937;
+    --text:        #111827;
+    --radius:      12px;
+    --shadow:      0 4px 24px rgba(0,0,0,.08);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
+    background: #f0f4f2;
+    color: var(--text);
+    line-height: 1.7;
+  }
+
+  /* ── Hero ── */
+  .hero {
+    background: linear-gradient(135deg, var(--green-dark) 0%, var(--green) 60%, var(--green-light) 100%);
+    color: #fff;
+    padding: 64px 24px 80px;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+  }
+  .hero::before {
+    content: "";
+    position: absolute; inset: 0;
+    background: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.04'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+  }
+  .hero-badge {
+    display: inline-block;
+    background: rgba(255,255,255,.18);
+    border: 1px solid rgba(255,255,255,.35);
+    border-radius: 99px;
+    padding: 4px 14px;
+    font-size: 12px;
+    letter-spacing: .08em;
+    margin-bottom: 16px;
+    backdrop-filter: blur(4px);
+  }
+  .hero h1 {
+    font-size: clamp(28px, 5vw, 52px);
+    font-weight: 800;
+    letter-spacing: -.02em;
+    margin-bottom: 12px;
+  }
+  .hero h1 span { color: #a7f3c2; }
+  .hero p.sub {
+    font-size: 18px;
+    opacity: .85;
+    max-width: 600px;
+    margin: 0 auto 28px;
+  }
+  .tag-row { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+  .tag {
+    background: rgba(255,255,255,.15);
+    border: 1px solid rgba(255,255,255,.3);
+    border-radius: 99px;
+    padding: 5px 14px;
+    font-size: 13px;
+    font-weight: 600;
+  }
+
+  /* ── Layout ── */
+  .container { max-width: 1100px; margin: 0 auto; padding: 0 20px; }
+  section { padding: 60px 0; }
+  .section-title {
+    font-size: 26px;
+    font-weight: 800;
+    margin-bottom: 8px;
+    color: var(--gray-800);
+  }
+  .section-sub {
+    color: var(--gray-600);
+    font-size: 15px;
+    margin-bottom: 36px;
+  }
+  .section-title .accent { color: var(--green); }
+
+  /* ── Core insight banner ── */
+  .insight-banner {
+    background: linear-gradient(135deg, var(--green-pale), #fff);
+    border: 2px solid var(--green-light);
+    border-radius: var(--radius);
+    padding: 28px 32px;
+    margin-bottom: 40px;
+    display: flex;
+    gap: 20px;
+    align-items: flex-start;
+  }
+  .insight-icon { font-size: 36px; flex-shrink: 0; }
+  .insight-banner h3 { font-size: 18px; font-weight: 700; color: var(--green-dark); margin-bottom: 6px; }
+  .insight-banner p { color: var(--gray-600); font-size: 14.5px; }
+
+  /* ── Problem comparison cards ── */
+  .compare-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+    margin-bottom: 40px;
+  }
+  @media (max-width: 680px) { .compare-grid { grid-template-columns: 1fr; } }
+  .compare-card {
+    border-radius: var(--radius);
+    padding: 28px;
+    box-shadow: var(--shadow);
+  }
+  .compare-card.bad  { background: #fff7f7; border: 1.5px solid #fca5a5; }
+  .compare-card.good { background: var(--green-pale); border: 1.5px solid var(--green-light); }
+  .compare-card .card-label {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: .1em;
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .compare-card.bad  .card-label { color: var(--red); }
+  .compare-card.good .card-label { color: var(--green); }
+  .compare-card h3 { font-size: 17px; font-weight: 700; margin-bottom: 10px; }
+  .compare-card p  { font-size: 14px; color: var(--gray-600); line-height: 1.65; }
+
+  /* ── SVG diagrams ── */
+  .diagram-wrap {
+    background: #fff;
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    padding: 28px;
+    margin-bottom: 40px;
+    overflow-x: auto;
+  }
+  .diagram-wrap figcaption {
+    text-align: center;
+    font-size: 13px;
+    color: var(--gray-400);
+    margin-top: 14px;
+  }
+
+  /* ── Pipeline steps ── */
+  .pipeline-wrap {
+    position: relative;
+  }
+  .pipeline-wrap::before {
+    content: "";
+    position: absolute;
+    left: 31px;
+    top: 24px;
+    bottom: 24px;
+    width: 2px;
+    background: linear-gradient(to bottom, var(--green-light), var(--blue), var(--purple));
+    border-radius: 2px;
+  }
+  .step-card {
+    background: #fff;
+    border-radius: var(--radius);
+    padding: 24px 24px 24px 76px;
+    margin-bottom: 20px;
+    box-shadow: var(--shadow);
+    position: relative;
+    transition: box-shadow .2s;
+  }
+  .step-card:hover { box-shadow: 0 8px 32px rgba(0,0,0,.13); }
+  .step-num {
+    position: absolute;
+    left: 20px;
+    top: 24px;
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    font-weight: 800;
+    color: #fff;
+    flex-shrink: 0;
+  }
+  .step-card h3 {
+    font-size: 16px;
+    font-weight: 700;
+    margin-bottom: 6px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .step-card p { font-size: 14px; color: var(--gray-600); }
+  .step-tag {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: .06em;
+    padding: 2px 8px;
+    border-radius: 99px;
+    flex-shrink: 0;
+  }
+  .chip {
+    display: inline-block;
+    background: var(--gray-100);
+    color: var(--gray-600);
+    border-radius: 4px;
+    font-size: 12px;
+    font-family: ui-monospace, monospace;
+    padding: 1px 6px;
+    margin: 0 1px;
+  }
+
+  /* ── Filter logic ── */
+  .filter-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    margin-bottom: 36px;
+  }
+  @media (max-width: 640px) { .filter-grid { grid-template-columns: 1fr; } }
+  .filter-card {
+    background: #fff;
+    border-radius: var(--radius);
+    padding: 24px;
+    box-shadow: var(--shadow);
+    border-top: 4px solid var(--purple);
+  }
+  .filter-card.pass2 { border-top-color: var(--green); }
+  .filter-card h4 { font-size: 15px; font-weight: 700; margin-bottom: 12px; }
+  .filter-card ul { padding-left: 18px; }
+  .filter-card li { font-size: 13.5px; color: var(--gray-600); margin-bottom: 6px; }
+  .filter-card code {
+    background: var(--gray-100);
+    color: var(--green-dark);
+    padding: 1px 5px;
+    border-radius: 4px;
+    font-size: 12px;
+  }
+
+  /* ── Param table ── */
+  .param-table {
+    width: 100%;
+    border-collapse: collapse;
+    background: #fff;
+    border-radius: var(--radius);
+    overflow: hidden;
+    box-shadow: var(--shadow);
+    font-size: 14px;
+  }
+  .param-table thead tr { background: var(--green-dark); color: #fff; }
+  .param-table th, .param-table td { padding: 13px 18px; text-align: left; }
+  .param-table tbody tr:nth-child(even) { background: var(--gray-50); }
+  .param-table tbody tr:hover { background: var(--green-pale); }
+  .param-table td:nth-child(2) { font-family: ui-monospace, monospace; color: var(--green-dark); font-weight: 700; }
+
+  /* ── Few-shot ── */
+  .fs-flow {
+    display: flex;
+    align-items: stretch;
+    gap: 0;
+    overflow-x: auto;
+    background: #fff;
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    padding: 28px 20px;
+    margin-bottom: 36px;
+  }
+  .fs-node {
+    flex: 1;
+    min-width: 110px;
+    text-align: center;
+    padding: 0 8px;
+    position: relative;
+  }
+  .fs-node:not(:last-child)::after {
+    content: "→";
+    position: absolute;
+    right: -10px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 20px;
+    color: var(--gray-400);
+    font-weight: 300;
+  }
+  .fs-box {
+    border-radius: 10px;
+    padding: 14px 10px;
+    margin-bottom: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    line-height: 1.4;
+  }
+  .fs-label {
+    font-size: 11px;
+    color: var(--gray-400);
+    line-height: 1.4;
+  }
+  .img-slots {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-bottom: 28px;
+  }
+  .img-slot {
+    flex: 1;
+    min-width: 160px;
+    background: #fff;
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    padding: 16px;
+    border-top: 4px solid transparent;
+  }
+  .img-slot.orig   { border-top-color: var(--gray-400); }
+  .img-slot.anno   { border-top-color: var(--green); }
+  .img-slot.pos    { border-top-color: #ef4444; }
+  .img-slot.neg    { border-top-color: var(--blue); }
+  .img-slot .slot-idx {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: .07em;
+    margin-bottom: 6px;
+  }
+  .img-slot.orig .slot-idx { color: var(--gray-400); }
+  .img-slot.anno .slot-idx { color: var(--green); }
+  .img-slot.pos  .slot-idx { color: #ef4444; }
+  .img-slot.neg  .slot-idx { color: var(--blue); }
+  .img-slot h5 { font-size: 14px; font-weight: 700; margin-bottom: 6px; }
+  .img-slot p  { font-size: 12.5px; color: var(--gray-600); }
+  .support-files {
+    background: #fff;
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    overflow: hidden;
+    margin-bottom: 28px;
+  }
+  .support-files table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+  .support-files thead tr { background: var(--gray-800); color: #fff; }
+  .support-files th, .support-files td { padding: 11px 16px; text-align: left; }
+  .support-files tbody tr:nth-child(even) { background: var(--gray-50); }
+  .support-files td:first-child { font-family: ui-monospace, monospace; font-size: 12px; color: var(--green-dark); }
+  .badge-pos { background: #fee2e2; color: #b91c1c; padding: 2px 8px; border-radius: 99px; font-size: 11px; font-weight: 700; }
+  .badge-neg { background: var(--blue-pale); color: #1d4ed8; padding: 2px 8px; border-radius: 99px; font-size: 11px; font-weight: 700; }
+  .conf-block {
+    background: linear-gradient(135deg, #1e1b4b, #312e81);
+    border-radius: var(--radius);
+    padding: 24px 28px;
+    color: #c7d2fe;
+    font-size: 13.5px;
+    margin-bottom: 28px;
+    display: flex;
+    gap: 20px;
+    align-items: flex-start;
+  }
+  .conf-block .icon { font-size: 32px; flex-shrink: 0; margin-top: 2px; }
+  .conf-block h4 { font-size: 15px; font-weight: 700; color: #e0e7ff; margin-bottom: 8px; }
+  .conf-block ul { padding-left: 18px; }
+  .conf-block li { margin-bottom: 5px; }
+  .conf-block code {
+    background: rgba(255,255,255,.15);
+    color: #a5f3fc;
+    padding: 1px 5px;
+    border-radius: 4px;
+    font-size: 12px;
+  }
+
+  /* ── Color legend ── */
+  .legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    background: #fff;
+    border-radius: var(--radius);
+    padding: 20px 24px;
+    box-shadow: var(--shadow);
+    margin-bottom: 36px;
+  }
+  .legend-item { display: flex; align-items: center; gap: 8px; font-size: 13px; }
+  .dot {
+    width: 14px; height: 14px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    border: 2px solid rgba(0,0,0,.12);
+  }
+
+  /* ── Advantage cards ── */
+  .adv-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 20px;
+  }
+  .adv-card {
+    background: #fff;
+    border-radius: var(--radius);
+    padding: 24px;
+    box-shadow: var(--shadow);
+    border-left: 4px solid var(--green-light);
+  }
+  .adv-card .icon { font-size: 28px; margin-bottom: 10px; }
+  .adv-card h4 { font-size: 15px; font-weight: 700; margin-bottom: 7px; }
+  .adv-card p { font-size: 13.5px; color: var(--gray-600); }
+
+  /* ── Tech specs ── */
+  .spec-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+    margin-bottom: 36px;
+  }
+  .spec-pill {
+    background: #fff;
+    border-radius: 99px;
+    padding: 8px 18px;
+    font-size: 13px;
+    box-shadow: var(--shadow);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 600;
+  }
+  .spec-pill .dot2 {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: var(--green-light);
+  }
+
+  /* ── Footer ── */
+  footer {
+    background: var(--green-dark);
+    color: rgba(255,255,255,.6);
+    text-align: center;
+    padding: 28px 20px;
+    font-size: 13px;
+  }
+  footer strong { color: #fff; }
+</style>
+</head>
+<body>
+
+<!-- ────────────────────── HERO ────────────────────── -->
+<div class="hero">
+  <div class="hero-badge">🌿 CV-Agent · 算法技术文档</div>
+  <h1>油菜角果计数<br><span>果柄法</span>算法详解</h1>
+  <p class="sub">基于骨架拓扑图的两阶段果柄计数方案，有效解决尖端融合导致的漏计问题</p>
+  <div class="tag-row">
+    <div class="tag">骨架化</div>
+    <div class="tag">拓扑图</div>
+    <div class="tag">枯枝自适应过滤</div>
+    <div class="tag">Numba 加速</div>
+    <div class="tag">VLM 复核</div>
+  </div>
+</div>
+
+<!-- ────────────────────── CORE INSIGHT ────────────────────── -->
+<section>
+<div class="container">
+  <div class="section-title">核心思路：<span class="accent">从"数尖端"到"数根部"</span></div>
+  <div class="section-sub">角果计数的本质难点 → 为什么果柄法更优</div>
+
+  <div class="insight-banner">
+    <div class="insight-icon">💡</div>
+    <div>
+      <h3>尖端融合是传统方法的致命弱点</h3>
+      <p>
+        当两个角果尖端相互交叉时，骨架算法会将两个独立的尖端"合并"成一个节点，导致漏计。
+        <strong>果柄法的关键洞察</strong>：即使两个角果的尖端在空间上交叉，
+        它们的<strong>果柄（stalk）依然分别独立地附着在主干的不同位置</strong>。
+        因此，在主干连接处计数（果柄）比在末端计数（尖端）更鲁棒。
+      </p>
+    </div>
+  </div>
+
+  <div class="compare-grid">
+    <div class="compare-card bad">
+      <div class="card-label">❌ 传统方案</div>
+      <h3>尖端计数法</h3>
+      <p>
+        通过骨架端点（tips）计数。
+        当角果尖端相互交叉时，两个端点在骨架中被合并，
+        识别为一个端点 → <strong>漏计 1 个角果</strong>。
+        在密集种植、角果相互遮挡的场景下误差明显偏大。
+      </p>
+    </div>
+    <div class="compare-card good">
+      <div class="card-label">✅ 果柄法</div>
+      <h3>果柄（根部）计数法</h3>
+      <p>
+        统计从主干向外延伸的<strong>侧边（果柄）数量</strong>。
+        每一根果柄在主干上独立附着，不受尖端是否融合的影响。
+        即使尖端完全重叠，果柄仍然是两条独立的出边 → <strong>精确计数</strong>。
+      </p>
+    </div>
+  </div>
+
+  <!-- Diagram: tip merge vs stalk -->
+  <div class="diagram-wrap">
+    <figure>
+      <svg viewBox="0 0 820 240" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-width:820px;display:block;margin:0 auto">
+        <!-- Left: bad (tip merge) -->
+        <text x="190" y="22" text-anchor="middle" fill="#ef4444" font-size="13" font-weight="700" font-family="sans-serif">❌ 尖端融合 → 漏计</text>
+        <!-- main stem left -->
+        <rect x="170" y="35" width="8" height="180" rx="4" fill="#e07b39"/>
+        <!-- stalk 1 -->
+        <line x1="174" y1="80"  x2="100" y2="120" stroke="#555" stroke-width="3" stroke-linecap="round"/>
+        <!-- stalk 2 -->
+        <line x1="174" y1="110" x2="110" y2="120" stroke="#555" stroke-width="3" stroke-linecap="round"/>
+        <!-- merged tip -->
+        <circle cx="107" cy="120" r="8" fill="#ef4444" stroke="#fff" stroke-width="2"/>
+        <text x="75" y="145" fill="#ef4444" font-size="11" font-family="sans-serif">尖端合并 = 只数到1个</text>
+        <!-- arrows showing merge -->
+        <path d="M100 120 Q95 120 92 120" stroke="#ef4444" stroke-width="1.5" stroke-dasharray="3,2" fill="none"/>
+        <!-- stalk 3,4 ok -->
+        <line x1="174" y1="145" x2="240" y2="100" stroke="#555" stroke-width="3" stroke-linecap="round"/>
+        <line x1="174" y1="170" x2="245" y2="100" stroke="#555" stroke-width="3" stroke-linecap="round"/>
+        <circle cx="243" cy="100" r="8" fill="#ef4444" stroke="#fff" stroke-width="2"/>
+        <text x="250" y="104" fill="#ef4444" font-size="11" font-family="sans-serif">同上</text>
+        <!-- tip labels bad -->
+        <text x="120" y="118" fill="#555" font-size="10" font-family="sans-serif">果柄1</text>
+        <text x="120" y="135" fill="#555" font-size="10" font-family="sans-serif">果柄2</text>
+        <!-- count bad -->
+        <rect x="100" y="190" width="148" height="28" rx="6" fill="#fee2e2"/>
+        <text x="174" y="209" text-anchor="middle" fill="#ef4444" font-size="13" font-weight="700" font-family="sans-serif">识别结果：2 个（实际 4 个）</text>
+
+        <!-- Divider -->
+        <line x1="410" y1="20" x2="410" y2="230" stroke="#e5e7eb" stroke-width="1.5" stroke-dasharray="6,4"/>
+
+        <!-- Right: good (stalk count) -->
+        <text x="620" y="22" text-anchor="middle" fill="#2d7a4f" font-size="13" font-weight="700" font-family="sans-serif">✅ 果柄法 → 精确</text>
+        <!-- main stem right -->
+        <rect x="600" y="35" width="8" height="180" rx="4" fill="#e07b39"/>
+        <!-- attach nodes -->
+        <circle cx="604" cy="80"  r="5" fill="#fff" stroke="#2d7a4f" stroke-width="2.5"/>
+        <circle cx="604" cy="105" r="5" fill="#fff" stroke="#2d7a4f" stroke-width="2.5"/>
+        <circle cx="604" cy="135" r="5" fill="#fff" stroke="#2d7a4f" stroke-width="2.5"/>
+        <circle cx="604" cy="160" r="5" fill="#fff" stroke="#2d7a4f" stroke-width="2.5"/>
+        <!-- stalks right -->
+        <line x1="604" y1="80"  x2="530" y2="120" stroke="#2d7a4f" stroke-width="3" stroke-linecap="round"/>
+        <line x1="604" y1="105" x2="535" y2="120" stroke="#2d7a4f" stroke-width="3" stroke-linecap="round"/>
+        <line x1="604" y1="135" x2="670" y2="95"  stroke="#2d7a4f" stroke-width="3" stroke-linecap="round"/>
+        <line x1="604" y1="160" x2="675" y2="95"  stroke="#2d7a4f" stroke-width="3" stroke-linecap="round"/>
+        <!-- tips -->
+        <circle cx="532" cy="120" r="6" fill="#aaa" stroke="#fff" stroke-width="1.5"/>
+        <circle cx="672" cy="95"  r="6" fill="#aaa" stroke="#fff" stroke-width="1.5"/>
+        <!-- stalk count markers -->
+        <text x="490" y="90"  fill="#2d7a4f" font-size="11" font-weight="700" font-family="sans-serif">果柄①</text>
+        <text x="490" y="115" fill="#2d7a4f" font-size="11" font-weight="700" font-family="sans-serif">果柄②</text>
+        <text x="680" y="80"  fill="#2d7a4f" font-size="11" font-weight="700" font-family="sans-serif">果柄③</text>
+        <text x="680" y="100" fill="#2d7a4f" font-size="11" font-weight="700" font-family="sans-serif">果柄④</text>
+        <!-- upstem label -->
+        <text x="570" y="145" fill="#e07b39" font-size="10" font-family="sans-serif">附着点</text>
+        <!-- count good -->
+        <rect x="530" y="190" width="148" height="28" rx="6" fill="#dcfce7"/>
+        <text x="604" y="209" text-anchor="middle" fill="#2d7a4f" font-size="13" font-weight="700" font-family="sans-serif">识别结果：4 个 ✓</text>
+      </svg>
+      <figcaption>尖端融合场景下，传统方法漏计；果柄法直接统计主干上的独立出边，不受影响</figcaption>
+    </figure>
+  </div>
+
+</div>
+</section>
+
+<!-- ────────────────────── PIPELINE ────────────────────── -->
+<section style="background:#fff;">
+<div class="container">
+  <div class="section-title">算法流水线</div>
+  <div class="section-sub">单个分支图像从输入到计数结果的完整处理步骤</div>
+
+  <!-- Spec pills -->
+  <div class="spec-row">
+    <div class="spec-pill"><span class="dot2"></span>输入：BGR 图像（单分支裁剪图）</div>
+    <div class="spec-pill"><span class="dot2"></span>自动升采样至 800px 短边</div>
+    <div class="spec-pill"><span class="dot2" style="background:#8b5cf6"></span>两遍算法（Two-Pass）</div>
+    <div class="spec-pill"><span class="dot2" style="background:#3b82f6"></span>Numba JIT 加速</div>
+    <div class="spec-pill"><span class="dot2" style="background:#e07b39"></span>输出：角果数 + 标注图 + markers</div>
+  </div>
+
+  <div class="pipeline-wrap">
+
+    <!-- Step 0 -->
+    <div class="step-card">
+      <div class="step-num" style="background:var(--gray-400)">0</div>
+      <h3>
+        图像预处理
+        <span class="step-tag" style="background:var(--gray-100);color:var(--gray-600)">PRE</span>
+      </h3>
+      <p>
+        若图像短边小于 <span class="chip">800px</span>，自动以 Lanczos 插值放大至 800px，
+        确保骨架计算有足够像素密度。
+        随后去除刻度尺区域（边缘高密度条带检测）和非主体连通域。
+      </p>
+    </div>
+
+    <!-- Step 1 -->
+    <div class="step-card">
+      <div class="step-num" style="background:#16a34a">1</div>
+      <h3>
+        二值化分割
+        <span class="step-tag" style="background:var(--green-pale);color:var(--green)">BINARIZE</span>
+      </h3>
+      <p>
+        高斯模糊 → Otsu 自适应阈值 → 形态学闭运算（<span class="chip">3×3</span> 椭圆核，2次）桥接断裂细枝 →
+        膨胀+腐蚀（<span class="chip">5×5</span> 核）修复根部连接。
+        亮色植物区域对应白色二值化结果。
+      </p>
+    </div>
+
+    <!-- Step 2 -->
+    <div class="step-card">
+      <div class="step-num" style="background:#0891b2">2</div>
+      <h3>
+        骨架提取
+        <span class="step-tag" style="background:var(--blue-pale);color:var(--blue)">SKELETON</span>
+      </h3>
+      <p>
+        调用 <span class="chip">skimage.morphology.skeletonize</span> 得到 1px 宽骨架线。
+        骨架像素集合以 <span class="chip">set{(r,c)}</span> 存储，
+        并使用距离变换（<span class="chip">cv2.distanceTransform</span>）预计算每个骨架点的局部宽度，
+        用于后续枯枝宽度判断。
+      </p>
+    </div>
+
+    <!-- Step 3 -->
+    <div class="step-card">
+      <div class="step-num" style="background:#d97706">3</div>
+      <h3>
+        主干识别
+        <span class="step-tag" style="background:var(--orange-pale);color:var(--orange)">MAIN STEM</span>
+      </h3>
+      <p>
+        用 Numba JIT 加速的 <strong>多端点评分 BFS</strong> 找主干：
+        枚举所有端点对，按 <em>长度 × 直线度评分</em> 排序，选最佳路径为主干。
+        内置<strong>刻度尺自动排斥</strong>：若主干均匀宽度变异系数 CV &lt; 0.15，
+        判定为刻度尺并洪泛填充后重新计算，最多重试 2 次。
+      </p>
+    </div>
+
+    <!-- Step 4 -->
+    <div class="step-card">
+      <div class="step-num" style="background:#7c3aed">4</div>
+      <h3>
+        拓扑图构建
+        <span class="step-tag" style="background:var(--purple-pale);color:var(--purple)">TOPO GRAPH</span>
+      </h3>
+      <p>
+        将非主干骨架像素按<strong>度（degree）</strong>分类为三类节点：
+      </p>
+      <div style="display:flex;gap:12px;margin-top:10px;flex-wrap:wrap">
+        <div style="background:var(--green-pale);border-radius:8px;padding:10px 14px;flex:1;min-width:140px">
+          <strong style="color:var(--green)">Attach 节点</strong><br>
+          <span style="font-size:13px;color:var(--gray-600)">紧邻主干的像素，即果柄的根部附着点</span>
+        </div>
+        <div style="background:var(--orange-pale);border-radius:8px;padding:10px 14px;flex:1;min-width:140px">
+          <strong style="color:var(--orange)">Tip 节点</strong><br>
+          <span style="font-size:13px;color:var(--gray-600)">度=1，末梢端点，对应角果尖端</span>
+        </div>
+        <div style="background:var(--blue-pale);border-radius:8px;padding:10px 14px;flex:1;min-width:140px">
+          <strong style="color:var(--blue)">Junction 节点</strong><br>
+          <span style="font-size:13px;color:var(--gray-600)">度≥3，骨架分叉点</span>
+        </div>
+      </div>
+      <p style="margin-top:10px">
+        相邻节点之间的度=2 像素链构成<strong>边（Edge）</strong>，
+        完整记录边的像素路径序列。
+      </p>
+    </div>
+
+    <!-- Step 5 - Pass 1 -->
+    <div class="step-card">
+      <div class="step-num" style="background:#be185d">5</div>
+      <h3>
+        Pass 1 — 枯枝识别与过滤
+        <span class="step-tag" style="background:#fdf2f8;color:#be185d">PASS 1</span>
+      </h3>
+      <p>
+        从每个 Tip 节点出发，BFS 回溯到最近的 Attach 节点，重建完整枝路径。
+        对每条枝计算<strong>面积 area</strong>（路径各点宽度×2 求和）和<strong>平均宽度 avg_w</strong>。
+        两步自适应过滤：
+      </p>
+      <ul style="margin-top:10px;padding-left:20px;font-size:13.5px;color:var(--gray-600)">
+        <li><strong>去噪</strong>：路径长度 &lt; <span class="chip">10px</span> 的短枝直接剔除（骨架噪声）</li>
+        <li><strong>枯枝过滤</strong>：计算剩余枝的 <em>中位面积</em> 和 <em>中位宽度</em>，
+            低于中位值 × <span class="chip">0.25</span>（面积）或 × <span class="chip">0.70</span>（宽度）的判为枯枝</li>
+        <li>至少 4 条有效枝时才启用自适应过滤，避免数量不足时误删</li>
+      </ul>
+    </div>
+
+    <!-- Step 6 - Pass 2 -->
+    <div class="step-card">
+      <div class="step-num" style="background:var(--green)">6</div>
+      <h3>
+        Pass 2 — 清洁骨架重建 + 果柄计数
+        <span class="step-tag" style="background:var(--green-pale);color:var(--green)">PASS 2</span>
+      </h3>
+      <p>
+        将 Pass 1 标记的枯枝像素从骨架中移除（保留主干），
+        对<strong>清洁骨架</strong>重新构建拓扑图。
+        遍历所有 Attach 节点，统计其连出的<strong>非主干边数量</strong>，
+        每一条出边 = 1 个果柄 = 1 个角果。无需二次过滤。
+      </p>
+    </div>
+
+    <!-- Step 7 - VLM -->
+    <div class="step-card">
+      <div class="step-num" style="background:var(--blue)">7</div>
+      <h3>
+        VLM 视觉大模型复核
+        <span class="step-tag" style="background:var(--blue-pale);color:var(--blue)">VLM</span>
+      </h3>
+      <p>
+        算法将每个果柄的尖端坐标归一化后作为 markers 输出，
+        交由 <strong>doubao-seed-2-0-pro</strong> 视觉大模型二次审核。
+        VLM 仅检查 CV 认定的有效角果（P点）中是否有枯枝误判，
+        置信度 ≥ 0.8 的误判点从最终计数中剔除。
+      </p>
+    </div>
+
+  </div>
+</div>
+</section>
+
+<!-- ────────────────────── FILTER DETAIL ────────────────────── -->
+<section>
+<div class="container">
+  <div class="section-title">枯枝过滤：<span class="accent">自适应中位数比值法</span></div>
+  <div class="section-sub">Pass 1 / Pass 2 两阶段细节</div>
+
+  <div class="filter-grid">
+    <div class="filter-card">
+      <h4>🔍 Pass 1 — 识别枯枝</h4>
+      <ul>
+        <li>对骨架上每个叶片节点（tip）做 BFS 回溯，找到它连接主干的完整路径</li>
+        <li>用距离变换计算每个路径像素处的<strong>局部半径</strong>，估算枝的真实宽度</li>
+        <li><strong>Area</strong> = Σ(宽度×2)：正比于枝的横截面积积分</li>
+        <li><strong>avg_w</strong> = Area / 路径长度：平均粗细</li>
+        <li>阈值：<code>area_fence = median_area × 0.25</code>、<code>width_fence = median_width × 0.70</code></li>
+        <li>同时满足两个下界才判为<strong>有效枝</strong>，否则标记为枯枝</li>
+      </ul>
+    </div>
+    <div class="filter-card pass2">
+      <h4>✂️ Pass 2 — 清洁计数</h4>
+      <ul>
+        <li>从骨架像素集合中减去 Pass 1 标记的所有枯枝像素</li>
+        <li>主干像素<strong>强制保留</strong>，不受过滤影响</li>
+        <li>重新调用 <code>_build_topo_graph</code>，在干净骨架上重建节点/边</li>
+        <li>遍历 Attach 节点的邻接表，统计非主干出边 → 果柄数</li>
+        <li>设 <code>seen_edges</code> 集合防止重复计数同一条边</li>
+        <li>结果即最终角果数，<strong>无需再次宽度过滤</strong></li>
+      </ul>
+    </div>
+  </div>
+
+</div>
+</section>
+
+<!-- ────────────────────── FEW-SHOT ────────────────────── -->
+<section>
+<div class="container">
+  <div class="section-title">VLM 复核：<span class="accent">Few-Shot 视觉示例范式</span></div>
+  <div class="section-sub">用标注好的参考图作为"视觉锚点"，让大模型区分枯枝与正常角果</div>
+
+  <!-- Core idea -->
+  <div class="insight-banner">
+    <div class="insight-icon">🧠</div>
+    <div>
+      <h3>为什么需要 Few-Shot？</h3>
+      <p>
+        纯文字描述"枯枝颜色偏暗、粗细均匀"对大模型来说是抽象的，不同拍摄条件下变化很大。
+        通过在每次 VLM 调用时附带<strong>标注好的枯枝正例与反例参考图</strong>，
+        让模型直接对比视觉特征，能显著降低误判率——这就是图像级 Few-Shot 的核心思路。
+      </p>
+    </div>
+  </div>
+
+  <!-- VLM message structure -->
+  <div style="font-size:14px;font-weight:700;color:var(--gray-800);margin-bottom:14px;">VLM 每次调用的消息结构（图像顺序）</div>
+  <div class="img-slots">
+    <div class="img-slot orig">
+      <div class="slot-idx">图像 #1 · 固定</div>
+      <h5>🖼 原始截图</h5>
+      <p>干净无标记的原始分支图像，供 VLM 观察植株真实外观、颜色和形态</p>
+    </div>
+    <div class="img-slot anno">
+      <div class="slot-idx">图像 #2 · 固定</div>
+      <h5>🟢 P点标注图</h5>
+      <p>CV 算法标注的有效角果位置（绿色圆点 + 编号），仅显示 P 点，无 F 点干扰</p>
+    </div>
+    <div class="img-slot pos">
+      <div class="slot-idx">图像 #3~N · 枯枝正例</div>
+      <h5>❌ 枯枝参考图</h5>
+      <p>确认为枯枝的参考照片（动态加载 <code style="font-size:11px;background:var(--gray-100);padding:1px 4px;border-radius:3px">app/support/枯枝正例*.png</code>），告诉 VLM「这类的应该过滤」</p>
+    </div>
+    <div class="img-slot neg">
+      <div class="slot-idx">图像 #N+1~M · 反例</div>
+      <h5>✅ 正常角果参考图</h5>
+      <p>确认为正常角果的参考照片（<code style="font-size:11px;background:var(--gray-100);padding:1px 4px;border-radius:3px">app/support/枯枝反例*.png</code>），告诉 VLM「这类的不要误删」</p>
+    </div>
+  </div>
+
+  <!-- Support directory files -->
+  <div style="font-size:14px;font-weight:700;color:var(--gray-800);margin-bottom:14px;">当前 <code style="background:var(--gray-100);padding:1px 6px;border-radius:4px;font-size:13px">app/support/</code> 目录内容</div>
+  <div class="support-files">
+    <table>
+      <thead>
+        <tr>
+          <th>文件名</th>
+          <th>类型</th>
+          <th>文字描述（pt.md）</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>枯枝正例1.png</td>
+          <td><span class="badge-pos">枯枝正例</span></td>
+          <td>末端细小的单个枯枝</td>
+        </tr>
+        <tr>
+          <td>枯枝正例2.png</td>
+          <td><span class="badge-pos">枯枝正例</span></td>
+          <td>末端的一组多个枯枝，颜色偏暗淡</td>
+        </tr>
+        <tr>
+          <td>枯枝正例3.png</td>
+          <td><span class="badge-pos">枯枝正例</span></td>
+          <td>末端的多个细小枯枝</td>
+        </tr>
+        <tr>
+          <td>枯枝正例4.png</td>
+          <td><span class="badge-pos">枯枝正例</span></td>
+          <td>（仅图像，无单独文字描述）</td>
+        </tr>
+        <tr>
+          <td>枯枝反例1.png</td>
+          <td><span class="badge-neg">正常角果</span></td>
+          <td>饱满的正常角果，单个</td>
+        </tr>
+        <tr>
+          <td>枯枝反例2.png</td>
+          <td><span class="badge-neg">正常角果</span></td>
+          <td>饱满的正常角果，单个</td>
+        </tr>
+        <tr>
+          <td>pt.md</td>
+          <td>描述文件</td>
+          <td>每行 <code>文件名: 描述</code>，通过关键词"正例/反例"自动分类</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Full flow -->
+  <div style="font-size:14px;font-weight:700;color:var(--gray-800);margin-bottom:14px;">Few-Shot 加载与注入完整流程</div>
+  <div class="fs-flow">
+    <div class="fs-node">
+      <div class="fs-box" style="background:#f3f4f6;color:var(--gray-800)">📂 扫描<br>support/</div>
+      <div class="fs-label">读取所有 .png/.jpg<br>+ pt.md 描述文件</div>
+    </div>
+    <div class="fs-node">
+      <div class="fs-box" style="background:#fff0f0;color:#b91c1c">🏷 分类<br>正例 / 反例</div>
+      <div class="fs-label">按关键词"正例/反例"<br>自动归类</div>
+    </div>
+    <div class="fs-node">
+      <div class="fs-box" style="background:#eff6ff;color:#1d4ed8">🔬 缩放<br>max 512px</div>
+      <div class="fs-label">Lanczos 缩放<br>节省 token</div>
+    </div>
+    <div class="fs-node">
+      <div class="fs-box" style="background:#f3f0ff;color:#6d28d9">📝 注入<br>Prompt</div>
+      <div class="fs-label">文字描述写入 prompt<br>图像附加到消息末尾</div>
+    </div>
+    <div class="fs-node">
+      <div class="fs-box" style="background:var(--green-pale);color:var(--green-dark)">🤖 VLM<br>推理</div>
+      <div class="fs-label">doubao-seed-2-0-pro<br>对比参考图审核</div>
+    </div>
+    <div class="fs-node">
+      <div class="fs-box" style="background:#fefce8;color:#92400e">📊 置信度<br>过滤</div>
+      <div class="fs-label">confidence ≥ 0.8<br>才剔除 P 点</div>
+    </div>
+  </div>
+
+  <!-- Asymmetric cost block -->
+  <div class="conf-block">
+    <div class="icon">⚖️</div>
+    <div>
+      <h4>Prompt 中的代价不对称约束</h4>
+      <ul>
+        <li>Few-Shot 图像之外，prompt 还显式告知模型：<code>误删 1 个真角果 = 漏过 5 个枯枝的代价</code></li>
+        <li>所有模糊、被遮挡、看不清的 P 点 → <strong>一律保留</strong>，不报告</li>
+        <li>置信度阈值 <code>VLM_FP_CONFIDENCE_THRESHOLD = 0.8</code> 可通过 .env 调整</li>
+        <li>VLM 返回 <code>{"false_positives": [{"id": 3, "confidence": 0.9}]}</code> 格式，confidence 低于阈值的自动忽略</li>
+        <li>兼容旧版裸 id 列表格式（按 0.9 置信度处理）</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- How to extend -->
+  <div style="background:var(--green-pale);border-radius:var(--radius);padding:20px 24px;border-left:4px solid var(--green);">
+    <div style="font-size:14px;font-weight:700;color:var(--green-dark);margin-bottom:8px;">🔧 如何扩充 Few-Shot 样本</div>
+    <p style="font-size:13.5px;color:var(--gray-600)">
+      直接向 <code style="background:rgba(0,0,0,.06);padding:1px 5px;border-radius:3px">app/support/</code> 目录添加新图片，
+      并在 <code style="background:rgba(0,0,0,.06);padding:1px 5px;border-radius:3px">pt.md</code> 中新增一行
+      <code style="background:rgba(0,0,0,.06);padding:1px 5px;border-radius:3px">枯枝正例X: 描述</code> 或
+      <code style="background:rgba(0,0,0,.06);padding:1px 5px;border-radius:3px">枯枝反例X: 描述</code>。
+      系统启动时自动加载，无需改代码。图片格式支持 .png / .jpg / .jpeg / .bmp / .webp。
+    </p>
+  </div>
+
+</div>
+</section>
+
+<!-- ────────────────────── DEBUG COLORS ────────────────────── -->
+<section style="background:#fff;">
+<div class="container">
+  <div class="section-title">调试可视化图层</div>
+  <div class="section-sub">debug_image 中各颜色含义</div>
+
+  <div class="legend">
+    <div class="legend-item"><div class="dot" style="background:#ff8040"></div>橙色：主干路径</div>
+    <div class="legend-item"><div class="dot" style="background:#505050"></div>深灰：非主干骨架（清洁）</div>
+    <div class="legend-item"><div class="dot" style="background:#c850c8"></div>紫粉：Pass1 剔除的枯枝</div>
+    <div class="legend-item"><div class="dot" style="background:#ff0000"></div>红色：有效果柄路径（Pass2）</div>
+    <div class="legend-item"><div class="dot" style="background:#ffffff;border:2px solid #aaa"></div>白色：Attach 附着节点</div>
+    <div class="legend-item"><div class="dot" style="background:#ffff00"></div>黄色：角果尖端（Tip）& 编号</div>
+    <div class="legend-item"><div class="dot" style="background:#00ff00"></div>绿色：主干端点</div>
+  </div>
+
+  <!-- Pass 1 step vis diagram -->
+  <div class="diagram-wrap">
+    <figure>
+      <svg viewBox="0 0 780 200" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-width:780px;display:block;margin:0 auto;background:#1a1a2e;border-radius:8px">
+        <!-- Background plant area hint -->
+        <rect x="0" y="0" width="780" height="200" fill="#111"/>
+
+        <!-- Main stem orange -->
+        <rect x="380" y="20" width="8" height="160" rx="3" fill="#ff8040"/>
+
+        <!-- Branch 1 ok - red stalk -->
+        <line x1="384" y1="45"  x2="310" y2="80"  stroke="#ff2222" stroke-width="2.5"/>
+        <circle cx="384" cy="45"  r="5" fill="#fff" stroke="#ff8040" stroke-width="1.5"/>
+        <circle cx="310" cy="80"  r="5" fill="#ffff00"/>
+        <text x="295" y="67" fill="#ffff00" font-size="11" font-family="monospace">1</text>
+
+        <!-- Branch 2 ok -->
+        <line x1="384" y1="75"  x2="305" y2="115" stroke="#ff2222" stroke-width="2.5"/>
+        <circle cx="384" cy="75"  r="5" fill="#fff" stroke="#ff8040" stroke-width="1.5"/>
+        <circle cx="305" cy="115" r="5" fill="#ffff00"/>
+        <text x="290" y="112" fill="#ffff00" font-size="11" font-family="monospace">2</text>
+
+        <!-- Branch 3 ok -->
+        <line x1="384" y1="105" x2="460" y2="70"  stroke="#ff2222" stroke-width="2.5"/>
+        <circle cx="384" cy="105" r="5" fill="#fff" stroke="#ff8040" stroke-width="1.5"/>
+        <circle cx="460" cy="70"  r="5" fill="#ffff00"/>
+        <text x="464" y="67" fill="#ffff00" font-size="11" font-family="monospace">3</text>
+
+        <!-- Branch 4 ok -->
+        <line x1="384" y1="135" x2="455" y2="105" stroke="#ff2222" stroke-width="2.5"/>
+        <circle cx="384" cy="135" r="5" fill="#fff" stroke="#ff8040" stroke-width="1.5"/>
+        <circle cx="455" cy="105" r="5" fill="#ffff00"/>
+        <text x="459" y="102" fill="#ffff00" font-size="11" font-family="monospace">4</text>
+
+        <!-- Dead twig rejected -->
+        <line x1="384" y1="55" x2="330" y2="50" stroke="#c850c8" stroke-width="2"/>
+        <circle cx="330" cy="50" r="4" fill="#c850c8"/>
+        <text x="300" y="46" fill="#c850c8" font-size="10" font-family="sans-serif">枯枝</text>
+
+        <!-- Dead twig 2 -->
+        <line x1="384" y1="120" x2="430" y2="148" stroke="#c850c8" stroke-width="2"/>
+        <circle cx="430" cy="148" r="4" fill="#c850c8"/>
+        <text x="433" y="155" fill="#c850c8" font-size="10" font-family="sans-serif">枯枝</text>
+
+        <!-- Stem endpoints green -->
+        <circle cx="384" cy="20"  r="6" fill="none" stroke="#00ff00" stroke-width="2"/>
+        <circle cx="384" cy="180" r="6" fill="none" stroke="#00ff00" stroke-width="2"/>
+
+        <!-- Labels -->
+        <text x="20" y="180" fill="#888" font-size="11" font-family="sans-serif">橙=主干  白圈=附着点  黄=有效角果尖端  红=果柄  紫=枯枝  绿=主干端点</text>
+      </svg>
+      <figcaption>Pass2 后的 debug_image 典型效果：橙色主干 + 红色有效果柄 + 紫色被剔除枯枝</figcaption>
+    </figure>
+  </div>
+
+</div>
+</section>
+
+<!-- ────────────────────── PARAMETERS ────────────────────── -->
+<section>
+<div class="container">
+  <div class="section-title">关键参数一览</div>
+  <div class="section-sub">算法中的核心超参数及其作用</div>
+
+  <table class="param-table">
+    <thead>
+      <tr>
+        <th>参数名</th>
+        <th>默认值</th>
+        <th>作用</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>MIN_DIM</td>
+        <td>800</td>
+        <td>图像短边最小像素数，低于此值自动 Lanczos 升采样</td>
+      </tr>
+      <tr>
+        <td>AREA_RATIO</td>
+        <td>0.25</td>
+        <td>枯枝过滤：branch area &lt; median_area × 0.25 → 枯枝</td>
+      </tr>
+      <tr>
+        <td>WIDTH_RATIO</td>
+        <td>0.70</td>
+        <td>枯枝过滤：avg_width &lt; median_width × 0.70 → 枯枝</td>
+      </tr>
+      <tr>
+        <td>MIN_BRANCHES</td>
+        <td>4</td>
+        <td>自适应过滤启用的最小分支数，低于此值不过滤枯枝</td>
+      </tr>
+      <tr>
+        <td>MIN_BRANCH_LEN</td>
+        <td>10 px</td>
+        <td>去噪阈值，路径长度 &lt; 10px 的完整分支视为骨架噪声</td>
+      </tr>
+      <tr>
+        <td>min_straightness</td>
+        <td>0.5</td>
+        <td>主干识别评分中直线度权重下限</td>
+      </tr>
+      <tr>
+        <td>MAX_RULER_RETRIES</td>
+        <td>2</td>
+        <td>刻度尺检测最大重试次数（CV &lt; 0.15 判为尺）</td>
+      </tr>
+      <tr>
+        <td>VLM_FP_CONFIDENCE_THRESHOLD</td>
+        <td>0.8</td>
+        <td>VLM 复核：误判置信度阈值，≥ 0.8 才剔除对应 P 点</td>
+      </tr>
+    </tbody>
+  </table>
+
+</div>
+</section>
+
+<!-- ────────────────────── ADVANTAGES ────────────────────── -->
+<section style="background:#fff">
+<div class="container">
+  <div class="section-title">方法优势</div>
+  <div class="section-sub">相比传统骨架尖端计数法的改进</div>
+
+  <div class="adv-grid">
+    <div class="adv-card">
+      <div class="icon">🔗</div>
+      <h4>不受尖端融合影响</h4>
+      <p>角果尖端空间交叉不影响各果柄在主干上的独立附着点，计数更准确。</p>
+    </div>
+    <div class="adv-card">
+      <div class="icon">🌿</div>
+      <h4>自适应枯枝过滤</h4>
+      <p>基于中位数的面积+宽度双重过滤，无需手动设置绝对阈值，适应不同图像分辨率和密度。</p>
+    </div>
+    <div class="adv-card">
+      <div class="icon">🔁</div>
+      <h4>两遍设计消除污染</h4>
+      <p>Pass1 标记、Pass2 在清洁骨架上重建图，避免枯枝像素残留干扰计数拓扑。</p>
+    </div>
+    <div class="adv-card">
+      <div class="icon">⚡</div>
+      <h4>Numba JIT 加速</h4>
+      <p>主干识别的多端点评分 BFS 全部用 Numba 加速，首次调用预编译后处理速度极快。</p>
+    </div>
+    <div class="adv-card">
+      <div class="icon">📏</div>
+      <h4>刻度尺自动排除</h4>
+      <p>通过均匀宽度检测，自动识别图像中的刻度尺区域并移除，无需手动裁剪。</p>
+    </div>
+    <div class="adv-card">
+      <div class="icon">🤖</div>
+      <h4>VLM 兜底复核</h4>
+      <p>CV 算法结果交视觉大模型二次确认，仅针对有效角果中的误判，用最少 token 实现误差兜底。</p>
+    </div>
+  </div>
+</div>
+</section>
+
+<!-- ────────────────────── FOOTER ────────────────────── -->
+<footer>
+  <strong>cv-agent</strong> · 果柄法油菜角果计数算法 ·
+  核心实现：<code style="background:rgba(255,255,255,.1);padding:1px 6px;border-radius:4px">app/pipeline/pod_counter_stalk.py</code>
+</footer>
+
+</body>
+</html>

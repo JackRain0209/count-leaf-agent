@@ -17,6 +17,7 @@ import cv2
 import numpy as np
 from PIL import Image
 from openai import OpenAI
+from typing import Optional
 
 from app.config import ARK_API_KEY, ARK_API_BASE, VLM_MODEL
 
@@ -94,17 +95,115 @@ def draw_grid(image: np.ndarray, cell_size: int = 512):
     return gridded, n_rows, n_cols, cell_size
 
 
-def _parse_json(content: str):
-    """Extract JSON array from VLM response."""
-    if "```json" in content:
-        content = content.split("```json")[1].split("```")[0].strip()
-    elif "```" in content:
-        content = content.split("```")[1].split("```")[0].strip()
-    try:
-        return json.loads(content)
-    except json.JSONDecodeError:
-        print(f"[VLM] JSON parse failed: {content[:300]}")
+def _extract_json_array(content: str) -> Optional[str]:
+    """Return the first complete JSON array substring from a model response."""
+    start = content.find("[")
+    if start < 0:
         return None
+
+    depth = 0
+    in_string = False
+    escaped = False
+    for idx in range(start, len(content)):
+        ch = content[idx]
+        if in_string:
+            if escaped:
+                escaped = False
+            elif ch == "\\":
+                escaped = True
+            elif ch == '"':
+                in_string = False
+            continue
+
+        if ch == '"':
+            in_string = True
+        elif ch == "[":
+            depth += 1
+        elif ch == "]":
+            depth -= 1
+            if depth == 0:
+                return content[start:idx + 1]
+    return None
+
+
+def _extract_json_objects_from_array(content: str):
+    """Salvage complete top-level objects from a truncated JSON array."""
+    arr_start = content.find("[")
+    if arr_start < 0:
+        return []
+
+    objects = []
+    depth = 0
+    obj_start = None
+    in_string = False
+    escaped = False
+    for idx in range(arr_start, len(content)):
+        ch = content[idx]
+        if in_string:
+            if escaped:
+                escaped = False
+            elif ch == "\\":
+                escaped = True
+            elif ch == '"':
+                in_string = False
+            continue
+
+        if ch == '"':
+            in_string = True
+        elif ch == "{":
+            if depth == 0:
+                obj_start = idx
+            depth += 1
+        elif ch == "}":
+            if depth == 0:
+                continue
+            depth -= 1
+            if depth == 0 and obj_start is not None:
+                candidate = content[obj_start:idx + 1]
+                try:
+                    obj = json.loads(candidate)
+                except json.JSONDecodeError:
+                    obj_start = None
+                    continue
+                if isinstance(obj, dict):
+                    objects.append(obj)
+                obj_start = None
+    return objects
+
+
+def _parse_json(content: str):
+    """Extract plant JSON from VLM response."""
+    raw = content or ""
+    candidates = []
+    if "```json" in raw:
+        candidates.append(raw.split("```json", 1)[1].split("```", 1)[0].strip())
+    if "```" in raw:
+        candidates.append(raw.split("```", 1)[1].split("```", 1)[0].strip())
+    candidates.append(raw.strip())
+
+    embedded_array = _extract_json_array(raw)
+    if embedded_array:
+        candidates.append(embedded_array)
+
+    seen = set()
+    for candidate in candidates:
+        if not candidate or candidate in seen:
+            continue
+        seen.add(candidate)
+        try:
+            parsed = json.loads(candidate)
+        except json.JSONDecodeError:
+            continue
+        # Return full parsed result — callers extract plants/ruler/label_tag as needed.
+        return parsed
+
+    partial_objects = _extract_json_objects_from_array(raw)
+    if partial_objects:
+        print(f"[VLM] JSON array incomplete, salvaged {len(partial_objects)} objects")
+        return partial_objects
+
+    print(f"[VLM] JSON parse failed: {raw[:300]}")
+    return None
 
 
 def _grid_to_pixel(cell_str: str, cell_size: int):
@@ -433,16 +532,25 @@ def vlm_label_plants(image: np.ndarray) -> dict:
     vlm_img = _resize_for_vlm(image)
     b64 = _image_to_base64(vlm_img)
 
-    prompt = """请你帮我给图片里面的每个单体植株部分打一个标签。
+    prompt = """请你帮我给图片里面的每个单体植株部分打标签，同时检测黄色直尺和白色标签纸。
 
 图片中油菜植株的各个部分被拆开后平铺在黑色背景上。
 
-识别规则：
+═══════════════════════════════════════
+一、植株识别规则
+═══════════════════════════════════════
+
 1. 最长，枝叶（角果）最少的那根是"主干"
 2. 离主干最近且枝叶最茂盛，角果数量最多的是"主枝"
 3. 其余的都是"分枝"
 
-⚠️ 重要：一个分枝/主枝可能本身就有多个大的侧枝分叉，它们是同一个植株部件，**必须用一个bbox完整框住**，不要把同一个部件的不同分叉拆成多个bbox。
+⚠️ 重要：一个分枝/主枝可能本身就有多个大的侧枝分叉，只有这些分叉明确共享同一根连续主轴时，才视为同一个植株部件，**必须用一个bbox完整框住**，不要把同一个部件的不同分叉拆成多个bbox。
+
+⚠️ 但如果两根植株部件只是因为摆放时接触、压叠、交叉、端点碰到一起，或者视觉上短暂连在一起，不能合并成一个 bbox。判断标准：
+- 看到两条不同方向的主轴/中轴，且各自有独立角果排列 → 必须拆成两个 bbox
+- 一根长而少角果的主干碰到或压住一根有角果的分枝/主枝 → 主干和分枝/主枝必须分开框
+- bbox 不要为了包含接触点而横跨两个明显不同的植株主体
+- 黑色背景上平铺的样本允许接触，但"接触/交叉"不等于"同一个植株部件"
 
 请使用归一化坐标系来描述位置：
 - 左上角 = (0, 0)
@@ -450,25 +558,62 @@ def vlm_label_plants(image: np.ndarray) -> dict:
 - x 从左到右 0→1000，y 从上到下 0→1000
 - 图片正中心 = (500, 500)
 
-请识别每个独立的植株部分，返回它的包围框。
+请识别每个独立的植株部分，返回它的包围框，并为每个"主枝/分枝"标出该部件主轴的两个端点。
+不要把同一根连续主轴上的小侧枝、角果串或局部末梢单独拆成多个 bbox；它们应该跟所属主枝/分枝合并在同一个 bbox 里。
 
 ⚠️ bbox 必须**完整包住**该植株部件的所有枝叶、角果，包括末梢和尖端，不能截断任何部分。宁可bbox稍大一点，也不要漏掉植株的边缘。
 
-严格按以下JSON格式返回，不要输出其他文字：
-```json
-[
-    {
-        "id": 1,
-        "label": "主干/主枝/分枝",
-        "bbox": [x1, y1, x2, y2],
-        "description": "简短描述"
-    }
-]
-```
+主轴端点规则：
+- stem_start / stem_end 都使用整张原图的归一化坐标 0~1000，不是 bbox 内局部坐标。
+- 对"主枝/分枝"：stem_start 是该枝条主轴靠近基部/较粗连接端的一端；stem_end 是沿该枝条主轴延伸到远端的一端。
+- 主轴指承载角果的连续中心茎，不是旁边伸出的角果、侧枝或枯枝。不要把单根角果尖端当成主轴端点。
+- 如果主轴弯曲，只需要给主轴两端，后续 CV 会沿骨架自动找路径。
+- 对"主干"可以省略 stem_start/stem_end，或给主干两端。
 
 - bbox: [左上角x, 左上角y, 右下角x, 右下角y]，数值范围 0~1000。
+- stem_start/stem_end: [x,y]，数值范围 0~1000；如果确实无法判断可省略。
 - label 只能是：主干、主枝、分枝
-- 忽略卡尺、标签纸等非植物物体。"""
+- 不要返回 description、reason、comment 等解释性字段。
+
+═══════════════════════════════════════
+二、黄色直尺
+═══════════════════════════════════════
+
+图片中可能有一把黄色直尺（黄色部分长度正好是 1 米 = 100 cm）。请检测并返回：
+- ruler: 黄色直尺的包围框 bbox [x1,y1,x2,y2]（归一化 0~1000），要框住整个黄色尺身
+- 如果图中没有黄色直尺，设 ruler 为 null
+- 不需要给端点，后续会用 CV 精确测量
+
+═══════════════════════════════════════
+三、白色标签纸
+═══════════════════════════════════════
+
+图片中可能有一张白色标签纸，上面有 3 行字符/数字。请检测并返回：
+- label_tag.bbox: 标签纸的包围框 [x1,y1,x2,y2]（归一化 0~1000）
+- label_tag.is_flipped: 如果标签文字的方向与图片方向一致（正常可读）填 false；如果文字是倒置的（需要旋转 180° 才能正常阅读）填 true
+- label_tag.rows: 按正常阅读方向（从上到下），每行从左到右读取的字符，共 3 个字符串。若某行看不到或读不出，填空字符串 ""
+- 如果图中没有白色标签纸，设 label_tag 为 null
+
+═══════════════════════════════════════
+输出格式
+═══════════════════════════════════════
+
+严格按以下 JSON 格式返回，不要输出其他文字。请输出紧凑单行 JSON，不要缩进：
+```json
+{
+    "plants": [
+        {
+            "id": 1,
+            "label": "主干/主枝/分枝",
+            "bbox": [x1, y1, x2, y2],
+            "stem_start": [x, y],
+            "stem_end": [x, y]
+        }
+    ],
+    "ruler": {"bbox": [x1, y1, x2, y2]},
+    "label_tag": {"bbox": [x1, y1, x2, y2], "is_flipped": false, "rows": ["xx", "yy", "zz"]}
+}
+```"""
 
     print(f"[VLM] Original {w}x{h}, using 0-1000 normalized coords...")
     raw_response = ""
@@ -489,7 +634,7 @@ def vlm_label_plants(image: np.ndarray) -> dict:
                     ]
                 }
             ],
-            max_tokens=3000,
+            max_tokens=8000,
             temperature=0.1,
         )
         raw_response = response.choices[0].message.content.strip()
@@ -502,13 +647,56 @@ def vlm_label_plants(image: np.ndarray) -> dict:
         print(f"[VLM] {raw_response}")
 
     # Parse
-    plants = _parse_json(raw_response)
+    parsed = _parse_json(raw_response)
+    ruler = None
+    label_tag = None
+    sample_id = ""
+
+    if isinstance(parsed, dict):
+        plants = parsed.get("plants", [])
+        ruler = parsed.get("ruler")
+        label_tag = parsed.get("label_tag")
+    elif isinstance(parsed, list):
+        # Backward compat: old array-only format
+        plants = parsed
+    else:
+        plants = None
+
+    partial_json = bool(parsed and _extract_json_array(raw_response) is None)
     if not plants or not isinstance(plants, list):
         return {
             "labeled_image": image.copy(),
+            "crops": {},
             "plants": [],
             "raw_response": raw_response,
+            "parse_error": True,
+            "partial_json": False,
         }
+
+    # Normalize ruler / label_tag
+    if isinstance(ruler, dict) and "bbox" in ruler and len(ruler["bbox"]) == 4:
+        ruler["found"] = True
+    else:
+        ruler = {"found": False}
+
+    if isinstance(label_tag, dict) and "bbox" in label_tag and len(label_tag["bbox"]) == 4:
+        label_tag["found"] = True
+        rows = label_tag.get("rows", [])
+        if isinstance(rows, list):
+            rows = [str(r).strip() for r in rows[:3]]
+            # Drop empty trailing rows
+            while rows and rows[-1] == "":
+                rows.pop()
+        else:
+            rows = []
+        label_tag["rows"] = rows
+        label_tag["is_flipped"] = bool(label_tag.get("is_flipped", False))
+        if label_tag["is_flipped"]:
+            rows.reverse()
+            label_tag["rows"] = rows
+        sample_id = "-".join(rows) if rows else ""
+    else:
+        label_tag = {"found": False, "rows": ["", "", ""], "is_flipped": False}
 
     # 0-1000 normalized coord → original pixel coord
     labeled = image.copy()
@@ -581,6 +769,10 @@ def vlm_label_plants(image: np.ndarray) -> dict:
         "crops": crops,
         "plants": plants,
         "raw_response": raw_response,
+        "partial_json": partial_json,
+        "ruler": ruler,
+        "label_tag": label_tag,
+        "sample_id": sample_id,
     }
 
 
@@ -644,6 +836,7 @@ def vlm_verify_crop(original_image: np.ndarray,
 1. 截图中是否是**一个完整且独立的单体植株**？（即一根完整的主干、主枝或分枝，从头到尾）
 2. 截图是否**截全了**？还是有枝叶/角果被切到框外？
 3. 截图是否**只是包含两个植株中间的间隔区域**或者**多个植株的杂乱混合**（即不是一个独立完整的植株主体）？
+4. 截图是否把两根只是接触/交叉/压叠的不同植株部件合进了一个框？如果能通过缩小 bbox 保留当前主体、排除另一根植株，则选择 recrop；如果无法确定当前主体，选择 delete。
 
 根据审核结果，给出以下三种处理方案之一：
 
@@ -655,6 +848,7 @@ def vlm_verify_crop(original_image: np.ndarray,
   - 与其他 bbox 严重重叠重复
 
 **方案 C — recrop（重新截）**：截图确实是一个独立完整的单体植株，但 bbox 截得不全，有部分枝叶/角果被切到框外。请给出新的 bbox（归一化 0-1000）以完整框住该植株。
+也可以在当前 bbox 过大、把接触/交叉的另一根植株部件包含进来时使用 recrop：新的 bbox 应只框住当前 #{pid} {label} 主体，排除无关植株。
 
 ⚠️ 严格按以下 JSON 返回，不要其他文字：
 ```json
@@ -761,3 +955,106 @@ def apply_recrop(original_image: np.ndarray,
     plant["bbox"] = [nx1, ny1, nx2, ny2]
     plant["pixel_bbox"] = new_pixel_bbox
     return new_crop, new_pixel_bbox
+
+
+# ─────────────────────────────────────────────────────────────────────────
+# Yellow ruler measurement via CV (HSV color segmentation)
+# ─────────────────────────────────────────────────────────────────────────
+
+def measure_ruler_yellow(ruler_crop: np.ndarray) -> dict:
+    """
+    Detect yellow portion of the ruler using HSV segmentation and return
+    pixel length of the yellow segment.
+
+    The yellow ruler portion is 1 meter (100 cm). Returns px_per_cm.
+
+    Args:
+        ruler_crop: BGR image crop containing the ruler (from VLM bbox).
+
+    Returns:
+        {"px_per_cm": float, "yellow_length_px": float, "detected": bool,
+         "debug_image": np.ndarray}
+    """
+    if ruler_crop is None or ruler_crop.size == 0:
+        return {"px_per_cm": 0.0, "yellow_length_px": 0.0,
+                "detected": False, "debug_image": None}
+
+    hsv = cv2.cvtColor(ruler_crop, cv2.COLOR_BGR2HSV)
+
+    # Yellow hue range (reused from deleted ruler.py)
+    lower_yellow = np.array([15, 80, 120])
+    upper_yellow = np.array([35, 255, 255])
+    yellow_mask = cv2.inRange(hsv, lower_yellow, upper_yellow)
+
+    # Morphology: close small gaps
+    k = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (5, 5))
+    yellow_mask = cv2.morphologyEx(yellow_mask, cv2.MORPH_CLOSE, k, iterations=1)
+
+    # Find largest yellow connected component
+    n_labels, labels, stats, _ = cv2.connectedComponentsWithStats(
+        yellow_mask, connectivity=8)
+    if n_labels <= 1:
+        return {"px_per_cm": 0.0, "yellow_length_px": 0.0,
+                "detected": False, "debug_image": cv2.cvtColor(yellow_mask, cv2.COLOR_GRAY2BGR)}
+
+    # Skip background label 0
+    largest_label = 1
+    largest_area = stats[1, cv2.CC_STAT_AREA]
+    for lbl in range(2, n_labels):
+        area = stats[lbl, cv2.CC_STAT_AREA]
+        if area > largest_area:
+            largest_area = area
+            largest_label = lbl
+
+    yellow_region = (labels == largest_label).astype(np.uint8) * 255
+
+    # Find contours of the yellow region
+    contours, _ = cv2.findContours(yellow_region, cv2.RETR_EXTERNAL,
+                                    cv2.CHAIN_APPROX_SIMPLE)
+    if not contours:
+        return {"px_per_cm": 0.0, "yellow_length_px": 0.0,
+                "detected": False, "debug_image": cv2.cvtColor(yellow_mask, cv2.COLOR_GRAY2BGR)}
+
+    # Merge all contours
+    all_pts = np.vstack(contours)
+
+    # Fit rotated rectangle to get the ruler axis
+    rect = cv2.minAreaRect(all_pts)
+    (cx, cy), (rw, rh), angle = rect
+
+    # The longer edge is the ruler length
+    yellow_length_px = max(rw, rh)
+
+    # 1 meter = 100 cm
+    px_per_cm = yellow_length_px / 100.0 if yellow_length_px > 0 else 0.0
+
+    # Debug: draw minAreaRect and endpoints
+    debug = ruler_crop.copy()
+    box = cv2.boxPoints(rect)
+    box = np.int32(box)  # numpy 2 compat: np.intp
+    cv2.drawContours(debug, [box], 0, (0, 255, 0), 2)
+
+    # Draw the two endpoints of the longer axis
+    if rw >= rh:
+        # Width is the longer side — endpoints along the width axis
+        angle_rad = np.deg2rad(angle)
+        dx = (rw / 2) * np.cos(angle_rad)
+        dy = (rw / 2) * np.sin(angle_rad)
+    else:
+        # Height is longer — endpoints along height axis (perpendicular to width)
+        angle_rad = np.deg2rad(angle + 90)
+        dx = (rh / 2) * np.cos(angle_rad)
+        dy = (rh / 2) * np.sin(angle_rad)
+
+    p1 = (int(cx + dx), int(cy + dy))
+    p2 = (int(cx - dx), int(cy - dy))
+    cv2.circle(debug, p1, 5, (0, 0, 255), -1)
+    cv2.circle(debug, p2, 5, (255, 0, 0), -1)
+    cv2.line(debug, p1, p2, (255, 255, 0), 2)
+
+    return {
+        "px_per_cm": px_per_cm,
+        "yellow_length_px": yellow_length_px,
+        "detected": True,
+        "debug_image": debug,
+    }

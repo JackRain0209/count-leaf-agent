@@ -1,7 +1,7 @@
 """
 VLM-based pod counting verification — post-processor module.
 
-Decoupled from any specific counting algorithm (skeleton / graph / plantcv).
+Decoupled from the stalk counter implementation details.
 Takes the crop image, debug image with markers, and standardized marker list,
 sends them to the VLM for verification, and returns adjustments.
 
@@ -17,12 +17,13 @@ Standardized marker format (input):
     low-res crops internally.
 
 VLM verification tasks:
-    1. Detect missed pods (due to crossing / overlap)
+    1. Restore true pods that the CV pass filtered out
     2. Detect false positives (dead twigs incorrectly marked as pods)
 
 Returns:
     {
-        "missed_count": int,
+        "missed_count": int,  # currently equals restored_filtered_ids count
+        "restored_filtered_ids": [int, ...],
         "false_positive_ids": [int, ...],
         "adjusted_pod_count": int,
         "reason": str,
@@ -201,6 +202,75 @@ def _markers_to_text(markers: list) -> str:
     return "\n".join(lines)
 
 
+def _terminal_markers_to_text(markers: list, w: int, h: int) -> str:
+    """List markers near crop endpoints so the VLM audits terminal clusters."""
+    if not markers:
+        return ""
+    edge_w = max(int(w * 0.22), int(h * 0.60))
+    left = [m for m in markers if m["x"] <= edge_w]
+    right = [m for m in markers if m["x"] >= w - edge_w]
+    if not left and not right:
+        return ""
+
+    def _fmt(items):
+        pods = [f"P{m['id']}({m['x']},{m['y']})" for m in items if m["type"] == "pod"]
+        filtered = [f"F{m['id']}({m['x']},{m['y']})" for m in items if m["type"] == "filtered"]
+        parts = []
+        if pods:
+            parts.append("P: " + ", ".join(pods))
+        if filtered:
+            parts.append("F: " + ", ".join(filtered))
+        return "；".join(parts) if parts else "无"
+
+    lines = [
+        "左右末端重点复核清单（这些位置最容易把枯枝簇误当角果，必须逐一检查，不要抽样）："
+    ]
+    if left:
+        lines.append(f"- LEFT END x<= {edge_w}: {_fmt(left)}")
+    if right:
+        lines.append(f"- RIGHT END x>= {w - edge_w}: {_fmt(right)}")
+    return "\n".join(lines)
+
+
+def _endpoint_focus_images(crop_bgr: np.ndarray, annotated: np.ndarray) -> List[np.ndarray]:
+    """Build left/right endpoint zooms for long branch crops.
+
+    Dense terminal dry-twig clusters are easy to miss after the full crop is
+    resized for the VLM.  These focus panels keep the marker IDs readable at
+    both ends of long branches.
+    """
+    h, w = crop_bgr.shape[:2]
+    if w < h * 1.8:
+        return []
+
+    strip_w = min(w, max(int(w * 0.32), int(h * 1.15)))
+    regions = [
+        ("LEFT END ZOOM", 0, strip_w),
+        ("RIGHT END ZOOM", max(0, w - strip_w), w),
+    ]
+    focus_images: List[np.ndarray] = []
+
+    for title, x1, x2 in regions:
+        raw_strip = crop_bgr[:, x1:x2]
+        marked_strip = annotated[:, x1:x2]
+        if raw_strip.size == 0 or marked_strip.size == 0:
+            continue
+
+        panel_w = max(raw_strip.shape[1], marked_strip.shape[1])
+        title_h = max(28, int(h * 0.06))
+        sep_h = 6
+        panel_h = title_h + raw_strip.shape[0] + sep_h + marked_strip.shape[0]
+        panel = np.full((panel_h, panel_w, 3), 28, dtype=np.uint8)
+        cv2.putText(panel, title, (8, max(20, title_h - 8)),
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 255), 2)
+        panel[title_h:title_h + raw_strip.shape[0], :raw_strip.shape[1]] = raw_strip
+        y2 = title_h + raw_strip.shape[0] + sep_h
+        panel[y2:y2 + marked_strip.shape[0], :marked_strip.shape[1]] = marked_strip
+        focus_images.append(_resize_for_vlm(panel, max_dim=1536))
+
+    return focus_images
+
+
 # ─── VLM verification call ───────────────────────────────────────────────────
 
 _POD_KNOWLEDGE = """【有效角果 vs 枯枝 判别标准】
@@ -238,7 +308,8 @@ def verify_pod_markers(
 
     Returns:
         {
-            "missed_count": int,
+            "missed_count": int,  # currently equals restored_filtered_ids count
+            "restored_filtered_ids": [int, ...],
             "false_positive_ids": [int, ...],
             "adjusted_pod_count": int,
             "reason": str,
@@ -248,7 +319,10 @@ def verify_pod_markers(
     if not markers:
         return {
             "missed_count": 0,
+            "restored_filtered_ids": [],
+            "restored_filtered_confidences": {},
             "false_positive_ids": [],
+            "false_positive_confidences": {},
             "adjusted_pod_count": pod_count,
             "reason": "无标记点，跳过验证",
             "verified_image": debug_image.copy(),
@@ -263,12 +337,15 @@ def verify_pod_markers(
     # Build annotated image with clear numbered markers
     annotated = _draw_markers_for_vlm(crop_bgr, px_markers)
     marker_text = _markers_to_text(px_markers)
+    terminal_marker_text = _terminal_markers_to_text(px_markers, w_crop, h_crop)
 
     # Resize for API payload
     annotated_resized = _resize_for_vlm(annotated, max_dim=1536)
     crop_resized = _resize_for_vlm(crop_bgr, max_dim=1536)
+    focus_images = _endpoint_focus_images(crop_bgr, annotated)
     b64_annotated = _image_to_base64(annotated_resized)
     b64_crop = _image_to_base64(crop_resized)
+    b64_focus = [_image_to_base64(img) for img in focus_images]
 
     pod_markers = [m for m in px_markers if m["type"] == "pod"]
     filtered_markers = [m for m in px_markers if m["type"] == "filtered"]
@@ -297,29 +374,30 @@ def verify_pod_markers(
     prompt = f"""你是油菜角果计数的审核专家。下面有多张图：
 - 第一张：**原始截图**（干净无标记，用于观察植株真实外观）
 - 第二张：**标注图**（带有编号标记点）
+- 如果后面还有 LEFT/RIGHT END ZOOM：这是枝条左右末端局部放大图，上半部分原图、下半部分同一区域标注图。末端细枯枝簇请优先看放大图判断。
 {support_note}
 
 标记图说明：
 - **绿色圆点 + P编号**：算法判定为"有效角果"的位置（标在角果尖端）
-- **红色圆点 + F编号**：算法判定为"枯枝/噪声"已过滤的位置
+- **红色圆点 + F编号**：CV 算法判定为"枯枝/噪声"已过滤的位置；其中也可能有被误删的真角果
 
 当前标记详情：
 {marker_text}
+
+{terminal_marker_text}
 
 算法计数结果：有效角果 {len(pod_markers)} 个，已过滤 {len(filtered_markers)} 个
 
 {_POD_KNOWLEDGE}
 
 ⚠️ 重要约束：
-- 只关注一件事：**混在 P 标记里的枯枝**
-- 已标记的正常 P 标记点不需要你确认
-- 不需要检查漏数，只检查误判
-
-⚠️ **代价不对称（极其重要）**：
-- 误删 1 个真角果 = 漏过 5 个枯枝的代价
-- 默认应当**保留**，只有当你**非常确信（≥80%）**这是枯枝时才列入 false_positive_ids
-- 任何模糊、不确定、看不清、被遮挡的 P 点 → 一律保留，不要报告
-- 单独孤立的 P 点（不在密集簇里）默认保留，它们很可能是真角果
+- 你需要做**双向复核**：
+  1. 检查绿色 P 标记里是否混入枯枝，输出到 false_positives
+  2. 检查红色 F 标记里是否有被 CV 误删的真角果，输出到 restore_filtered
+- 不需要寻找完全没有标记的新角果，只在已有的 P/F 标记中纠错
+- 对看不清、被遮挡、形态不确定的点，不要纠正
+- 对 P 和 F 都使用同一形态标准：真角果必须有饱满果身或沿长度明显宽度变化；枯枝通常是细瘦、等宽、无膨大
+- 如果上面给出了 LEFT/RIGHT END 重点清单，必须优先逐一检查清单里的每个 P/F 编号，特别是密集末端枯枝簇，不要只挑其中几个最明显的点
 
 **容易误判的情况（这些请保留，不要剔除）**：
 - 细长且偏暗的真角果（果荚干瘪但仍是角果）
@@ -330,21 +408,28 @@ def verify_pod_markers(
 **真正的枯枝特征（同时满足才算）**：
 - 沿 P 点回溯整条分支，**从基部到尖端粗细完全均匀**
 - **完全没有任何椭圆/纺锤形膨大轮廓**
-- 通常较短、笔直、像一根光秃秃的小棍
+- 通常较短、细瘦，可能笔直、弯曲、卷曲或蜷缩
+- 特别注意主轴左右末端的枯枝簇：多根短小弯曲线条贴着主轴、颜色偏暗/发白、粗细几乎一致、没有独立饱满果身；这些即使被 P 标成绿色，也应当列入 false_positives
+- 端部枯枝簇内多个相邻 P 点如果都落在同一类“短小等宽弯线”上，应该成组剔除；不要只剔除其中一两个
 
-**审核任务 — 找枯枝：**
-检查绿色 P 标记点中，有没有实际上是**枯枝**却没有被过滤掉的？
+**审核任务 — 双向纠错：**
+1. 检查绿色 P 标记点中，有没有实际上是**枯枝**却没有被过滤掉的？
+2. 检查红色 F 标记点中，有没有实际上是**真角果**却被 CV 过滤掉的？
 {('请对比前面的枯枝正例 / 反例参考图，' if support_text_blocks else '')}
 
 请按以下两步完成：
 
 **Step 1 — 逐点形态分析**（先写出来强迫你看清楚）：
-对你怀疑是枯枝的每个 P 编号，用一句话描述其分支形态，例如：
+对你要纠正的每个 P/F 编号，用一句话描述其分支形态，例如：
 - "P3：分支细长笔直、粗细均匀、无膨大 → 枯枝（置信度 0.9）"
-- "P7：中段有轻微膨大但不明显 → 不确定，保留"
+- "P7：左端枯枝簇内，弯曲细线、等宽、无独立果身 → 枯枝（置信度 0.9）"
+- "F72：有明显饱满纺锤形果身，CV 误删 → 补回（置信度 0.85）"
+- "F81：只是主轴上的短枝基部，没有果身 → 不补回"
 
 **Step 2 — 输出 JSON**：
-基于 Step 1，把**置信度 ≥ 0.8** 的枯枝列入返回。
+基于 Step 1：
+- 把**置信度 ≥ 0.8** 的 P 中枯枝列入 false_positives
+- 把**置信度 ≥ 0.8** 的 F 中真角果列入 restore_filtered
 
 ⚠️ 严格按以下 JSON 返回（Step 1 的分析写在 reason 里）：
 ```json
@@ -353,15 +438,19 @@ def verify_pod_markers(
     {{"id": 3, "confidence": 0.9}},
     {{"id": 7, "confidence": 0.85}}
   ],
-  "reason": "P3 笔直无膨大；P7 短小且粗细均匀..."
+  "restore_filtered": [
+    {{"id": 72, "confidence": 0.85}}
+  ],
+  "reason": "P3 笔直无膨大；P7 位于左端枯枝簇且无果身；F72 有饱满果身应补回..."
 }}
 ```
 
 注意：
 - false_positives：每项必须是 {{"id": int, "confidence": float}} 的对象
-- confidence ∈ [0,1]，表示你判定该点为枯枝的把握程度
-- 没有误判就填空列表 []
-- 宁可保守（漏报误判），绝不要过度纠正
+- restore_filtered：每项必须是 {{"id": int, "confidence": float}} 的对象，只能填红色 F 编号
+- confidence ∈ [0,1]，表示你判定该纠正项成立的把握程度
+- 没有对应纠正就填空列表 []
+- 不要把 P 编号写进 restore_filtered，也不要把 F 编号写进 false_positives
 - 兼容旧格式：如果你坚持只能输出整数 id 列表，请确保只输出你 ≥0.9 把握的"""
 
     print(f"[VLM PodVerify] Sending {len(markers)} markers ({len(pod_markers)} pods, "
@@ -376,6 +465,11 @@ def verify_pod_markers(
             {"type": "image_url",
              "image_url": {"url": f"data:image/jpeg;base64,{b64_annotated}"}},
         ]
+        for b64_img in b64_focus:
+            message_content.append({
+                "type": "image_url",
+                "image_url": {"url": f"data:image/jpeg;base64,{b64_img}"}
+            })
 
         for ex in positive_examples:
             message_content.append({
@@ -409,7 +503,10 @@ def verify_pod_markers(
         print(f"[VLM PodVerify] API error: {e}")
         return {
             "missed_count": 0,
+            "restored_filtered_ids": [],
+            "restored_filtered_confidences": {},
             "false_positive_ids": [],
+            "false_positive_confidences": {},
             "adjusted_pod_count": pod_count,
             "reason": f"VLM 调用失败: {e}",
             "verified_image": debug_image.copy(),
@@ -423,17 +520,24 @@ def verify_pod_markers(
         print(f"[VLM PodVerify] Parse failed, keeping original count")
         return {
             "missed_count": 0,
+            "restored_filtered_ids": [],
+            "restored_filtered_confidences": {},
             "false_positive_ids": [],
+            "false_positive_confidences": {},
             "adjusted_pod_count": pod_count,
             "reason": "VLM 返回解析失败，保持原计数",
             "verified_image": debug_image.copy(),
         }
 
-    # 支持两种格式：
-    #   新版：false_positives = [{"id": 3, "confidence": 0.9}, ...]
-    #   旧版：false_positive_ids = [3, 7, ...]（无 confidence，按 0.9 处理）
+    # 支持多种格式：
+    #   false_positives = [{"id": 3, "confidence": 0.9}, ...]
+    #   false_positive_ids = [3, 7, ...]（无 confidence，按 0.9 处理）
+    #   restore_filtered = [{"id": 72, "confidence": 0.85}, ...]
+    #   restore_filtered_ids = [72, 74, ...]
     raw_fp_new = parsed.get("false_positives", None)
     raw_fp_old = parsed.get("false_positive_ids", [])
+    raw_restore_new = parsed.get("restore_filtered", None)
+    raw_restore_old = parsed.get("restore_filtered_ids", parsed.get("restored_filtered_ids", []))
 
     def _coerce_id(x):
         if isinstance(x, (int, float)):
@@ -446,10 +550,12 @@ def verify_pod_markers(
                 return None
         return None
 
-    # 收集 (id, confidence) 对
-    fp_pairs: List[Tuple[int, float]] = []
-    if isinstance(raw_fp_new, list) and raw_fp_new:
-        for item in raw_fp_new:
+    def _collect_pairs(primary, fallback) -> List[Tuple[int, float]]:
+        pairs: List[Tuple[int, float]] = []
+        source = primary if isinstance(primary, list) and primary else fallback
+        if not isinstance(source, list):
+            return pairs
+        for item in source:
             if isinstance(item, dict):
                 _id = _coerce_id(item.get("id"))
                 _conf = item.get("confidence", 0.9)
@@ -458,17 +564,24 @@ def verify_pod_markers(
                 except (TypeError, ValueError):
                     _conf = 0.9
                 if _id is not None:
-                    fp_pairs.append((_id, _conf))
+                    pairs.append((_id, _conf))
             else:
                 # 退化为裸 id
                 _id = _coerce_id(item)
                 if _id is not None:
-                    fp_pairs.append((_id, 0.9))
-    elif isinstance(raw_fp_old, list):
-        for item in raw_fp_old:
-            _id = _coerce_id(item)
-            if _id is not None:
-                fp_pairs.append((_id, 0.9))
+                    pairs.append((_id, 0.9))
+        return pairs
+
+    # 收集 (id, confidence) 对
+    fp_pairs = _collect_pairs(raw_fp_new, raw_fp_old)
+    restore_pairs = _collect_pairs(raw_restore_new, raw_restore_old)
+
+    pod_ids = {m["id"] for m in px_markers if m["type"] == "pod"}
+    filtered_ids = {m["id"] for m in px_markers if m["type"] == "filtered"}
+    invalid_fp_pairs = [(i, c) for (i, c) in fp_pairs if i not in pod_ids]
+    invalid_restore_pairs = [(i, c) for (i, c) in restore_pairs if i not in filtered_ids]
+    fp_pairs = [(i, c) for (i, c) in fp_pairs if i in pod_ids]
+    restore_pairs = [(i, c) for (i, c) in restore_pairs if i in filtered_ids]
 
     # 应用置信度阈值过滤
     threshold = VLM_FP_CONFIDENCE_THRESHOLD
@@ -477,27 +590,46 @@ def verify_pod_markers(
     false_positive_ids = [i for (i, _) in kept_pairs]
     false_positive_confidences = {str(i): c for (i, c) in kept_pairs}
 
+    kept_restore_pairs = [(i, c) for (i, c) in restore_pairs if c >= threshold]
+    dropped_restore_pairs = [(i, c) for (i, c) in restore_pairs if c < threshold]
+    restored_filtered_ids = [i for (i, _) in kept_restore_pairs]
+    restored_filtered_confidences = {str(i): c for (i, c) in kept_restore_pairs}
+
     if dropped_pairs:
         print(f"[VLM PodVerify] Dropped low-confidence FPs (<{threshold}): "
               f"{dropped_pairs}")
     if kept_pairs:
         print(f"[VLM PodVerify] Kept FPs (>={threshold}): {kept_pairs}")
+    if dropped_restore_pairs:
+        print(f"[VLM PodVerify] Dropped low-confidence restores (<{threshold}): "
+              f"{dropped_restore_pairs}")
+    if kept_restore_pairs:
+        print(f"[VLM PodVerify] Kept restores (>={threshold}): {kept_restore_pairs}")
+    if invalid_fp_pairs:
+        print(f"[VLM PodVerify] Ignored FP ids that are not P markers: {invalid_fp_pairs}")
+    if invalid_restore_pairs:
+        print(f"[VLM PodVerify] Ignored restore ids that are not F markers: "
+              f"{invalid_restore_pairs}")
 
     reason = parsed.get("reason", "")
 
-    # Calculate adjusted count (only subtract false positives, no missed_count)
-    adjusted = pod_count - len(false_positive_ids)
+    # Calculate adjusted count:
+    #   subtract P markers that are actually dead twigs,
+    #   add F markers that were CV-filtered but are true pods.
+    adjusted = pod_count - len(false_positive_ids) + len(restored_filtered_ids)
     adjusted = max(0, adjusted)
 
     print(f"[VLM PodVerify] false_pos={false_positive_ids}, "
-          f"original={pod_count} → adjusted={adjusted}")
+          f"restore={restored_filtered_ids}, original={pod_count} → adjusted={adjusted}")
 
     # Build verified image (use pixel-space markers)
     verified_img = _build_verified_image(
-        crop_bgr, px_markers, false_positive_ids, adjusted)
+        crop_bgr, px_markers, false_positive_ids, restored_filtered_ids, adjusted)
 
     return {
-        "missed_count": 0,
+        "missed_count": len(restored_filtered_ids),
+        "restored_filtered_ids": restored_filtered_ids,
+        "restored_filtered_confidences": restored_filtered_confidences,
         "false_positive_ids": false_positive_ids,
         "false_positive_confidences": false_positive_confidences,
         "adjusted_pod_count": adjusted,
@@ -512,54 +644,89 @@ def _build_verified_image(
     crop_bgr: np.ndarray,
     markers: list,
     false_positive_ids: list,
+    restored_filtered_ids: list,
     adjusted_count: int,
 ) -> np.ndarray:
     """
     Regenerate the debug image after VLM verification:
     - Green = confirmed valid pods
     - Red strikethrough = false positives (VLM says not a pod)
+    - Green R markers = CV-filtered markers restored by VLM
     - Red F markers = dead twigs already filtered by the CV algorithm
     - Text overlay with adjusted count
     """
-    vis = crop_bgr.copy()
+    orig_h, orig_w = crop_bgr.shape[:2]
+    target_long_edge = 1800
+    max_scale = 3.0
+    scale = min(max_scale, max(1.0, target_long_edge / max(1, max(orig_h, orig_w))))
+    if scale > 1.01:
+        vis = cv2.resize(
+            crop_bgr,
+            (int(round(orig_w * scale)), int(round(orig_h * scale))),
+            interpolation=cv2.INTER_CUBIC,
+        )
+    else:
+        vis = crop_bgr.copy()
+        scale = 1.0
+
     h, w = vis.shape[:2]
-    fs = max(0.4, min(h, w) / 800)
+    fs = max(0.35, min(orig_h, orig_w) / 900)
+    text_thickness = max(1, int(fs * 2))
+    dot_r = 4
+    ring_r = 6
+    core_r = 2
+    x_r = 4
+    label_dx = 8
     fp_set = set(false_positive_ids)
+    restore_set = set(restored_filtered_ids)
 
     confirmed = 0
     cv_filtered = 0
+    restored = 0
     for m in markers:
         mid = m["id"]
-        mx, my = int(m["x"]), int(m["y"])
+        mx = int(round(float(m["x"]) * scale))
+        my = int(round(float(m["y"]) * scale))
         mtype = m["type"]
 
         if mtype == "pod":
             if mid in fp_set:
                 # False positive — red X
-                cv2.circle(vis, (mx, my), 7, (0, 0, 255), 2)
-                cv2.line(vis, (mx - 5, my - 5), (mx + 5, my + 5), (0, 0, 255), 2)
-                cv2.line(vis, (mx - 5, my + 5), (mx + 5, my - 5), (0, 0, 255), 2)
-                cv2.putText(vis, f"X{mid}", (mx + 10, my - 4),
-                            cv2.FONT_HERSHEY_SIMPLEX, fs, (0, 0, 255), max(1, int(fs * 2)))
+                cv2.circle(vis, (mx, my), ring_r, (0, 0, 255), 2)
+                cv2.line(vis, (mx - x_r, my - x_r), (mx + x_r, my + x_r), (0, 0, 255), 2)
+                cv2.line(vis, (mx - x_r, my + x_r), (mx + x_r, my - x_r), (0, 0, 255), 2)
+                cv2.putText(vis, f"X{mid}", (mx + label_dx, my - 4),
+                            cv2.FONT_HERSHEY_SIMPLEX, fs, (0, 0, 255), text_thickness)
             else:
                 # Confirmed pod — green
                 confirmed += 1
-                cv2.circle(vis, (mx, my), 5, (0, 255, 0), -1)
-                cv2.putText(vis, str(confirmed), (mx + 8, my - 4),
-                            cv2.FONT_HERSHEY_SIMPLEX, fs * 0.9, (0, 255, 0), max(1, int(fs * 2)))
+                cv2.circle(vis, (mx, my), dot_r, (0, 255, 0), -1)
+                cv2.putText(vis, str(mid), (mx + label_dx, my - 4),
+                            cv2.FONT_HERSHEY_SIMPLEX, fs * 0.9, (0, 255, 0), text_thickness)
         else:
-            # CV-filtered dead twig — red F marker
-            cv_filtered += 1
-            cv2.circle(vis, (mx, my), 5, (0, 0, 255), -1)
-            cv2.circle(vis, (mx, my), 7, (255, 255, 255), 1)
-            cv2.putText(vis, f"F{mid}", (mx + 8, my - 4),
-                        cv2.FONT_HERSHEY_SIMPLEX, fs * 0.85, (0, 0, 255), max(1, int(fs * 2)))
+            if mid in restore_set:
+                # CV-filtered but restored by VLM — green ring with R marker
+                restored += 1
+                cv2.circle(vis, (mx, my), ring_r, (0, 255, 0), 2)
+                cv2.circle(vis, (mx, my), core_r, (0, 255, 0), -1)
+                cv2.putText(vis, f"R{mid}", (mx + label_dx, my - 4),
+                            cv2.FONT_HERSHEY_SIMPLEX, fs * 0.85, (0, 255, 0),
+                            text_thickness)
+            else:
+                # CV-filtered dead twig — red F marker
+                cv_filtered += 1
+                cv2.circle(vis, (mx, my), dot_r, (0, 0, 255), -1)
+                cv2.circle(vis, (mx, my), ring_r, (255, 255, 255), 1)
+                cv2.putText(vis, f"F{mid}", (mx + label_dx, my - 4),
+                            cv2.FONT_HERSHEY_SIMPLEX, fs * 0.85, (0, 0, 255),
+                            text_thickness)
 
     # Overlay adjusted count
-    fs2 = max(0.5, min(h, w) / 500)
+    fs2 = max(0.5, min(orig_h, orig_w) / 500)
     cv2.putText(vis, f"VLM Verified: {adjusted_count}", (5, int(25 * fs2) + 5),
                 cv2.FONT_HERSHEY_SIMPLEX, fs2, (0, 255, 255), max(1, int(fs2 * 2)))
-    detail = f"confirmed={confirmed} vlm_fp=-{len(fp_set)} cv_filtered={cv_filtered}"
+    detail = (f"confirmed={confirmed} vlm_fp=-{len(fp_set)} "
+              f"vlm_restore=+{restored} cv_filtered={cv_filtered}")
     cv2.putText(vis, detail, (5, int(50 * fs2) + 5),
                 cv2.FONT_HERSHEY_SIMPLEX, fs2 * 0.6, (180, 180, 180), 1)
 

@@ -1,9 +1,15 @@
 #!/usr/bin/env python3
 """实时对比批量测试结果与 ground truth，持续刷新直到全部完成。"""
-import csv, json, os, time, sys
+import csv
+import json
+import os
+import time
+from pathlib import Path
 
 GT_CSV = "benchmark_results.csv"
-RESULTS_DIR = "results"
+ARTIFACT_DIR = Path("benchmark_cache")
+LEGACY_RESULTS_DIR = Path("results")
+ALLOW_LEGACY_RESULTS = os.environ.get("ALLOW_LEGACY_RESULTS") == "1"
 
 def load_gt():
     gt = {}
@@ -12,17 +18,37 @@ def load_gt():
             gt[row["photo"]] = row
     return gt
 
+
+def load_result(photo):
+    """Load the current benchmark artifact for a sample.
+
+    The old results/<photo>/result.json layout is intentionally not used by
+    default because result directories are now per-run. Reading the old fixed
+    path can silently compare against stale output from another run.
+    """
+    artifact = ARTIFACT_DIR / photo / "experiment_result.json"
+    if artifact.exists():
+        with artifact.open(encoding="utf-8") as f:
+            payload = json.load(f)
+        return payload.get("result") or {}, artifact
+
+    if ALLOW_LEGACY_RESULTS:
+        legacy = LEGACY_RESULTS_DIR / photo / "result.json"
+        if legacy.exists():
+            with legacy.open(encoding="utf-8") as f:
+                return json.load(f), legacy
+
+    return None, None
+
+
 def check_once(gt):
     rows = []
     for photo, g in sorted(gt.items()):
-        rfile = os.path.join(RESULTS_DIR, photo, "result.json")
-        if not os.path.exists(rfile):
-            continue
-        # 只读最近修改的（排除旧结果）
         try:
-            with open(rfile) as f:
-                r = json.load(f)
+            r, source = load_result(photo)
         except Exception:
+            continue
+        if not r:
             continue
 
         algo_total = r.get("total_pods", 0)
@@ -44,6 +70,7 @@ def check_once(gt):
             "gt_main": gt_main, "algo_main": main_pods,
             "gt_branch": gt_branch, "algo_branch": branch_pods,
             "parts": parts,
+            "source": str(source),
         })
     return rows
 
