@@ -10,10 +10,13 @@ UPLOAD_DIR = BASE_DIR / "uploads"
 RESULT_DIR = BASE_DIR / "results"
 ONLINE_UPLOAD_DIR = BASE_DIR / "online_uploads"
 CACHE_DIR = BASE_DIR / "benchmark_cache"
+DATA_DIR = Path(os.getenv("DATA_DIR", str(BASE_DIR / "data")))
 UPLOAD_DIR.mkdir(exist_ok=True)
 RESULT_DIR.mkdir(exist_ok=True)
 ONLINE_UPLOAD_DIR.mkdir(exist_ok=True)
 CACHE_DIR.mkdir(exist_ok=True)
+DATA_DIR.mkdir(parents=True, exist_ok=True)
+HISTORY_DB_PATH = DATA_DIR / "history.sqlite3"
 
 # Doubao VLM
 ARK_API_KEY = os.getenv("ARK_API_KEY", "")

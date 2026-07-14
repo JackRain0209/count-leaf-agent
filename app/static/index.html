@@ -3,1025 +3,1501 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CV Agent - 油菜表型分析</title>
+    <link rel="icon" href="data:,">
+    <title>油菜考种工作台</title>
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #0f172a; color: #e2e8f0; min-height: 100vh; }
-        .container { max-width: 1200px; margin: 0 auto; padding: 24px; }
-        h1 { font-size: 28px; margin-bottom: 8px; color: #38bdf8; }
-        .subtitle { color: #94a3b8; margin-bottom: 32px; }
-
-        .upload-area {
-            border: 2px dashed #334155; border-radius: 16px; padding: 48px;
-            text-align: center; cursor: pointer; transition: all 0.2s;
-            background: #1e293b; margin-bottom: 32px;
-        }
-        .upload-area:hover { border-color: #38bdf8; background: #1e3a5f; }
-        .upload-area.dragover { border-color: #22d3ee; background: #164e63; }
-        .upload-area input { display: none; }
-        .upload-icon { font-size: 48px; margin-bottom: 12px; }
-        .upload-text { color: #94a3b8; }
-
-        .results { margin-bottom: 32px; }
-        .results h2 { font-size: 20px; margin-bottom: 14px; color: #e2e8f0; }
-        .sample-id-badge {
-            display: inline-block; vertical-align: middle;
-            background: linear-gradient(135deg, #7c3aed, #a855f7);
-            color: #fff; font-size: 14px; font-weight: 600;
-            padding: 3px 12px; border-radius: 6px;
-            margin-left: 10px;
-        }
-        .sample-id-badge:empty { display: none; }
-        .result-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; }
-        .result-item {
-            background: linear-gradient(180deg, #172033 0%, #101827 100%);
-            border-radius: 8px; padding: 15px 16px;
-            border: 1px solid #2f415d; min-height: 94px;
-            display: flex; flex-direction: column; justify-content: space-between;
-        }
-        .result-item.primary { border-color: #38bdf8; box-shadow: 0 0 0 1px rgba(56,189,248,0.15) inset; }
-        .result-item .label { font-size: 12px; color: #94a3b8; margin-bottom: 8px; }
-        .result-item .value {
-            font-size: 26px; line-height: 1.1; font-weight: 750; color: #f8fafc;
-            word-break: break-word;
-        }
-        .result-item .value.compact { font-size: 17px; line-height: 1.35; font-weight: 650; }
-        .result-item .value.blank { color: #64748b; }
-        .result-item .unit { font-size: 14px; color: #94a3b8; }
-        .result-meta {
-            grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 8px;
-            color: #94a3b8; font-size: 12px;
-        }
-        .result-meta span {
-            border: 1px solid #334155; border-radius: 999px;
-            padding: 4px 8px; background: #0f172a;
+        :root {
+            --bg: #f4f6f3;
+            --surface: #ffffff;
+            --surface-muted: #f8faf8;
+            --line: #dce3dc;
+            --line-strong: #c8d2c9;
+            --text: #18221b;
+            --text-muted: #647067;
+            --green: #257347;
+            --green-dark: #195535;
+            --green-soft: #e8f3ec;
+            --amber: #a86712;
+            --amber-soft: #fff4dc;
+            --red: #b63737;
+            --red-soft: #fbeaea;
+            --blue: #286493;
+            --blue-soft: #eaf2f8;
+            --header-height: 62px;
+            --sidebar-width: 300px;
+            font-family: Inter, "Segoe UI", "Microsoft YaHei", sans-serif;
+            color: var(--text);
+            background: var(--bg);
         }
 
-        .loading { text-align: center; padding: 48px; color: #94a3b8; }
-        .spinner { display: inline-block; width: 32px; height: 32px; border: 3px solid #334155; border-top-color: #38bdf8; border-radius: 50%; animation: spin 0.8s linear infinite; margin-bottom: 12px; }
-        @keyframes spin { to { transform: rotate(360deg); } }
+        * { box-sizing: border-box; }
 
-        .error { background: #7f1d1d; color: #fca5a5; padding: 16px; border-radius: 8px; margin: 16px 0; }
-        .vlm-notes { margin-top: 16px; padding: 12px 16px; background: #0f172a; border-radius: 8px; font-size: 13px; color: #94a3b8; }
-        .hidden { display: none; }
+        body {
+            margin: 0;
+            min-width: 320px;
+            min-height: 100vh;
+            background: var(--bg);
+        }
 
-        /* Pipeline flow */
-        .pipeline { margin-top: 32px; }
-        .pipeline h2 { font-size: 20px; margin-bottom: 20px; color: #38bdf8; }
-        .pipeline-step {
-            display: flex; gap: 20px; margin-bottom: 16px; align-items: flex-start;
-            background: #1e293b; border-radius: 12px; border: 1px solid #334155;
-            overflow: hidden; transition: border-color 0.2s;
-        }
-        .pipeline-step:hover { border-color: #38bdf8; }
-        .step-number {
-            flex-shrink: 0; width: 48px; min-height: 100%;
-            background: #0f172a; display: flex; align-items: center; justify-content: center;
-            font-size: 18px; font-weight: 700; color: #38bdf8;
-        }
-        .step-content { flex: 1; padding: 12px 16px 12px 0; display: flex; gap: 16px; align-items: flex-start; flex-wrap: wrap; }
-        .step-media { display: flex; align-items: flex-start; gap: 10px; flex-shrink: 0; }
-        .step-img-wrap { flex-shrink: 0; max-width: 400px; min-width: 200px; }
-        .pipeline-step-editable .step-media { width: min(960px, 100%); max-width: 100%; }
-        .pipeline-step-editable .step-img-wrap.editable-image-wrap {
-            flex: 1 1 auto; min-width: min(280px, 100%); max-width: none; width: auto;
-        }
-        .step-img-wrap img { width: 100%; border-radius: 8px; cursor: pointer; transition: transform 0.2s; }
-        .step-img-wrap img:hover { transform: scale(1.02); }
-        .editable-image-wrap {
-            position: relative; overflow: hidden; border-radius: 8px;
-            background: #020617;
-        }
-        .editable-image-wrap img { display: block; }
-        .editable-image-wrap img:hover { transform: none; }
-        .editable-image-wrap.adding img,
-        .editable-image-wrap.adding .annotation-layer { cursor: crosshair; }
-        .editable-image-wrap.deleting img,
-        .editable-image-wrap.deleting .annotation-layer { cursor: cell; }
-        .annotation-layer {
-            position: absolute; inset: 0; z-index: 2; pointer-events: none;
-        }
-        .editable-image-wrap.editing .annotation-layer { pointer-events: auto; }
-        .annotation-marker {
-            position: absolute; width: 10px; height: 10px; border-radius: 50%;
-            transform: translate(-50%, -50%); pointer-events: none;
-            box-shadow: 0 0 0 1px rgba(15, 23, 42, 0.9), 0 1px 6px rgba(0,0,0,0.35);
-        }
-        .editable-image-wrap.editing .annotation-marker { pointer-events: auto; }
-        .annotation-marker.green { background: #22c55e; border: 1px solid #bbf7d0; }
-        .annotation-marker.red { background: #ef4444; border: 1px solid #fecaca; }
-        .annotation-marker.purple { background: #a855f7; border: 1px solid #e9d5ff; }
-        .annotation-tools {
-            flex-shrink: 0; display: flex; flex-direction: column; align-items: stretch;
-            gap: 8px; min-width: 48px;
-        }
-        .annotation-edit-btn,
-        .annotation-tool-btn {
-            min-width: 44px; height: 36px; border: 1px solid #334155;
-            border-radius: 8px; background: #0f172a; color: #cbd5e1;
-            font-size: 14px; font-weight: 700; cursor: pointer;
-        }
-        .annotation-edit-btn:hover,
-        .annotation-tool-btn:hover { border-color: #38bdf8; color: #f8fafc; }
-        .annotation-edit-btn.active,
-        .annotation-tool-btn.active {
-            background: #1e3a5f; border-color: #38bdf8; color: #e0f2fe;
-        }
-        .annotation-tool-panel { display: flex; flex-direction: column; gap: 8px; position: relative; }
-        .annotation-tool-panel.hidden,
-        .annotation-color-menu.hidden { display: none; }
-        .annotation-color-menu {
-            position: absolute; left: 48px; top: 0; z-index: 20;
-            min-width: 92px; padding: 6px; border-radius: 8px;
-            background: #0f172a; border: 1px solid #334155;
-            box-shadow: 0 12px 28px rgba(0,0,0,0.35);
-        }
-        .annotation-color-menu button {
-            width: 100%; display: flex; align-items: center; gap: 8px;
-            background: transparent; border: 0; color: #cbd5e1;
-            padding: 7px 8px; border-radius: 6px; cursor: pointer;
-            font-size: 13px; white-space: nowrap;
-        }
-        .annotation-color-menu button:hover { background: #1e293b; color: #fff; }
-        .point-swatch {
-            width: 12px; height: 12px; border-radius: 50%; display: inline-block;
-            box-shadow: 0 0 0 1px rgba(255,255,255,0.7);
-        }
-        .point-swatch.green { background: #22c55e; }
-        .point-swatch.red { background: #ef4444; }
-        .point-swatch.purple { background: #a855f7; }
-        .step-desc {
-            flex: 1; min-width: 200px; font-size: 14px; color: #cbd5e1; line-height: 1.6;
-            padding-top: 4px;
-        }
-        .step-desc .tag {
-            display: inline-block; padding: 2px 8px; border-radius: 4px;
-            font-size: 11px; font-weight: 600; margin-right: 6px;
-        }
-        .tag-vlm { background: #1e3a5f; color: #38bdf8; }
-        .tag-cv { background: #1a2e1a; color: #4ade80; }
-        .tag-crop { background: #2d1f3d; color: #c084fc; }
-        .tag-result { background: #3d2a1a; color: #fb923c; }
+        button, input, select { font: inherit; }
+        button { cursor: pointer; }
+        button:disabled { cursor: not-allowed; opacity: 0.5; }
+        .hidden { display: none !important; }
 
-        /* Lightbox */
-        .lightbox {
-            display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.9);
-            z-index: 1000; align-items: center; justify-content: center; cursor: zoom-out;
+        .app-header {
+            position: fixed;
+            inset: 0 0 auto 0;
+            z-index: 30;
+            height: var(--header-height);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 22px;
+            color: #ffffff;
+            background: #1b2820;
+            border-bottom: 1px solid #314036;
         }
-        .lightbox.active { display: flex; }
-        .lightbox img { max-width: 95vw; max-height: 95vh; border-radius: 8px; }
 
-        /* Primary button */
-        .btn-primary {
-            background: #38bdf8; color: #0f172a; border: 0;
-            padding: 10px 20px; font-size: 14px; font-weight: 600;
-            border-radius: 8px; cursor: pointer; transition: background 0.2s;
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 11px;
+            min-width: 0;
         }
-        .btn-primary:hover:not(:disabled) { background: #0ea5e9; }
-        .btn-primary:disabled { background: #334155; color: #64748b; cursor: not-allowed; }
 
-        /* Modal */
-        .modal {
-            display: none; position: fixed; inset: 0; z-index: 500;
-            align-items: center; justify-content: center;
+        .brand-mark {
+            width: 32px;
+            height: 32px;
+            display: grid;
+            place-items: center;
+            flex: 0 0 auto;
+            border-radius: 6px;
+            color: #173923;
+            background: #92d3a7;
+            font-weight: 800;
         }
-        .modal.active { display: flex; }
-        .modal-backdrop { position: absolute; inset: 0; background: rgba(0,0,0,0.7); }
-        .modal-panel {
-            position: relative; background: #1e293b; border: 1px solid #334155;
-            border-radius: 12px; width: min(1280px, 96vw); max-height: 88vh;
-            display: flex; flex-direction: column; overflow: hidden;
+
+        .brand-title {
+            font-size: 16px;
+            font-weight: 700;
+            letter-spacing: 0;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
-        .modal-header {
-            display: flex; align-items: center; justify-content: space-between;
-            padding: 16px 20px; border-bottom: 1px solid #334155;
+
+        .service-state {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: #cbd6ce;
+            font-size: 12px;
         }
-        .modal-header h3 { color: #38bdf8; font-size: 18px; }
-        .modal-close {
-            background: transparent; border: 0; color: #94a3b8;
-            font-size: 24px; cursor: pointer; width: 32px; height: 32px;
+
+        .service-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #e3a849;
+        }
+
+        .service-dot.online { background: #67c587; }
+        .service-dot.offline { background: #e66c6c; }
+
+        .app-shell {
+            display: grid;
+            grid-template-columns: var(--sidebar-width) minmax(0, 1fr);
+            min-height: 100vh;
+            padding-top: var(--header-height);
+        }
+
+        .history-pane {
+            position: fixed;
+            top: var(--header-height);
+            bottom: 0;
+            left: 0;
+            width: var(--sidebar-width);
+            display: flex;
+            flex-direction: column;
+            min-height: 0;
+            background: var(--surface);
+            border-right: 1px solid var(--line);
+        }
+
+        .history-head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            height: 58px;
+            padding: 0 16px;
+            border-bottom: 1px solid var(--line);
+        }
+
+        .history-title {
+            display: flex;
+            align-items: baseline;
+            gap: 8px;
+            font-size: 14px;
+            font-weight: 700;
+        }
+
+        .history-count {
+            color: var(--text-muted);
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .icon-button {
+            width: 32px;
+            height: 32px;
+            display: inline-grid;
+            place-items: center;
+            padding: 0;
+            color: var(--text-muted);
+            background: transparent;
+            border: 1px solid transparent;
+            border-radius: 5px;
+            font-size: 19px;
+            line-height: 1;
+        }
+
+        .icon-button:hover { color: var(--text); background: var(--surface-muted); border-color: var(--line); }
+        .icon-button.danger:hover { color: var(--red); background: var(--red-soft); }
+
+        .history-search-wrap {
+            padding: 12px 14px;
+            border-bottom: 1px solid var(--line);
+        }
+
+        .history-search {
+            width: 100%;
+            height: 36px;
+            padding: 0 11px;
+            color: var(--text);
+            background: var(--surface-muted);
+            border: 1px solid var(--line);
+            border-radius: 5px;
+            outline: none;
+        }
+
+        .history-search:focus { border-color: var(--green); box-shadow: 0 0 0 2px rgba(37, 115, 71, 0.12); }
+
+        .history-list {
+            flex: 1;
+            min-height: 0;
+            overflow-y: auto;
+            padding: 8px;
+        }
+
+        .history-empty {
+            padding: 42px 16px;
+            color: var(--text-muted);
+            text-align: center;
+            font-size: 13px;
+        }
+
+        .history-item {
+            width: 100%;
+            display: grid;
+            grid-template-columns: 54px minmax(0, 1fr);
+            gap: 10px;
+            padding: 9px;
+            margin-bottom: 6px;
+            color: inherit;
+            text-align: left;
+            background: transparent;
+            border: 1px solid transparent;
             border-radius: 6px;
         }
-        .modal-close:hover { background: #334155; color: #fff; }
-        .modal-toolbar {
-            padding: 12px 20px; display: flex; gap: 12px; align-items: center;
-            border-bottom: 1px solid #334155;
+
+        .history-item:hover { background: var(--surface-muted); border-color: var(--line); }
+        .history-item.active { background: var(--green-soft); border-color: #b7d7c1; }
+
+        .history-thumb {
+            width: 54px;
+            height: 48px;
+            object-fit: cover;
+            background: #e7ebe8;
+            border: 1px solid var(--line);
+            border-radius: 4px;
         }
-        .modal-toolbar input {
-            flex: 1; background: #0f172a; border: 1px solid #334155;
-            color: #e2e8f0; padding: 8px 12px; border-radius: 6px; font-size: 13px;
+
+        .history-info { min-width: 0; }
+
+        .history-name {
+            margin: 1px 0 5px;
+            overflow: hidden;
+            font-size: 13px;
+            font-weight: 650;
+            white-space: nowrap;
+            text-overflow: ellipsis;
         }
-        .modal-toolbar input:focus { outline: none; border-color: #38bdf8; }
-        .muted { color: #64748b; font-size: 13px; }
-        .db-tabs {
-            display: flex; flex-wrap: wrap; gap: 12px; padding: 14px 20px;
-            border-bottom: 1px solid #334155; background: #172033;
+
+        .history-meta {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+            color: var(--text-muted);
+            font-size: 11px;
         }
-        .db-tab {
-            background: #0f172a; color: #94a3b8; border: 1px solid #334155;
-            min-height: 44px; min-width: 220px; flex: 1 1 220px;
-            padding: 10px 18px; border-radius: 8px; font-size: 14px;
-            font-weight: 650; cursor: pointer; white-space: nowrap;
-            display: flex; align-items: center; justify-content: center;
+
+        .history-total { color: var(--green-dark); font-weight: 700; }
+
+        .status-chip {
+            display: inline-flex;
+            align-items: center;
+            min-height: 22px;
+            padding: 2px 7px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 650;
         }
-        .db-tab:hover { color: #e2e8f0; border-color: #475569; }
-        .db-tab.active {
-            background: #1e3a5f; color: #e2e8f0; border-color: #38bdf8;
-            box-shadow: inset 0 0 0 1px #38bdf8;
+
+        .status-chip.completed { color: var(--green-dark); background: var(--green-soft); }
+        .status-chip.processing { color: var(--amber); background: var(--amber-soft); }
+        .status-chip.failed { color: var(--red); background: var(--red-soft); }
+        .status-chip.modified { color: var(--blue); background: var(--blue-soft); }
+
+        .workspace {
+            grid-column: 2;
+            min-width: 0;
+            min-height: calc(100vh - var(--header-height));
         }
-        .modal-body {
-            flex: 1; display: flex; min-height: 0;
+
+        .action-bar {
+            position: sticky;
+            top: var(--header-height);
+            z-index: 20;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 14px;
+            min-height: 66px;
+            padding: 12px 24px;
+            background: rgba(255, 255, 255, 0.97);
+            border-bottom: 1px solid var(--line);
         }
-        .db-list {
-            width: 420px; flex-shrink: 0; overflow-y: auto;
-            border-right: 1px solid #334155; padding: 8px;
+
+        .action-group {
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 8px;
         }
-        .db-item {
-            padding: 8px 10px; border-radius: 6px; cursor: pointer;
-            transition: background 0.1s; margin-bottom: 2px;
+
+        .button {
+            min-height: 38px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 7px;
+            padding: 7px 13px;
+            color: var(--text);
+            background: var(--surface);
+            border: 1px solid var(--line-strong);
+            border-radius: 5px;
+            font-size: 13px;
+            font-weight: 650;
         }
-        .db-item:hover { background: #0f172a; }
-        .db-item.selected { background: #1e3a5f; }
-        .db-item .name {
-            font-size: 13px; color: #e2e8f0;
-            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+
+        .button:hover { background: var(--surface-muted); border-color: #aebbb0; }
+        .button.primary { color: #ffffff; background: var(--green); border-color: var(--green); }
+        .button.primary:hover { background: var(--green-dark); border-color: var(--green-dark); }
+        .button.danger { color: var(--red); border-color: #e1b8b8; }
+        .button.compact { min-height: 32px; padding: 5px 9px; font-size: 12px; }
+
+        .button-symbol {
+            display: inline-grid;
+            place-items: center;
+            width: 17px;
+            height: 17px;
+            font-size: 16px;
+            line-height: 1;
         }
-        .db-item .folder {
-            font-size: 11px; color: #64748b;
-            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+
+        .queue-summary {
+            display: flex;
+            align-items: center;
+            gap: 9px;
+            color: var(--text-muted);
+            font-size: 12px;
         }
-        .db-preview {
-            flex: 1; display: flex; align-items: center; justify-content: center;
-            padding: 20px; background: #0f172a; overflow: auto;
+
+        .queue-count {
+            min-width: 24px;
+            height: 24px;
+            display: inline-grid;
+            place-items: center;
+            padding: 0 6px;
+            color: #ffffff;
+            background: var(--green);
+            border-radius: 12px;
+            font-weight: 700;
         }
-        .db-preview img {
-            max-width: 100%; max-height: 100%; border-radius: 8px;
+
+        .content {
+            width: min(1440px, 100%);
+            margin: 0 auto;
+            padding: 24px;
+        }
+
+        .empty-state {
+            min-height: calc(100vh - var(--header-height) - 114px);
+            display: grid;
+            place-items: center;
+            padding: 40px 20px;
+            text-align: center;
+        }
+
+        .empty-state-inner { max-width: 360px; }
+
+        .empty-symbol {
+            width: 72px;
+            height: 72px;
+            display: grid;
+            place-items: center;
+            margin: 0 auto 18px;
+            color: var(--green-dark);
+            background: var(--green-soft);
+            border: 1px solid #bfdbc7;
+            border-radius: 8px;
+            font-size: 30px;
+        }
+
+        .empty-title { margin: 0 0 8px; font-size: 19px; }
+        .empty-copy { margin: 0; color: var(--text-muted); font-size: 13px; line-height: 1.6; }
+
+        .queue-panel {
+            margin-bottom: 20px;
+            background: var(--surface);
+            border: 1px solid var(--line);
+            border-radius: 6px;
+            overflow: hidden;
+        }
+
+        .section-head {
+            min-height: 54px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            padding: 10px 16px;
+            border-bottom: 1px solid var(--line);
+        }
+
+        .section-title {
+            margin: 0;
+            font-size: 14px;
+            font-weight: 750;
+        }
+
+        .section-subtitle { margin-top: 3px; color: var(--text-muted); font-size: 11px; }
+
+        .queue-table-wrap { max-height: 360px; overflow: auto; }
+        .component-table-wrap { overflow-x: auto; }
+        .queue-table-wrap th { position: sticky; top: 0; z-index: 1; }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+        }
+
+        th {
+            height: 38px;
+            padding: 8px 12px;
+            color: var(--text-muted);
+            text-align: left;
+            background: var(--surface-muted);
+            border-bottom: 1px solid var(--line);
+            font-size: 11px;
+            font-weight: 700;
+        }
+
+        td {
+            min-height: 44px;
+            padding: 9px 12px;
+            border-bottom: 1px solid #edf0ed;
+            vertical-align: middle;
+        }
+
+        tr:last-child td { border-bottom: 0; }
+        .file-path { max-width: 520px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+
+        .record-head {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 18px;
+            margin-bottom: 18px;
+        }
+
+        .record-title {
+            margin: 0 0 7px;
+            font-size: 21px;
+            line-height: 1.3;
+            overflow-wrap: anywhere;
+        }
+
+        .record-meta {
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 8px 14px;
+            color: var(--text-muted);
+            font-size: 12px;
+        }
+
+        .analysis-state {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            min-width: 150px;
+            justify-content: flex-end;
+            color: var(--text-muted);
+            font-size: 12px;
+        }
+
+        .spinner {
+            width: 16px;
+            height: 16px;
+            border: 2px solid #cbd7ce;
+            border-top-color: var(--green);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        .summary-band {
+            display: grid;
+            grid-template-columns: repeat(6, minmax(110px, 1fr));
+            background: var(--surface);
+            border: 1px solid var(--line);
+            border-radius: 6px;
+            overflow: hidden;
+        }
+
+        .metric {
+            min-width: 0;
+            padding: 15px 16px;
+            border-right: 1px solid var(--line);
+        }
+
+        .metric:last-child { border-right: 0; }
+        .metric-label { margin-bottom: 7px; color: var(--text-muted); font-size: 11px; }
+        .metric-value { font-size: 22px; line-height: 1.1; font-weight: 760; overflow-wrap: anywhere; }
+        .metric-unit { margin-left: 3px; color: var(--text-muted); font-size: 11px; font-weight: 500; }
+
+        .editor-section, .steps-section {
+            margin-top: 18px;
+            background: var(--surface);
+            border: 1px solid var(--line);
+            border-radius: 6px;
+            overflow: hidden;
+        }
+
+        .editor-toolbar {
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .field-inline {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .field-inline label { color: var(--text-muted); font-size: 12px; font-weight: 650; }
+
+        .input, .select {
+            height: 34px;
+            padding: 5px 9px;
+            color: var(--text);
+            background: #ffffff;
+            border: 1px solid var(--line-strong);
+            border-radius: 4px;
+            outline: none;
+        }
+
+        .input:focus, .select:focus { border-color: var(--green); box-shadow: 0 0 0 2px rgba(37, 115, 71, 0.12); }
+        .count-input { width: 92px; text-align: right; }
+        .plant-count-input { width: 74px; text-align: right; }
+        .component-table { min-width: 680px; }
+        .component-table th:last-child, .component-table td:last-child { width: 54px; text-align: center; }
+        .component-id { color: var(--text-muted); font-variant-numeric: tabular-nums; }
+        .original-count { color: var(--text-muted); }
+        .manual-flag { color: var(--blue); font-size: 11px; }
+
+        .editor-footer {
+            min-height: 58px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            padding: 10px 16px;
+            background: var(--surface-muted);
+            border-top: 1px solid var(--line);
+        }
+
+        .dirty-state { color: var(--amber); font-size: 12px; }
+        .saved-state { color: var(--green); font-size: 12px; }
+
+        .steps-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+            gap: 12px;
+            padding: 14px;
+        }
+
+        .step-item {
+            min-width: 0;
+            overflow: hidden;
+            background: var(--surface-muted);
+            border: 1px solid var(--line);
+            border-radius: 5px;
+        }
+
+        .step-image {
+            width: 100%;
+            aspect-ratio: 16 / 10;
+            display: block;
             object-fit: contain;
-        }
-        .db-preview .placeholder {
-            color: #64748b; font-size: 14px; text-align: center;
-        }
-        .db-preview-loading { color: #64748b; font-size: 14px; }
-        .modal-footer {
-            padding: 14px 20px; border-top: 1px solid #334155;
-            display: flex; align-items: center; justify-content: space-between;
+            background: #202622;
+            cursor: zoom-in;
         }
 
-        /* Processing indicator (shown between steps while backend is working) */
-        .processing-card {
-            display: flex; align-items: center; gap: 16px; padding: 20px 24px;
-            background: linear-gradient(90deg, #1e293b 0%, #1e3a5f 50%, #1e293b 100%);
-            background-size: 200% 100%;
-            border-radius: 12px; border: 1px solid #334155;
-            margin-bottom: 16px;
-            animation: shimmer 2s linear infinite;
-        }
-        @keyframes shimmer {
-            0% { background-position: -200% 0; }
-            100% { background-position: 200% 0; }
-        }
-        .processing-orb {
-            position: relative; width: 40px; height: 40px; flex-shrink: 0;
-        }
-        .processing-orb::before, .processing-orb::after {
-            content: ''; position: absolute; inset: 0; border-radius: 50%;
-            border: 3px solid transparent; border-top-color: #38bdf8;
-            animation: orb-spin 1s linear infinite;
-        }
-        .processing-orb::after {
-            inset: 6px; border-top-color: #22d3ee;
-            animation: orb-spin 0.7s linear infinite reverse;
-        }
-        @keyframes orb-spin { to { transform: rotate(360deg); } }
-        .processing-text {
-            flex: 1; color: #cbd5e1; font-size: 14px; font-weight: 500;
-        }
-        .processing-text .dots::after {
-            content: '...'; display: inline-block; width: 20px; text-align: left;
-            animation: dots 1.4s steps(4, end) infinite;
-        }
-        @keyframes dots {
-            0%, 20% { content: ''; }
-            40% { content: '.'; }
-            60% { content: '..'; }
-            80%, 100% { content: '...'; }
-        }
-        .processing-badge {
-            padding: 4px 10px; border-radius: 12px; font-size: 11px; font-weight: 600;
-            background: rgba(56,189,248,0.15); color: #38bdf8;
+        .step-desc {
+            min-height: 58px;
+            padding: 9px 10px;
+            color: #455049;
+            font-size: 11px;
+            line-height: 1.45;
         }
 
+        .step-number { color: var(--green); font-weight: 750; }
+
+        .error-panel {
+            padding: 16px;
+            color: var(--red);
+            background: var(--red-soft);
+            border: 1px solid #e9bcbc;
+            border-radius: 6px;
+        }
+
+        dialog {
+            padding: 0;
+            color: var(--text);
+            background: var(--surface);
+            border: 1px solid var(--line-strong);
+            border-radius: 7px;
+            box-shadow: 0 20px 60px rgba(24, 34, 27, 0.24);
+        }
+
+        dialog::backdrop { background: rgba(19, 27, 22, 0.56); }
+
+        .library-dialog {
+            width: min(980px, calc(100vw - 32px));
+            height: min(720px, calc(100vh - 32px));
+        }
+
+        .dialog-shell { height: 100%; display: flex; flex-direction: column; min-height: 0; }
+
+        .dialog-head {
+            min-height: 58px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 16px;
+            border-bottom: 1px solid var(--line);
+        }
+
+        .dialog-title { margin: 0; font-size: 15px; }
+
+        .library-tools { padding: 12px 14px; border-bottom: 1px solid var(--line); }
+        .library-list { flex: 1; min-height: 0; overflow: auto; padding: 12px; }
+
+        .library-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+            gap: 10px;
+        }
+
+        .library-item {
+            min-width: 0;
+            padding: 0;
+            text-align: left;
+            color: inherit;
+            background: #ffffff;
+            border: 1px solid var(--line);
+            border-radius: 5px;
+            overflow: hidden;
+        }
+
+        .library-item:hover { border-color: var(--green); }
+        .library-item img { width: 100%; aspect-ratio: 4 / 3; display: block; object-fit: cover; background: #e7ebe8; }
+        .library-item-name { padding: 8px 9px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-size: 12px; }
+
+        .lightbox-dialog {
+            max-width: calc(100vw - 36px);
+            max-height: calc(100vh - 36px);
+            background: #111713;
+            border-color: #3c4940;
+        }
+
+        .lightbox-dialog img { display: block; max-width: calc(100vw - 56px); max-height: calc(100vh - 90px); object-fit: contain; }
+
+        .lightbox-close {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            color: #ffffff;
+            background: rgba(0, 0, 0, 0.55);
+            border: 1px solid rgba(255, 255, 255, 0.24);
+        }
+
+        .toast-stack {
+            position: fixed;
+            right: 18px;
+            bottom: 18px;
+            z-index: 100;
+            display: grid;
+            gap: 8px;
+            width: min(360px, calc(100vw - 36px));
+        }
+
+        .toast {
+            padding: 11px 13px;
+            color: #ffffff;
+            background: #243128;
+            border: 1px solid #415047;
+            border-radius: 5px;
+            box-shadow: 0 10px 30px rgba(20, 30, 23, 0.2);
+            font-size: 12px;
+            line-height: 1.45;
+        }
+
+        .toast.error { background: #6f2525; border-color: #9b4545; }
+
+        @media (max-width: 1120px) {
+            :root { --sidebar-width: 270px; }
+            .summary-band { grid-template-columns: repeat(3, minmax(120px, 1fr)); }
+            .metric:nth-child(3) { border-right: 0; }
+            .metric:nth-child(-n+3) { border-bottom: 1px solid var(--line); }
+        }
+
+        @media (max-width: 780px) {
+            .app-header { position: static; height: 56px; padding: 0 14px; }
+            .service-state span:last-child { display: none; }
+            .app-shell { display: block; padding-top: 0; }
+            .history-pane {
+                position: static;
+                width: 100%;
+                height: auto;
+                max-height: 230px;
+                border-right: 0;
+                border-bottom: 1px solid var(--line);
+            }
+            .history-head { height: 48px; }
+            .history-search-wrap { padding: 8px 12px; }
+            .history-list { display: flex; gap: 7px; overflow-x: auto; padding: 8px 10px; }
+            .history-item { flex: 0 0 235px; margin: 0; }
+            .history-empty { width: 100%; padding: 20px; }
+            .workspace { min-height: 0; }
+            .action-bar { position: static; align-items: flex-start; padding: 10px 12px; }
+            .action-group { gap: 6px; }
+            .button { min-height: 36px; padding: 6px 10px; }
+            .queue-summary { align-self: center; }
+            .content { padding: 14px 12px 28px; }
+            .record-head { display: block; }
+            .analysis-state { justify-content: flex-start; margin-top: 10px; }
+            .summary-band { grid-template-columns: repeat(2, minmax(110px, 1fr)); }
+            .metric, .metric:nth-child(3) { border-right: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+            .metric:nth-child(2n) { border-right: 0; }
+            .metric:nth-last-child(-n+2) { border-bottom: 0; }
+            .section-head { align-items: flex-start; flex-direction: column; }
+            .editor-toolbar { width: 100%; }
+            .editor-footer { align-items: flex-start; flex-direction: column; }
+            .editor-footer .action-group { width: 100%; }
+            .editor-footer .button { flex: 1; }
+            .steps-grid { grid-template-columns: 1fr; }
+        }
+
+        @media (max-width: 430px) {
+            .brand-title { font-size: 14px; }
+            .action-bar { display: block; }
+            .queue-summary { margin-top: 9px; }
+            .summary-band { grid-template-columns: 1fr 1fr; }
+            .metric { padding: 12px; }
+            .metric-value { font-size: 19px; }
+            .field-inline { width: 100%; justify-content: space-between; }
+            .plant-count-input { width: 92px; }
+        }
     </style>
 </head>
 <body>
-    <div class="container">
-        <h1>🌱 CV Agent — 油菜表型分析</h1>
-        <p class="subtitle">上传油菜植株照片，自动分析分支数、角果数、主干/主支长度</p>
-
-        <div class="upload-area" id="uploadArea">
-            <div class="upload-icon">📷</div>
-            <div class="upload-text">点击或拖拽上传植株照片（JPG / PNG）</div>
-            <input type="file" id="fileInput" accept=".jpg,.jpeg,.png,.bmp,.tiff">
+    <header class="app-header">
+        <div class="brand">
+            <div class="brand-mark">油</div>
+            <div class="brand-title">油菜考种工作台</div>
         </div>
-
-        <div style="margin-bottom: 24px; text-align: center;">
-            <button id="openDbStalkBtn" class="btn-primary" style="background: #fb923c;">🌾 在线图片果柄分析</button>
+        <div class="service-state">
+            <span class="service-dot" id="serviceDot"></span>
+            <span id="serviceLabel">连接中</span>
         </div>
+    </header>
 
-        <div class="modal" id="dbModal">
-            <div class="modal-backdrop" data-close></div>
-            <div class="modal-panel">
-                <div class="modal-header">
-                    <h3 id="dbModalTitle">📂 在线数据库 — 选择一张图片进行分析</h3>
-                    <button class="modal-close" data-close>×</button>
+    <div class="app-shell">
+        <aside class="history-pane">
+            <div class="history-head">
+                <div class="history-title">识别历史 <span class="history-count" id="historyCount">0</span></div>
+                <button class="icon-button" id="refreshHistoryBtn" type="button" title="刷新历史" aria-label="刷新历史">↻</button>
+            </div>
+            <div class="history-search-wrap">
+                <input class="history-search" id="historySearch" type="search" placeholder="搜索文件名" autocomplete="off">
+            </div>
+            <div class="history-list" id="historyList"></div>
+        </aside>
+
+        <main class="workspace">
+            <div class="action-bar">
+                <div class="action-group">
+                    <button class="button primary" id="selectFileBtn" type="button"><span class="button-symbol">＋</span>选择图片</button>
+                    <button class="button" id="selectFolderBtn" type="button"><span class="button-symbol">▣</span>选择文件夹</button>
+                    <button class="button" id="openLibraryBtn" type="button"><span class="button-symbol">▦</span>数据目录</button>
+                    <input class="hidden" id="fileInput" type="file" accept="image/jpeg,image/png,image/bmp,image/tiff">
+                    <input class="hidden" id="folderInput" type="file" accept="image/jpeg,image/png,image/bmp,image/tiff" webkitdirectory directory multiple>
                 </div>
-                <div class="modal-toolbar">
-                    <input type="text" id="dbSearch" placeholder="按文件名/文件夹过滤...">
-                    <span id="dbCount" class="muted">加载中...</span>
-                </div>
-                <div class="db-tabs" id="dbTabs"></div>
-                <div class="modal-body">
-                    <div class="db-list" id="dbList"></div>
-                    <div class="db-preview" id="dbPreview">
-                        <div class="placeholder">← 从左侧选择一张图片查看预览</div>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <span id="dbSelected" class="muted">未选择</span>
-                    <button id="dbSubmitBtn" class="btn-primary" disabled>提交分析</button>
+                <div class="queue-summary">
+                    <span>待处理</span>
+                    <span class="queue-count" id="queueCount">0</span>
                 </div>
             </div>
-        </div>
 
-        <div id="loading" class="loading hidden">
-            <div class="spinner"></div>
-            <div>正在分析中... 这可能需要 15-30 秒</div>
-        </div>
-
-        <div id="errorBox" class="error hidden"></div>
-
-        <div id="resultSection" class="hidden">
-            <div class="results">
-                <h2>📊 分析结果 <span class="sample-id-badge" id="sampleIdBadge"></span></h2>
-                <div class="result-grid" id="resultGrid"></div>
-                <div class="vlm-notes" id="vlmNotes"></div>
-            </div>
-
-            <div class="pipeline">
-                <h2>� 分析流水线（全部步骤）</h2>
-                <div id="pipelineSteps"></div>
-            </div>
-        </div>
-
-        <div class="lightbox" id="lightbox" onclick="this.classList.remove('active')">
-            <img id="lightboxImg" src="">
-        </div>
-    </div>
-
-    <script>
-        const uploadArea = document.getElementById('uploadArea');
-        const fileInput = document.getElementById('fileInput');
-        const loading = document.getElementById('loading');
-        const errorBox = document.getElementById('errorBox');
-        const resultSection = document.getElementById('resultSection');
-        let activeAnalysisToken = 0;
-        let activeAnalysisController = null;
-
-        uploadArea.addEventListener('click', () => fileInput.click());
-        uploadArea.addEventListener('dragover', e => { e.preventDefault(); uploadArea.classList.add('dragover'); });
-        uploadArea.addEventListener('dragleave', () => uploadArea.classList.remove('dragover'));
-        uploadArea.addEventListener('drop', e => {
-            e.preventDefault();
-            uploadArea.classList.remove('dragover');
-            if (e.dataTransfer.files.length) handleFile(e.dataTransfer.files[0]);
-        });
-        fileInput.addEventListener('change', () => { if (fileInput.files.length) handleFile(fileInput.files[0]); });
-
-        function openLightbox(src) {
-            document.getElementById('lightboxImg').src = src;
-            document.getElementById('lightbox').classList.add('active');
-        }
-
-        function beginAnalysisRun() {
-            if (activeAnalysisController) {
-                activeAnalysisController.abort();
-            }
-            activeAnalysisToken += 1;
-            activeAnalysisController = new AbortController();
-            resetAnalysisUI();
-            return {
-                token: activeAnalysisToken,
-                controller: activeAnalysisController,
-            };
-        }
-
-        function isActiveAnalysis(token) {
-            return token === activeAnalysisToken;
-        }
-
-        function noCacheUrl(url, key) {
-            const sep = url.includes('?') ? '&' : '?';
-            return `${url}${sep}v=${encodeURIComponent(key)}`;
-        }
-
-        function getTag(desc) {
-            if (desc.includes('VLM') || desc.includes('豆包')) return '<span class="tag tag-vlm">VLM</span>';
-            if (desc.includes('裁剪')) return '<span class="tag tag-crop">裁剪</span>';
-            if (desc.includes('结果') || desc.includes('原始')) return '<span class="tag tag-result">输出</span>';
-            return '<span class="tag tag-cv">CV</span>';
-        }
-
-        function isEditableFinalImage(desc) {
-            return desc.includes('VLM 角果复核');
-        }
-
-        function isBlankMetric(value) {
-            return value === null || value === undefined || value === '';
-        }
-
-        function buildResultSummary(data) {
-            const plants = Array.isArray(data.plants) ? data.plants : [];
-            const branches = plants.filter(p => p.label === '分枝');
-            const mainBranches = plants.filter(p => p.label === '主枝');
-            const summary = data.summary || {};
-            const branchBreakdown = Array.isArray(summary.branch_pod_breakdown)
-                ? summary.branch_pod_breakdown
-                : branches.map(p => ({
-                    id: p.id,
-                    label: p.label,
-                    pod_count: Number(p.pod_count || 0),
-                }));
-            const branchPodCount = summary.branch_total_pod_count
-                ?? summary.branch_pod_count
-                ?? data.branch_total_pod_count
-                ?? data.branch_pod_count
-                ?? branches.reduce((sum, p) => sum + Number(p.pod_count || 0), 0);
-            return {
-                branchCount: summary.branch_count
-                    ?? data.branch_count
-                    ?? branchBreakdown.length,
-                mainPods: summary.main_inflorescence_pod_count
-                    ?? data.main_inflorescence_pod_count
-                    ?? mainBranches.reduce((sum, p) => sum + Number(p.pod_count || 0), 0),
-                mainStemPlusMainPods: summary.main_stem_plus_main_pod_count
-                    ?? data.main_stem_plus_main_pod_count
-                    ?? '',
-                branchPods: summary.branch_pod_count
-                    ?? data.branch_pod_count
-                    ?? branchPodCount,
-                branchTotalPods: branchPodCount,
-                totalPods: summary.total_pod_count ?? data.total_pods ?? 0,
-                mainStemLength: summary.main_stem_length ?? data.main_stem_length ?? '',
-                mainStemLengthCm: summary.main_stem_length_cm ?? data.main_stem_length_cm ?? '',
-                sampleId: summary.sample_id ?? data.sample_id ?? '',
-                rulerFound: summary.ruler_found ?? data.ruler_found ?? false,
-                labelFound: summary.label_found ?? data.label_found ?? false,
-                branchBreakdown,
-            };
-        }
-
-        function formatBranchBreakdown(items, fallback) {
-            if (!items.length) return String(fallback ?? 0);
-            const shown = items.slice(0, 4).map(item => `#${item.id ?? '-'}:${item.pod_count ?? 0}`);
-            if (items.length > shown.length) shown.push(`+${items.length - shown.length}`);
-            return shown.join(' / ');
-        }
-
-        function resultMetric(label, value, unit = '', options = {}) {
-            const blank = isBlankMetric(value);
-            const classes = [
-                'result-item',
-                options.primary ? 'primary' : '',
-            ].filter(Boolean).join(' ');
-            const valueClass = [
-                'value',
-                options.compact ? 'compact' : '',
-                blank ? 'blank' : '',
-            ].filter(Boolean).join(' ');
-            return `
-                <div class="${classes}">
-                    <div class="label">${label}</div>
-                    <div class="${valueClass}">${blank ? '--' : value}${!blank && unit ? ` <span class="unit">${unit}</span>` : ''}</div>
-                </div>
-            `;
-        }
-
-        function clamp01(value) {
-            return Math.max(0, Math.min(1, value));
-        }
-
-        function getPointerRatio(wrap, event) {
-            const rect = wrap.getBoundingClientRect();
-            return {
-                x: clamp01((event.clientX - rect.left) / rect.width),
-                y: clamp01((event.clientY - rect.top) / rect.height),
-            };
-        }
-
-        function renderAnnotationMarker(state, marker) {
-            const el = document.createElement('div');
-            el.className = `annotation-marker ${marker.color}`;
-            el.style.left = `${marker.x * 100}%`;
-            el.style.top = `${marker.y * 100}%`;
-            el.setAttribute('aria-hidden', 'true');
-            el.title = marker.label || (marker.color === 'green' ? '绿点' : marker.color === 'purple' ? '紫点' : '红点');
-            el.addEventListener('click', event => {
-                if (state.editing) event.stopPropagation();
-            });
-            el.addEventListener('contextmenu', event => {
-                if (!state.editing || state.mode !== 'delete') return;
-                event.preventDefault();
-                event.stopPropagation();
-                removeAnnotationMarker(state, marker);
-            });
-            marker.el = el;
-            state.layer.appendChild(el);
-        }
-
-        function addAnnotationMarker(state, color, x, y, source = 'added', meta = {}) {
-            const marker = {
-                id: ++state.nextMarkerId,
-                color,
-                x: clamp01(x),
-                y: clamp01(y),
-                source,
-                label: meta.label || '',
-                data: meta.data || null,
-                el: null,
-            };
-            state.markers.push(marker);
-            renderAnnotationMarker(state, marker);
-            return marker;
-        }
-
-        function removeAnnotationMarker(state, marker) {
-            if (marker.el) marker.el.remove();
-            state.markers = state.markers.filter(item => item !== marker);
-        }
-
-        function findNearestMarker(state, x, y) {
-            const rect = state.wrap.getBoundingClientRect();
-            let nearest = null;
-            let nearestDist = Infinity;
-            state.markers.forEach(marker => {
-                const dx = (marker.x - x) * rect.width;
-                const dy = (marker.y - y) * rect.height;
-                const dist = Math.hypot(dx, dy);
-                if (dist < nearestDist) {
-                    nearestDist = dist;
-                    nearest = marker;
-                }
-            });
-            return nearestDist <= 22 ? nearest : null;
-        }
-
-        function setAnnotationMode(state, mode) {
-            state.mode = mode;
-            state.wrap.classList.toggle('adding', mode === 'add');
-            state.wrap.classList.toggle('deleting', mode === 'delete');
-            state.addBtn.classList.toggle('active', mode === 'add');
-            state.deleteBtn.classList.toggle('active', mode === 'delete');
-        }
-
-        function initEditableFinalImage(stepEl, imgUrl, initialPoints = []) {
-            const wrap = stepEl.querySelector('.editable-image-wrap');
-            const img = wrap.querySelector('img');
-            const panel = stepEl.querySelector('.annotation-tool-panel');
-            const editBtn = stepEl.querySelector('.annotation-edit-btn');
-            const addBtn = stepEl.querySelector('.annotation-add-btn');
-            const deleteBtn = stepEl.querySelector('.annotation-delete-btn');
-            const colorMenu = stepEl.querySelector('.annotation-color-menu');
-            const state = {
-                wrap,
-                img,
-                layer: wrap.querySelector('.annotation-layer'),
-                editBtn,
-                addBtn,
-                deleteBtn,
-                colorMenu,
-                editing: false,
-                mode: null,
-                selectedColor: null,
-                nextMarkerId: 0,
-                markers: [],
-            };
-            initialPoints.forEach(point => {
-                const color = (point.color === 'red' || point.color === 'purple')
-                    ? point.color : 'green';
-                const prefix = point.source === 'filtered'
-                    ? (point.state === 'restored' ? 'R' : 'F')
-                    : (point.state === 'false_positive' ? 'X' : 'P');
-                const colorLabel = color === 'green' ? '绿点' : color === 'purple' ? '紫点' : '红点';
-                addAnnotationMarker(state, color, point.x, point.y, 'initial', {
-                    label: `${colorLabel} ${prefix}${point.id}`,
-                    data: point,
-                });
-            });
-
-            editBtn.addEventListener('click', () => {
-                state.editing = !state.editing;
-                wrap.classList.toggle('editing', state.editing);
-                editBtn.classList.toggle('active', state.editing);
-                panel.classList.toggle('hidden', !state.editing);
-                colorMenu.classList.add('hidden');
-                if (state.editing) {
-                    setAnnotationMode(state, null);
-                } else {
-                    setAnnotationMode(state, null);
-                }
-            });
-
-            addBtn.addEventListener('click', () => {
-                if (!state.editing) return;
-                colorMenu.classList.toggle('hidden');
-            });
-
-            colorMenu.querySelectorAll('button[data-color]').forEach(btn => {
-                btn.addEventListener('click', () => {
-                    state.selectedColor = btn.dataset.color;
-                    colorMenu.classList.add('hidden');
-                    setAnnotationMode(state, 'add');
-                });
-            });
-
-            deleteBtn.addEventListener('click', () => {
-                if (!state.editing) return;
-                colorMenu.classList.add('hidden');
-                setAnnotationMode(state, 'delete');
-            });
-
-            wrap.addEventListener('click', event => {
-                if (!state.editing) {
-                    openLightbox(imgUrl);
-                    return;
-                }
-                if (state.mode !== 'add' || !state.selectedColor) return;
-                const pos = getPointerRatio(wrap, event);
-                addAnnotationMarker(state, state.selectedColor, pos.x, pos.y, 'added');
-            });
-
-            wrap.addEventListener('contextmenu', event => {
-                if (!state.editing || state.mode !== 'delete') return;
-                event.preventDefault();
-                const pos = getPointerRatio(wrap, event);
-                const marker = findNearestMarker(state, pos.x, pos.y);
-                if (marker) removeAnnotationMarker(state, marker);
-            });
-        }
-
-        function removeProcessingCard() {
-            const existing = document.getElementById('processingCard');
-            if (existing) existing.remove();
-        }
-
-        function showProcessingCard(text = '正在执行下一步分析') {
-            removeProcessingCard();
-            const container = document.getElementById('pipelineSteps');
-            const card = document.createElement('div');
-            card.id = 'processingCard';
-            card.className = 'processing-card';
-            card.innerHTML = `
-                <div class="processing-orb"></div>
-                <div class="processing-text">${text}<span class="dots"></span></div>
-                <span class="processing-badge">处理中</span>
-            `;
-            container.appendChild(card);
-            card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-        }
-
-        function appendStep(step, token) {
-            if (!isActiveAnalysis(token)) return;
-            removeProcessingCard();
-            const container = document.getElementById('pipelineSteps');
-            const div = document.createElement('div');
-            const imgUrl = noCacheUrl(step.url, step.run_id || token);
-            const editableFinal = isEditableFinalImage(step.description);
-            const editablePoints = Array.isArray(step.editable_points) ? step.editable_points : [];
-            const displayImgUrl = noCacheUrl(step.editable_base_url || step.url, step.run_id || token);
-            div.className = `pipeline-step${editableFinal ? ' pipeline-step-editable' : ''}`;
-            div.style.opacity = '0';
-            div.style.transform = 'translateY(12px)';
-            div.style.transition = 'opacity 0.3s, transform 0.3s';
-            div.innerHTML = `
-                <div class="step-number">${step.step}</div>
-                <div class="step-content">
-                    <div class="step-media">
-                        <div class="step-img-wrap${editableFinal ? ' editable-image-wrap' : ''}">
-                            <img src="${displayImgUrl}" alt="Step ${step.step}">
-                            ${editableFinal ? `
-                                <div class="annotation-layer"></div>
-                            ` : ''}
+            <div class="content">
+                <section class="queue-panel hidden" id="queuePanel">
+                    <div class="section-head">
+                        <div>
+                            <h2 class="section-title">识别队列</h2>
+                            <div class="section-subtitle" id="queueSubtitle">0 张图片</div>
                         </div>
-                        ${editableFinal ? `
-                            <div class="annotation-tools">
-                                <button class="annotation-edit-btn" type="button" title="编辑点位">编辑</button>
-                                <div class="annotation-tool-panel hidden">
-                                    <button class="annotation-tool-btn annotation-add-btn" type="button" title="添加点">+</button>
-                                    <div class="annotation-color-menu hidden">
-                                        <button type="button" data-color="green"><span class="point-swatch green"></span>绿点</button>
-                                        <button type="button" data-color="red"><span class="point-swatch red"></span>红点</button>
+                        <div class="action-group">
+                            <button class="button compact" id="clearQueueBtn" type="button">清空</button>
+                            <button class="button compact danger hidden" id="stopQueueBtn" type="button">停止</button>
+                            <button class="button compact primary" id="startQueueBtn" type="button">开始识别</button>
+                        </div>
+                    </div>
+                    <div class="queue-table-wrap">
+                        <table>
+                            <thead><tr><th>文件</th><th>大小</th><th>状态</th></tr></thead>
+                            <tbody id="queueBody"></tbody>
+                        </table>
+                    </div>
+                </section>
+
+                <section class="empty-state" id="emptyState">
+                    <div class="empty-state-inner">
+                        <div class="empty-symbol">＋</div>
+                        <h1 class="empty-title">选择图片开始识别</h1>
+                        <p class="empty-copy">历史结果会保存在本机，文件夹图片进入队列后再统一开始。</p>
+                    </div>
+                </section>
+
+                <section class="hidden" id="recordView">
+                    <div class="record-head">
+                        <div>
+                            <h1 class="record-title" id="recordTitle">识别结果</h1>
+                            <div class="record-meta" id="recordMeta"></div>
+                        </div>
+                        <div class="analysis-state" id="analysisState"></div>
+                    </div>
+
+                    <div class="error-panel hidden" id="errorPanel"></div>
+
+                    <div id="resultContent">
+                        <section class="summary-band" id="summaryBand"></section>
+
+                        <section class="editor-section">
+                            <div class="section-head">
+                                <div>
+                                    <h2 class="section-title">结果数据</h2>
+                                    <div class="section-subtitle" id="editorSubtitle">未修改</div>
+                                </div>
+                                <div class="editor-toolbar">
+                                    <div class="field-inline">
+                                        <label for="plantCountInput">植株数量</label>
+                                        <input class="input plant-count-input" id="plantCountInput" type="number" min="0" max="100000" step="1">
                                     </div>
-                                    <button class="annotation-tool-btn annotation-delete-btn" type="button" title="删除点">-</button>
+                                    <select class="select" id="newComponentType" aria-label="新增部件类型">
+                                        <option value="分枝">分枝</option>
+                                        <option value="主枝">主枝</option>
+                                        <option value="主干">主干</option>
+                                    </select>
+                                    <button class="button compact" id="addComponentBtn" type="button"><span class="button-symbol">＋</span>新增部件</button>
                                 </div>
                             </div>
-                        ` : ''}
+                            <div class="component-table-wrap">
+                                <table class="component-table">
+                                    <thead>
+                                        <tr><th>编号</th><th>类型</th><th>角果数量</th><th>VLM 前</th><th>来源</th><th>操作</th></tr>
+                                    </thead>
+                                    <tbody id="componentBody"></tbody>
+                                </table>
+                            </div>
+                            <div class="editor-footer">
+                                <div id="saveState" class="saved-state">数据已保存</div>
+                                <div class="action-group">
+                                    <button class="button" id="restoreResultBtn" type="button">恢复识别结果</button>
+                                    <button class="button primary" id="saveResultBtn" type="button" disabled>保存修改</button>
+                                </div>
+                            </div>
+                        </section>
+
+                        <section class="steps-section">
+                            <div class="section-head">
+                                <div>
+                                    <h2 class="section-title">识别过程</h2>
+                                    <div class="section-subtitle" id="stepsSubtitle">0 个步骤</div>
+                                </div>
+                                <button class="button compact hidden" id="toggleStepsBtn" type="button">显示全部</button>
+                            </div>
+                            <div class="steps-grid" id="stepsGrid"></div>
+                        </section>
                     </div>
-                    <div class="step-desc">
-                        ${getTag(step.description)}
-                        ${step.description}
-                    </div>
-                </div>
-            `;
-            container.appendChild(div);
-            if (editableFinal) {
-                initEditableFinalImage(div, imgUrl, editablePoints);
-            } else {
-                const img = div.querySelector('.step-img-wrap img');
-                img.addEventListener('click', () => openLightbox(imgUrl));
+                </section>
+            </div>
+        </main>
+    </div>
+
+    <dialog class="library-dialog" id="libraryDialog">
+        <div class="dialog-shell">
+            <div class="dialog-head">
+                <h2 class="dialog-title">数据目录</h2>
+                <button class="icon-button" id="closeLibraryBtn" type="button" title="关闭" aria-label="关闭">×</button>
+            </div>
+            <div class="library-tools">
+                <input class="history-search" id="librarySearch" type="search" placeholder="搜索图片" autocomplete="off">
+            </div>
+            <div class="library-list" id="libraryList"></div>
+        </div>
+    </dialog>
+
+    <dialog class="lightbox-dialog" id="lightboxDialog">
+        <button class="icon-button lightbox-close" id="closeLightboxBtn" type="button" title="关闭" aria-label="关闭">×</button>
+        <img id="lightboxImage" alt="识别步骤大图">
+    </dialog>
+
+    <div class="toast-stack" id="toastStack" aria-live="polite"></div>
+
+    <script>
+        const IMAGE_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.bmp', '.tiff'];
+        const state = {
+            history: [],
+            activeRunId: null,
+            activeRecord: null,
+            draftPlants: [],
+            draftPlantCount: 0,
+            dirty: false,
+            steps: [],
+            showAllSteps: false,
+            queue: [],
+            queueRunning: false,
+            stopRequested: false,
+            activeController: null,
+            libraryItems: [],
+        };
+
+        const $ = id => document.getElementById(id);
+
+        function escapeHtml(value) {
+            return String(value ?? '')
+                .replaceAll('&', '&amp;')
+                .replaceAll('<', '&lt;')
+                .replaceAll('>', '&gt;')
+                .replaceAll('"', '&quot;')
+                .replaceAll("'", '&#039;');
+        }
+
+        function formatBytes(bytes) {
+            if (!Number.isFinite(Number(bytes))) return '—';
+            const value = Number(bytes);
+            if (value < 1024 * 1024) return `${Math.max(1, Math.round(value / 1024))} KB`;
+            return `${(value / 1024 / 1024).toFixed(1)} MB`;
+        }
+
+        function formatDate(value) {
+            if (!value) return '—';
+            const date = new Date(value);
+            if (Number.isNaN(date.getTime())) return String(value);
+            return date.toLocaleString('zh-CN', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' });
+        }
+
+        function noCacheUrl(url, key = '') {
+            if (!url) return '';
+            const separator = url.includes('?') ? '&' : '?';
+            return `${url}${separator}v=${encodeURIComponent(key || Date.now())}`;
+        }
+
+        async function api(url, options = {}) {
+            const response = await fetch(url, options);
+            if (!response.ok) {
+                let message = `${response.status} ${response.statusText}`;
+                try {
+                    const payload = await response.json();
+                    message = payload.detail || payload.message || message;
+                } catch (_) {}
+                throw new Error(message);
             }
-            requestAnimationFrame(() => {
-                div.style.opacity = '1';
-                div.style.transform = 'translateY(0)';
+            return response;
+        }
+
+        function toast(message, type = 'info') {
+            const element = document.createElement('div');
+            element.className = `toast${type === 'error' ? ' error' : ''}`;
+            element.textContent = message;
+            $('toastStack').appendChild(element);
+            setTimeout(() => element.remove(), 4200);
+        }
+
+        async function checkHealth() {
+            try {
+                await api('/api/health');
+                $('serviceDot').className = 'service-dot online';
+                $('serviceLabel').textContent = '本机服务正常';
+            } catch (_) {
+                $('serviceDot').className = 'service-dot offline';
+                $('serviceLabel').textContent = '服务离线';
+            }
+        }
+
+        async function loadHistory(query = $('historySearch').value.trim()) {
+            try {
+                const response = await api(`/api/history?limit=200&q=${encodeURIComponent(query)}`);
+                const payload = await response.json();
+                state.history = payload.items || [];
+                $('historyCount').textContent = payload.count ?? state.history.length;
+                renderHistory();
+            } catch (error) {
+                $('historyList').innerHTML = `<div class="history-empty">${escapeHtml(error.message)}</div>`;
+            }
+        }
+
+        function renderHistory() {
+            const list = $('historyList');
+            if (!state.history.length) {
+                list.innerHTML = '<div class="history-empty">暂无识别记录</div>';
+                return;
+            }
+            list.innerHTML = state.history.map(item => {
+                const statusLabel = item.status === 'completed' ? '已完成' : item.status === 'processing' ? '识别中' : '失败';
+                const total = item.total_pods == null ? statusLabel : `${item.total_pods} 个`;
+                return `
+                    <button class="history-item${state.activeRunId === item.run_id ? ' active' : ''}" type="button" data-run-id="${escapeHtml(item.run_id)}">
+                        <img class="history-thumb" src="${escapeHtml(noCacheUrl(item.thumbnail_url, item.updated_at))}" alt="" loading="lazy" onerror="this.style.visibility='hidden'">
+                        <span class="history-info">
+                            <span class="history-name">${escapeHtml(item.source_label)}</span>
+                            <span class="history-meta">
+                                <span>${escapeHtml(formatDate(item.created_at))}${item.is_modified ? ' · 已修改' : ''}</span>
+                                <span class="history-total">${escapeHtml(total)}</span>
+                            </span>
+                        </span>
+                    </button>`;
+            }).join('');
+            list.querySelectorAll('[data-run-id]').forEach(button => {
+                button.addEventListener('click', () => openHistory(button.dataset.runId));
             });
-            // Show processing card for the next step
-            showProcessingCard('正在执行下一步分析');
-            div.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
         }
 
-        function showResult(data, token) {
-            if (!isActiveAnalysis(token)) return;
-            removeProcessingCard();
-            const grid = document.getElementById('resultGrid');
-            const summary = buildResultSummary(data);
-            const badge = document.getElementById('sampleIdBadge');
-            badge.textContent = summary.sampleId || '';
-            grid.innerHTML = `
-                ${resultMetric('分支总数', summary.branchCount, '个', { primary: true })}
-                ${resultMetric('主花序角果数', summary.mainPods, '个', { primary: true })}
-                ${resultMetric('主干+主枝角果数', summary.mainStemPlusMainPods, '个', { primary: true })}
-                ${resultMetric('分枝角果数', summary.branchPods, '个', { primary: true })}
-                ${resultMetric('总角果数', summary.totalPods, '个', { primary: true })}
-                ${resultMetric('主干长度', summary.mainStemLengthCm || summary.mainStemLength, summary.mainStemLengthCm ? 'cm' : '')}
-            `;
-            const notes = [];
-            if (data.plants?.length) {
-                data.plants.forEach(p => {
-                    let info = `<b>#${p.id} ${p.label}</b>`;
-                    if (p.pod_count != null) info += `，角果 ${p.pod_count} 个`;
-                    if (p.vlm_verify) {
-                        let adjustedByVlm = false;
-                        if (p.vlm_verify.false_positives?.length) {
-                            const conf = p.vlm_verify.false_positive_confidences || {};
-                            const fps = p.vlm_verify.false_positives.map(id => {
-                                const c = conf[String(id)] ?? conf[id];
-                                return c == null ? `P${id}` : `P${id}(${Number(c).toFixed(2)})`;
-                            }).join(', ');
-                            info += `，VLM剔除 ${fps}`;
-                            adjustedByVlm = true;
-                        }
-                        if (p.vlm_verify.restored_filtered?.length) {
-                            const conf = p.vlm_verify.restored_filtered_confidences || {};
-                            const restored = p.vlm_verify.restored_filtered.map(id => {
-                                const c = conf[String(id)] ?? conf[id];
-                                return c == null ? `F${id}` : `F${id}(${Number(c).toFixed(2)})`;
-                            }).join(', ');
-                            info += `，VLM补回 ${restored}`;
-                            adjustedByVlm = true;
-                        }
-                        if (!adjustedByVlm) {
-                            info += '，VLM复核无调整';
-                        }
-                    }
-                    if (p.description) info += ` — ${p.description}`;
-                    notes.push(info);
-                });
+        async function openHistory(runId) {
+            if (state.dirty && !confirm('当前修改尚未保存，确定离开吗？')) return;
+            try {
+                const response = await api(`/api/history/${encodeURIComponent(runId)}`);
+                const record = await response.json();
+                state.activeRunId = runId;
+                state.activeRecord = record;
+                state.steps = record.steps || [];
+                state.showAllSteps = false;
+                state.dirty = false;
+                renderHistory();
+                renderRecord(record);
+            } catch (error) {
+                toast(`读取历史失败：${error.message}`, 'error');
             }
-            document.getElementById('vlmNotes').innerHTML = notes.join('<br>') || '';
-            document.querySelector('.results').style.opacity = '0';
-            document.querySelector('.results').style.transition = 'opacity 0.4s';
-            requestAnimationFrame(() => { document.querySelector('.results').style.opacity = '1'; });
         }
 
-        async function consumeStream(res, token) {
-            const reader = res.body.getReader();
+        function showRecordShell(title, status = 'processing') {
+            $('emptyState').classList.add('hidden');
+            $('recordView').classList.remove('hidden');
+            $('recordTitle').textContent = title;
+            $('errorPanel').classList.add('hidden');
+            $('resultContent').classList.remove('hidden');
+            $('summaryBand').classList.toggle('hidden', status !== 'completed');
+            document.querySelector('.editor-section').classList.toggle('hidden', status !== 'completed');
+            if (status === 'processing') {
+                $('analysisState').innerHTML = '<span class="spinner"></span><span>正在识别</span>';
+            }
+        }
+
+        function renderRecord(record) {
+            $('emptyState').classList.add('hidden');
+            $('recordView').classList.remove('hidden');
+            $('recordTitle').textContent = record.source_label || '识别结果';
+            const chips = [
+                `<span>${escapeHtml(formatDate(record.created_at))}</span>`,
+                `<span>${escapeHtml(record.run_id)}</span>`,
+            ];
+            if (record.result?.sample_id) chips.unshift(`<span>样本 ${escapeHtml(record.result.sample_id)}</span>`);
+            if (record.is_modified) chips.push('<span class="status-chip modified">已人工修改</span>');
+            $('recordMeta').innerHTML = chips.join('');
+
+            const statusLabel = record.status === 'completed' ? '已完成' : record.status === 'processing' ? '识别中' : '失败';
+            $('analysisState').innerHTML = record.status === 'processing'
+                ? '<span class="spinner"></span><span>正在识别</span>'
+                : `<span class="status-chip ${escapeHtml(record.status)}">${statusLabel}</span>`;
+
+            if (record.status === 'failed') {
+                $('errorPanel').textContent = record.error_message || '识别失败';
+                $('errorPanel').classList.remove('hidden');
+                $('resultContent').classList.add('hidden');
+                return;
+            }
+
+            if (!record.result) {
+                $('resultContent').classList.add('hidden');
+                return;
+            }
+            $('resultContent').classList.remove('hidden');
+            $('summaryBand').classList.remove('hidden');
+            document.querySelector('.editor-section').classList.remove('hidden');
+            state.draftPlants = structuredClone(record.result.plants || []);
+            state.draftPlantCount = Number(record.result.plant_count ?? state.draftPlants.length);
+            state.dirty = false;
+            $('plantCountInput').value = state.draftPlantCount;
+            renderDraft();
+            renderSteps();
+            updateSaveState();
+        }
+
+        function calculateDraftSummary() {
+            const sum = label => state.draftPlants
+                .filter(plant => plant.label === label)
+                .reduce((total, plant) => total + Math.max(0, Number(plant.pod_count) || 0), 0);
+            const trunk = sum('主干');
+            const main = sum('主枝');
+            const branches = sum('分枝');
+            return {
+                plantCount: Math.max(0, Number(state.draftPlantCount) || 0),
+                branchCount: state.draftPlants.filter(plant => plant.label === '分枝').length,
+                mainPods: main,
+                mainStemPlus: trunk + main,
+                branchPods: branches,
+                totalPods: trunk + main + branches,
+            };
+        }
+
+        function renderSummary() {
+            const summary = calculateDraftSummary();
+            const metrics = [
+                ['植株数量', summary.plantCount, '个'],
+                ['分枝数量', summary.branchCount, '个'],
+                ['主花序角果', summary.mainPods, '个'],
+                ['主干 + 主枝', summary.mainStemPlus, '个'],
+                ['分枝角果', summary.branchPods, '个'],
+                ['角果总数', summary.totalPods, '个'],
+            ];
+            $('summaryBand').innerHTML = metrics.map(([label, value, unit]) => `
+                <div class="metric">
+                    <div class="metric-label">${label}</div>
+                    <div class="metric-value">${escapeHtml(value)}<span class="metric-unit">${unit}</span></div>
+                </div>`).join('');
+        }
+
+        function renderDraft() {
+            renderSummary();
+            const body = $('componentBody');
+            if (!state.draftPlants.length) {
+                body.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--text-muted);padding:28px">暂无部件</td></tr>';
+                return;
+            }
+            body.innerHTML = state.draftPlants.map((plant, index) => `
+                <tr data-index="${index}">
+                    <td class="component-id">#${escapeHtml(plant.id ?? index + 1)}</td>
+                    <td>
+                        <select class="select component-label" aria-label="部件类型">
+                            ${['主干', '主枝', '分枝'].map(label => `<option value="${label}"${plant.label === label ? ' selected' : ''}>${label}</option>`).join('')}
+                        </select>
+                    </td>
+                    <td><input class="input count-input component-count" type="number" min="0" max="100000" step="1" value="${escapeHtml(Math.max(0, Number(plant.pod_count) || 0))}" aria-label="角果数量"></td>
+                    <td class="original-count">${plant.pod_count_before_vlm == null ? '—' : escapeHtml(plant.pod_count_before_vlm)}</td>
+                    <td>${plant.manual ? '<span class="manual-flag">人工新增</span>' : '模型识别'}</td>
+                    <td><button class="icon-button danger remove-component" type="button" title="删除部件" aria-label="删除部件">×</button></td>
+                </tr>`).join('');
+
+            body.querySelectorAll('tr[data-index]').forEach(row => {
+                const index = Number(row.dataset.index);
+                row.querySelector('.component-label').addEventListener('change', event => {
+                    state.draftPlants[index].label = event.target.value;
+                    markDirty();
+                    renderSummary();
+                });
+                row.querySelector('.component-count').addEventListener('input', event => {
+                    state.draftPlants[index].pod_count = Math.max(0, Number(event.target.value) || 0);
+                    markDirty();
+                    renderSummary();
+                });
+                row.querySelector('.remove-component').addEventListener('click', () => {
+                    state.draftPlants.splice(index, 1);
+                    state.draftPlantCount = state.draftPlants.length;
+                    $('plantCountInput').value = state.draftPlantCount;
+                    markDirty();
+                    renderDraft();
+                });
+            });
+        }
+
+        function markDirty() {
+            state.dirty = true;
+            updateSaveState();
+        }
+
+        function updateSaveState() {
+            $('saveResultBtn').disabled = !state.dirty || !state.activeRunId;
+            $('saveState').className = state.dirty ? 'dirty-state' : 'saved-state';
+            $('saveState').textContent = state.dirty ? '有未保存修改' : '数据已保存';
+            $('editorSubtitle').textContent = state.dirty ? '等待保存' : (state.activeRecord?.is_modified ? '已保存人工修订' : '原始识别结果');
+        }
+
+        function addComponent() {
+            const numericIds = state.draftPlants.map(plant => Number(plant.id)).filter(Number.isFinite);
+            const nextId = numericIds.length ? Math.max(...numericIds) + 1 : 1;
+            state.draftPlants.push({
+                id: nextId,
+                label: $('newComponentType').value,
+                pod_count: 0,
+                manual: true,
+                description: '用户新增',
+            });
+            state.draftPlantCount = state.draftPlants.length;
+            $('plantCountInput').value = state.draftPlantCount;
+            markDirty();
+            renderDraft();
+        }
+
+        async function saveResult() {
+            if (!state.activeRunId || !state.dirty) return;
+            $('saveResultBtn').disabled = true;
+            try {
+                const response = await api(`/api/history/${encodeURIComponent(state.activeRunId)}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        plant_count: state.draftPlantCount,
+                        plants: state.draftPlants.map(plant => ({
+                            id: plant.id,
+                            label: plant.label,
+                            pod_count: Math.max(0, Number(plant.pod_count) || 0),
+                        })),
+                    }),
+                });
+                const record = await response.json();
+                state.activeRecord = record;
+                state.steps = record.steps || [];
+                state.dirty = false;
+                renderRecord(record);
+                await loadHistory();
+                toast('修改已保存');
+            } catch (error) {
+                toast(`保存失败：${error.message}`, 'error');
+                updateSaveState();
+            }
+        }
+
+        async function restoreResult() {
+            if (!state.activeRunId || !state.activeRecord?.original_result) return;
+            if (!confirm('恢复到模型最初识别结果？')) return;
+            try {
+                const response = await api(`/api/history/${encodeURIComponent(state.activeRunId)}/restore`, { method: 'POST' });
+                const record = await response.json();
+                state.activeRecord = record;
+                state.steps = record.steps || [];
+                state.dirty = false;
+                renderRecord(record);
+                await loadHistory();
+                toast('已恢复识别结果');
+            } catch (error) {
+                toast(`恢复失败：${error.message}`, 'error');
+            }
+        }
+
+        function renderSteps() {
+            const allSteps = state.steps || [];
+            const visible = state.showAllSteps ? allSteps : allSteps.slice(-8);
+            $('stepsSubtitle').textContent = `${allSteps.length} 个步骤${!state.showAllSteps && allSteps.length > 8 ? ' · 显示最后 8 个' : ''}`;
+            $('toggleStepsBtn').classList.toggle('hidden', allSteps.length <= 8);
+            $('toggleStepsBtn').textContent = state.showAllSteps ? '只看最终步骤' : '显示全部';
+            $('stepsGrid').innerHTML = visible.map(step => `
+                <article class="step-item">
+                    <img class="step-image" src="${escapeHtml(noCacheUrl(step.url, step.run_id))}" alt="步骤 ${escapeHtml(step.step)}" loading="lazy" data-full-url="${escapeHtml(noCacheUrl(step.url, step.run_id))}">
+                    <div class="step-desc"><span class="step-number">${escapeHtml(step.step)}.</span> ${escapeHtml(step.description)}</div>
+                </article>`).join('');
+            $('stepsGrid').querySelectorAll('[data-full-url]').forEach(image => {
+                image.addEventListener('click', () => openLightbox(image.dataset.fullUrl));
+            });
+        }
+
+        function appendLiveStep(step) {
+            state.steps.push(step);
+            state.showAllSteps = false;
+            renderSteps();
+            const section = $('stepsGrid').lastElementChild;
+            if (section) section.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+
+        function addFilesToQueue(files) {
+            const existing = new Set(state.queue.map(item => `${item.file.name}:${item.file.size}:${item.file.lastModified}`));
+            let added = 0;
+            for (const file of files) {
+                const lower = file.name.toLowerCase();
+                if (!IMAGE_EXTENSIONS.some(extension => lower.endsWith(extension))) continue;
+                const key = `${file.name}:${file.size}:${file.lastModified}`;
+                if (existing.has(key)) continue;
+                existing.add(key);
+                state.queue.push({
+                    id: crypto.randomUUID(),
+                    file,
+                    path: file.webkitRelativePath || file.name,
+                    status: 'pending',
+                    error: '',
+                    runId: null,
+                });
+                added += 1;
+            }
+            if (added) {
+                renderQueue();
+                toast(`已加入 ${added} 张图片`);
+            }
+        }
+
+        function renderQueue() {
+            const pending = state.queue.filter(item => item.status === 'pending').length;
+            $('queueCount').textContent = pending;
+            $('queueSubtitle').textContent = `${state.queue.length} 张图片 · ${pending} 张待处理`;
+            $('queuePanel').classList.toggle('hidden', state.queue.length === 0);
+            $('startQueueBtn').disabled = state.queueRunning || pending === 0;
+            $('clearQueueBtn').disabled = state.queueRunning;
+            $('stopQueueBtn').classList.toggle('hidden', !state.queueRunning);
+            $('queueBody').innerHTML = state.queue.map(item => {
+                const label = item.status === 'pending' ? '待处理' : item.status === 'running' ? '识别中' : item.status === 'completed' ? '已完成' : '失败';
+                const chipClass = item.status === 'completed' ? 'completed' : item.status === 'running' ? 'processing' : item.status === 'error' ? 'failed' : 'modified';
+                return `<tr>
+                    <td class="file-path" title="${escapeHtml(item.path)}">${escapeHtml(item.path)}</td>
+                    <td>${escapeHtml(formatBytes(item.file.size))}</td>
+                    <td><span class="status-chip ${chipClass}" title="${escapeHtml(item.error)}">${label}</span></td>
+                </tr>`;
+            }).join('');
+        }
+
+        async function startQueue() {
+            if (state.queueRunning) return;
+            state.queueRunning = true;
+            state.stopRequested = false;
+            renderQueue();
+            for (const item of state.queue) {
+                if (state.stopRequested) break;
+                if (item.status !== 'pending') continue;
+                item.status = 'running';
+                renderQueue();
+                try {
+                    const result = await analyzeFile(item.file);
+                    item.status = 'completed';
+                    item.runId = result?.run_id || null;
+                } catch (error) {
+                    item.status = 'error';
+                    item.error = error.name === 'AbortError' ? '已停止' : error.message;
+                    if (error.name !== 'AbortError') toast(`${item.file.name}：${error.message}`, 'error');
+                }
+                renderQueue();
+                await loadHistory();
+            }
+            state.queueRunning = false;
+            state.activeController = null;
+            renderQueue();
+        }
+
+        function stopQueue() {
+            state.stopRequested = true;
+            if (state.activeController) state.activeController.abort();
+            toast('正在停止当前任务');
+        }
+
+        async function analyzeFile(file) {
+            if (state.dirty && !confirm('当前修改尚未保存，确定开始新识别吗？')) {
+                throw new DOMException('用户取消', 'AbortError');
+            }
+            const controller = new AbortController();
+            state.activeController = controller;
+            state.activeRunId = null;
+            state.activeRecord = null;
+            state.steps = [];
+            state.dirty = false;
+            showRecordShell(file.name, 'processing');
+            $('recordMeta').innerHTML = `<span>${escapeHtml(formatBytes(file.size))}</span>`;
+            $('stepsGrid').innerHTML = '';
+            $('stepsSubtitle').textContent = '等待第一个步骤';
+
+            const form = new FormData();
+            form.append('file', file);
+            const response = await api('/api/analyze', { method: 'POST', body: form, signal: controller.signal });
+            const terminal = await consumeStream(response, controller.signal);
+            if (terminal?.run_id) {
+                await loadHistory();
+                await openHistory(terminal.run_id);
+            }
+            return terminal;
+        }
+
+        async function analyzeOnline(path, name) {
+            if (state.queueRunning) return;
+            if (state.dirty && !confirm('当前修改尚未保存，确定开始新识别吗？')) return;
+            const controller = new AbortController();
+            state.activeController = controller;
+            state.activeRunId = null;
+            state.activeRecord = null;
+            state.steps = [];
+            state.dirty = false;
+            showRecordShell(name || path, 'processing');
+            $('recordMeta').innerHTML = `<span>${escapeHtml(path)}</span>`;
+            $('stepsGrid').innerHTML = '';
+            $('stepsSubtitle').textContent = '等待第一个步骤';
+            $('libraryDialog').close();
+            const response = await api('/api/analyze_online', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ path, method: 'stalk' }),
+                signal: controller.signal,
+            });
+            const terminal = await consumeStream(response, controller.signal);
+            await loadHistory();
+            if (terminal?.run_id) await openHistory(terminal.run_id);
+        }
+
+        async function consumeStream(response, signal) {
+            const reader = response.body.getReader();
             const decoder = new TextDecoder();
             let buffer = '';
+            let terminal = null;
             while (true) {
-                if (!isActiveAnalysis(token)) {
-                    await reader.cancel();
-                    break;
-                }
+                if (signal.aborted) throw new DOMException('已停止', 'AbortError');
                 const { done, value } = await reader.read();
                 if (done) break;
                 buffer += decoder.decode(value, { stream: true });
                 const lines = buffer.split('\n');
-                buffer = lines.pop();
+                buffer = lines.pop() || '';
                 for (const line of lines) {
                     if (!line.startsWith('data: ')) continue;
-                    const jsonStr = line.slice(6).trim();
-                    if (!jsonStr) continue;
-                    try {
-                        const event = JSON.parse(jsonStr);
-                        if (!isActiveAnalysis(token)) return;
-                        if (event.type === 'step') appendStep(event, token);
-                        else if (event.type === 'result') showResult(event, token);
-                        else if (event.type === 'error') {
-                            if (!isActiveAnalysis(token)) return;
-                            removeProcessingCard();
-                            errorBox.textContent = `分析失败: ${event.message}`;
-                            errorBox.classList.remove('hidden');
-                        }
-                    } catch (e) { /* skip malformed */ }
+                    let event;
+                    try { event = JSON.parse(line.slice(6)); } catch (_) { continue; }
+                    if (event.type === 'step') {
+                        appendLiveStep(event);
+                    } else if (event.type === 'result') {
+                        terminal = event;
+                    } else if (event.type === 'error') {
+                        throw new Error(event.message || '识别失败');
+                    }
                 }
             }
+            if (!terminal) throw new Error('识别结束但没有返回结果');
+            return terminal;
         }
 
-        function resetAnalysisUI() {
-            loading.classList.add('hidden');
-            errorBox.classList.add('hidden');
-            resultSection.classList.remove('hidden');
-            document.getElementById('pipelineSteps').innerHTML = '';
-            document.getElementById('resultGrid').innerHTML = '';
-            document.getElementById('vlmNotes').innerHTML = '';
-            document.getElementById('sampleIdBadge').textContent = '';
-            showProcessingCard('正在启动分析流水线');
-        }
-
-        async function handleFile(file) {
-            const { token, controller } = beginAnalysisRun();
-            const form = new FormData();
-            form.append('file', file);
+        async function openLibrary() {
+            $('libraryDialog').showModal();
+            $('libraryList').innerHTML = '<div class="history-empty">正在读取...</div>';
             try {
-                form.append('method', currentMethod);
-                const res = await fetch('/api/analyze', {
-                    method: 'POST',
-                    body: form,
-                    signal: controller.signal,
-                });
-                if (!isActiveAnalysis(token)) return;
-                if (!res.ok) throw new Error(await res.text());
-                loading.classList.add('hidden');
-                await consumeStream(res, token);
-            } catch (e) {
-                if (!isActiveAnalysis(token) || e.name === 'AbortError') return;
-                removeProcessingCard();
-                errorBox.textContent = `分析失败: ${e.message}`;
-                errorBox.classList.remove('hidden');
-            } finally {
-                if (isActiveAnalysis(token)) loading.classList.add('hidden');
-                fileInput.value = '';
+                const response = await api('/api/online_images');
+                const payload = await response.json();
+                state.libraryItems = payload.items || [];
+                renderLibrary();
+            } catch (error) {
+                $('libraryList').innerHTML = `<div class="history-empty">${escapeHtml(error.message)}</div>`;
             }
         }
 
-        async function analyzeOnline(relPath) {
-            const { token, controller } = beginAnalysisRun();
-            try {
-                const res = await fetch('/api/analyze_online', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ path: relPath, method: currentMethod }),
-                    signal: controller.signal,
-                });
-                if (!isActiveAnalysis(token)) return;
-                if (!res.ok) throw new Error(await res.text());
-                loading.classList.add('hidden');
-                await consumeStream(res, token);
-            } catch (e) {
-                if (!isActiveAnalysis(token) || e.name === 'AbortError') return;
-                removeProcessingCard();
-                errorBox.textContent = `分析失败: ${e.message}`;
-                errorBox.classList.remove('hidden');
-            } finally {
-                if (isActiveAnalysis(token)) loading.classList.add('hidden');
-            }
-        }
-
-        // ── 在线数据库 Modal ──
-        const dbModal = document.getElementById('dbModal');
-        const dbList = document.getElementById('dbList');
-        const dbPreview = document.getElementById('dbPreview');
-        const dbCount = document.getElementById('dbCount');
-        const dbTabs = document.getElementById('dbTabs');
-        const dbSearch = document.getElementById('dbSearch');
-        const dbSelected = document.getElementById('dbSelected');
-        const dbSubmitBtn = document.getElementById('dbSubmitBtn');
-        const dbDatasets = [
-            { id: 'hechuan', label: '合川考种照片', prefix: '农生院卢坤-合川考种照片-整理20260414/' },
-            { id: 'spring2026', label: '2026上半年拷种照片', prefix: '2026上半年拷种照片/' },
-            { id: 'all', label: '全部图片', prefix: '' },
-        ];
-        let dbItems = [];
-        let dbActiveDataset = 'hechuan';
-        let dbSelectedPath = null;
-
-        const currentMethod = 'stalk';
-        document.getElementById('openDbStalkBtn').addEventListener('click', openDbModal);
-        dbModal.querySelectorAll('[data-close]').forEach(el =>
-            el.addEventListener('click', () => dbModal.classList.remove('active'))
-        );
-        dbSearch.addEventListener('input', () => renderDbList(dbSearch.value.trim().toLowerCase()));
-        dbSubmitBtn.addEventListener('click', () => {
-            if (!dbSelectedPath) return;
-            dbModal.classList.remove('active');
-            analyzeOnline(dbSelectedPath);
-        });
-
-        async function openDbModal() {
-            dbModal.classList.add('active');
-            dbList.innerHTML = '<div class="muted" style="text-align:center;padding:40px">加载中...</div>';
-            dbCount.textContent = '加载中...';
-            dbSelectedPath = null;
-            dbSelected.textContent = '未选择';
-            dbSubmitBtn.disabled = true;
-            dbPreview.innerHTML = '<div class="placeholder">← 从左侧选择一张图片查看预览</div>';
-            document.getElementById('dbModalTitle').textContent = '📂 在线数据库 — 🌾 果柄分析';
-            dbSubmitBtn.textContent = '提交果柄分析';
-            try {
-                const res = await fetch('/api/online_images');
-                const data = await res.json();
-                dbItems = data.items || [];
-                renderDbTabs();
-                renderDbList('');
-            } catch (e) {
-                dbList.innerHTML = `<div class="error">加载失败: ${e.message}</div>`;
-            }
-        }
-
-        function renderDbTabs() {
-            dbTabs.innerHTML = dbDatasets.map(ds => {
-                const count = ds.prefix
-                    ? dbItems.filter(it => it.path.startsWith(ds.prefix)).length
-                    : dbItems.length;
-                return `
-                    <button class="db-tab${ds.id === dbActiveDataset ? ' active' : ''}" data-dataset="${ds.id}">
-                        ${ds.label} (${count})
-                    </button>
-                `;
-            }).join('');
-            dbTabs.querySelectorAll('.db-tab').forEach(btn => {
-                btn.addEventListener('click', () => {
-                    dbActiveDataset = btn.dataset.dataset;
-                    dbSelectedPath = null;
-                    dbSelected.textContent = '未选择';
-                    dbSubmitBtn.disabled = true;
-                    dbPreview.innerHTML = '<div class="placeholder">← 从左侧选择一张图片查看预览</div>';
-                    renderDbTabs();
-                    renderDbList(dbSearch.value.trim().toLowerCase());
-                });
-            });
-        }
-
-        function getActiveDatasetItems() {
-            const dataset = dbDatasets.find(ds => ds.id === dbActiveDataset) || dbDatasets[0];
-            if (!dataset.prefix) return dbItems;
-            return dbItems.filter(it => it.path.startsWith(dataset.prefix));
-        }
-
-        function renderDbList(filter) {
-            const datasetItems = getActiveDatasetItems();
-            const filtered = filter
-                ? datasetItems.filter(it =>
-                    it.name.toLowerCase().includes(filter) ||
-                    it.folder.toLowerCase().includes(filter))
-                : datasetItems;
-            const dataset = dbDatasets.find(ds => ds.id === dbActiveDataset) || dbDatasets[0];
-            dbCount.textContent = `${dataset.label}：${filtered.length} / ${datasetItems.length} 张`;
-            if (!filtered.length) {
-                dbList.innerHTML = '<div class="muted" style="text-align:center;padding:40px">无匹配图片</div>';
+        function renderLibrary() {
+            const query = $('librarySearch').value.trim().toLowerCase();
+            const items = state.libraryItems.filter(item => !query || item.path.toLowerCase().includes(query));
+            if (!items.length) {
+                $('libraryList').innerHTML = '<div class="history-empty">数据目录中没有图片</div>';
                 return;
             }
-            dbList.innerHTML = filtered.map((it, i) => `
-                <div class="db-item${it.path === dbSelectedPath ? ' selected' : ''}"
-                     data-path="${encodeURIComponent(it.path)}"
-                     data-url="${encodeURIComponent(it.url)}"
-                     title="${it.folder}/${it.name}">
-                    <div class="name">${it.name}</div>
-                    <div class="folder">${it.folder}</div>
-                </div>
-            `).join('');
-            dbList.querySelectorAll('.db-item').forEach(el => {
-                el.addEventListener('click', () => {
-                    const path = decodeURIComponent(el.dataset.path);
-                    const url = decodeURIComponent(el.dataset.url);
-                    dbSelectedPath = path;
-                    dbSubmitBtn.disabled = false;
-                    dbSelected.textContent = `已选择：${path}`;
-                    dbList.querySelectorAll('.db-item').forEach(e => e.classList.remove('selected'));
-                    el.classList.add('selected');
-                    // Load preview
-                    dbPreview.innerHTML = '<div class="db-preview-loading">加载预览中...</div>';
-                    const img = new Image();
-                    img.onload = () => {
-                        dbPreview.innerHTML = '';
-                        dbPreview.appendChild(img);
-                    };
-                    img.onerror = () => {
-                        dbPreview.innerHTML = '<div class="placeholder">预览加载失败</div>';
-                    };
-                    img.src = url;
-                });
+            $('libraryList').innerHTML = `<div class="library-grid">${items.map(item => `
+                <button class="library-item" type="button" data-path="${escapeHtml(item.path)}" data-name="${escapeHtml(item.name)}">
+                    <img src="${escapeHtml(item.url)}" alt="" loading="lazy">
+                    <div class="library-item-name">${escapeHtml(item.name)}</div>
+                </button>`).join('')}</div>`;
+            $('libraryList').querySelectorAll('[data-path]').forEach(button => {
+                button.addEventListener('click', () => analyzeOnline(button.dataset.path, button.dataset.name).catch(error => toast(error.message, 'error')));
             });
         }
+
+        function openLightbox(url) {
+            $('lightboxImage').src = url;
+            $('lightboxDialog').showModal();
+        }
+
+        function debounce(fn, delay = 250) {
+            let timer;
+            return (...args) => {
+                clearTimeout(timer);
+                timer = setTimeout(() => fn(...args), delay);
+            };
+        }
+
+        $('selectFileBtn').addEventListener('click', () => $('fileInput').click());
+        $('selectFolderBtn').addEventListener('click', () => $('folderInput').click());
+        $('openLibraryBtn').addEventListener('click', openLibrary);
+        $('fileInput').addEventListener('change', event => {
+            addFilesToQueue([...event.target.files]);
+            event.target.value = '';
+            if (!state.queueRunning) startQueue();
+        });
+        $('folderInput').addEventListener('change', event => {
+            addFilesToQueue([...event.target.files]);
+            event.target.value = '';
+        });
+        $('startQueueBtn').addEventListener('click', startQueue);
+        $('stopQueueBtn').addEventListener('click', stopQueue);
+        $('clearQueueBtn').addEventListener('click', () => { state.queue = []; renderQueue(); });
+        $('refreshHistoryBtn').addEventListener('click', () => loadHistory());
+        $('historySearch').addEventListener('input', debounce(() => loadHistory()));
+        $('plantCountInput').addEventListener('input', event => {
+            state.draftPlantCount = Math.max(0, Number(event.target.value) || 0);
+            markDirty();
+            renderSummary();
+        });
+        $('addComponentBtn').addEventListener('click', addComponent);
+        $('saveResultBtn').addEventListener('click', saveResult);
+        $('restoreResultBtn').addEventListener('click', restoreResult);
+        $('toggleStepsBtn').addEventListener('click', () => { state.showAllSteps = !state.showAllSteps; renderSteps(); });
+        $('closeLibraryBtn').addEventListener('click', () => $('libraryDialog').close());
+        $('librarySearch').addEventListener('input', renderLibrary);
+        $('closeLightboxBtn').addEventListener('click', () => $('lightboxDialog').close());
+        $('lightboxDialog').addEventListener('click', event => { if (event.target === $('lightboxDialog')) $('lightboxDialog').close(); });
+        $('libraryDialog').addEventListener('click', event => { if (event.target === $('libraryDialog')) $('libraryDialog').close(); });
+
+        window.addEventListener('beforeunload', event => {
+            if (!state.dirty) return;
+            event.preventDefault();
+            event.returnValue = '';
+        });
+
+        renderQueue();
+        checkHealth();
+        loadHistory();
+        setInterval(checkHealth, 30000);
     </script>
 </body>
 </html>

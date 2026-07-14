@@ -33,12 +33,15 @@ benchmark_cache_backup_*/
 old_experiment_artifacts_*/
 first10_*_backup*/
 reports/
+data/
 
 *.zip
 *.tar
 *.tar.gz
 *.tgz
 *.csv
+*.xlsx
+N0-*/
 benchmark_log.txt
 benchmark_results.csv
 benchmark_skipped.csv

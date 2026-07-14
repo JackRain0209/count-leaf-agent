@@ -12,6 +12,7 @@ services:
       ARK_API_BASE: ${ARK_API_BASE:-https://ark.cn-beijing.volces.com/api/v3}
       VLM_MODEL: ${VLM_MODEL:-ep-20260420011113-6jvmx}
       VLM_FP_CONFIDENCE_THRESHOLD: ${VLM_FP_CONFIDENCE_THRESHOLD:-0.8}
+      DATA_DIR: /app/data
     ports:
       - "8501:8501"
     volumes:
@@ -19,6 +20,7 @@ services:
       - ./results:/app/results
       - ./online_uploads:/app/online_uploads
       - ./benchmark_cache:/app/benchmark_cache
+      - ./data:/app/data
     restart: unless-stopped
     healthcheck:
       test:

@@ -62,6 +62,7 @@ uploads/          上传图片
 results/          分析结果和中间图
 online_uploads/   在线图片库
 benchmark_cache/  分析缓存
+data/             SQLite 历史记录
 ```
 
 这些目录保留在宿主机项目目录下，不在镜像里。这样镜像体积小，也方便你决定是否单独拷贝数据。

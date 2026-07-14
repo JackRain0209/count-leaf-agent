@@ -21,7 +21,7 @@ RUN python -m pip install --upgrade pip \
 
 COPY . .
 
-RUN mkdir -p uploads results online_uploads benchmark_cache
+RUN mkdir -p uploads results online_uploads benchmark_cache data
 
 EXPOSE 8501
 
