@@ -25,3 +25,4 @@ data/
 *_backup_*/
 benchmark_cache_backup_*/
 old_experiment_artifacts_*/
+.worktrees/
