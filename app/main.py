@@ -25,10 +25,16 @@ from app.config import (
     PORT,
 )
 from app.history import HistoryStore
+from app import cancel
 from app.pipeline.analyzer import analyze_plant_image_stream
 
 app = FastAPI(title="CV Agent - Plant Phenotyping", version="0.1.0")
 history_store = HistoryStore(HISTORY_DB_PATH)
+
+# 上次进程被中断时留下的 processing 记录在这里收尾，否则会永远显示"进行中"。
+_swept = history_store.fail_stale_processing()
+if _swept:
+    print(f"[History] 启动时清理了 {_swept} 条残留的 processing 记录")
 
 app.add_middleware(
     CORSMiddleware,
@@ -76,6 +82,7 @@ def _analysis_stream(
 ):
     steps = []
     terminal_event_seen = False
+    cancel.clear(run_id)
     history_store.start(run_id, source_label, image_path, source_kind)
     try:
         for event in analyze_plant_image_stream(
@@ -100,16 +107,28 @@ def _analysis_stream(
         if not terminal_event_seen:
             message = "分析流程结束但没有返回结果"
             history_store.fail(run_id, message, steps)
+            terminal_event_seen = True
             yield f"data: {_json.dumps({'type': 'error', 'run_id': run_id, 'message': message}, ensure_ascii=False)}\n\n"
     except GeneratorExit:
-        history_store.fail(run_id, "客户端中断分析", steps)
+        # 客户端断开。此时 pipeline 可能正阻塞在 VLM 调用里，没法中断当前这次；
+        # 设标记让它在下一个阶段边界停下来，不再发起后续的十几次调用。
+        cancel.request_cancel(run_id)
         raise
     except Exception as exc:
         import traceback
         traceback.print_exc()
         history_store.fail(run_id, str(exc), steps)
+        terminal_event_seen = True
         event = {"type": "error", "run_id": run_id, "message": str(exc)}
         yield f"data: {_json.dumps(event, ensure_ascii=False)}\n\n"
+    finally:
+        # 兜底：无论以哪种方式退出，都不能把记录留在 processing。
+        if not terminal_event_seen:
+            try:
+                history_store.fail(run_id, "分析中断（客户端断开或连接终止）", steps)
+            except Exception:
+                pass
+        cancel.clear(run_id)
 
 
 # Serve result images

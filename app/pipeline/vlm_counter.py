@@ -19,7 +19,11 @@ from PIL import Image
 from openai import OpenAI
 from typing import Optional
 
-from app.config import ARK_API_KEY, ARK_API_BASE, VLM_MODEL
+from app import trace
+from app.config import (
+    ARK_API_KEY, ARK_API_BASE, VLM_MODEL,
+    VLM_THINKING, VLM_TIMEOUT_S, VLM_MAX_RETRIES,
+)
 
 _COLORS = [
     (0, 0, 255), (0, 200, 0), (255, 0, 0), (0, 165, 255),
@@ -31,8 +35,34 @@ _COLORS = [
 _ROW_LABELS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
 
 
-def _get_client() -> OpenAI:
-    return OpenAI(api_key=ARK_API_KEY, base_url=ARK_API_BASE)
+class _ThinkingOverride:
+    """给每次 create 调用附加 thinking 参数，其余全部透传。"""
+
+    def __init__(self, client, extra_body):
+        self._client = client
+        self._extra_body = extra_body
+        self.chat = self
+        self.completions = self
+
+    def create(self, *args, **kwargs):
+        if self._extra_body:
+            merged = dict(kwargs.get("extra_body") or {})
+            merged.update(self._extra_body)
+            kwargs["extra_body"] = merged
+        return self._client.chat.completions.create(*args, **kwargs)
+
+
+def _get_client(phase: str = "unknown") -> OpenAI:
+    """创建 OpenAI 客户端。所有 VLM 调用都要经过这里，所以埋点也放在这里。"""
+    client = OpenAI(
+        api_key=ARK_API_KEY,
+        base_url=ARK_API_BASE,
+        timeout=VLM_TIMEOUT_S,
+        max_retries=VLM_MAX_RETRIES,
+    )
+    if VLM_THINKING == "disabled":
+        client = _ThinkingOverride(client, {"thinking": {"type": "disabled"}})
+    return trace.wrap_openai_client(client, phase)
 
 
 def _image_to_base64(image: np.ndarray) -> str:
@@ -338,7 +368,7 @@ def vlm_detect_adhesion(crop_bgr: np.ndarray, plant_id: int = 0,
             "raw_response": str,
         }
     """
-    client = _get_client()
+    client = _get_client(phase="adhesion")
     h, w = crop_bgr.shape[:2]
 
     vlm_img = _resize_for_vlm(crop_bgr, max_dim=1536)
@@ -525,7 +555,7 @@ def vlm_label_plants(image: np.ndarray) -> dict:
     Send image to Doubao. Tell VLM the actual pixel size it sees.
     VLM returns bbox in those pixel coords. Scale back to original.
     """
-    client = _get_client()
+    client = _get_client(phase="annotate")
     h, w = image.shape[:2]
 
     # Resize for API payload only
@@ -617,6 +647,7 @@ def vlm_label_plants(image: np.ndarray) -> dict:
 
     print(f"[VLM] Original {w}x{h}, using 0-1000 normalized coords...")
     raw_response = ""
+    api_error = None
     try:
         response = client.chat.completions.create(
             model=VLM_MODEL,
@@ -643,8 +674,35 @@ def vlm_label_plants(image: np.ndarray) -> dict:
             print(f"[VLM] Tokens: prompt={usage.prompt_tokens}, completion={usage.completion_tokens}, total={usage.total_tokens}")
         print(f"[VLM] Response ({len(raw_response)} chars):\n{raw_response[:800]}")
     except Exception as e:
+        # 这里是把「API 失败」和「模型真没识别到」区分开的唯一位置：
+        # raw_response 一旦被压成字符串，下游只能看到一句笼统的解析失败。
+        api_error = e
+        trace.event(
+            "vlm_annotate_failed",
+            phase="annotate",
+            error_type=type(e).__name__,
+            error_message=str(e)[:500],
+            http_status=getattr(e, "status_code", None),
+        )
         raw_response = f"Doubao API error: {e}"
         print(f"[VLM] {raw_response}")
+
+    if api_error is not None:
+        # 不能去解析错误信息。API 的报错原文里可能带方括号，例如
+        # "...Your account [2122781975] has reached..."，_extract_json_array
+        # 会把它当成 plants 数组解析成 [2122781975]，于是 plants 非空、
+        # 绕过下游的空值守卫，最终在 p.get("bbox") 处抛 AttributeError。
+        return {
+            "labeled_image": image.copy(),
+            "crops": {},
+            "plants": [],
+            "raw_response": raw_response,
+            "parse_error": True,
+            "partial_json": False,
+            "api_error": type(api_error).__name__,
+            "api_error_message": str(api_error)[:500],
+            "api_status": getattr(api_error, "status_code", None),
+        }
 
     # Parse
     parsed = _parse_json(raw_response)
@@ -661,6 +719,11 @@ def vlm_label_plants(image: np.ndarray) -> dict:
         plants = parsed
     else:
         plants = None
+
+    # 只保留真正的部件字典。模型偶尔会返回 [1,2,3] 这类数组，
+    # 下游按 dict 用（p.get）会直接崩。
+    if isinstance(plants, list):
+        plants = [p for p in plants if isinstance(p, dict)]
 
     partial_json = bool(parsed and _extract_json_array(raw_response) is None)
     if not plants or not isinstance(plants, list):
@@ -801,7 +864,7 @@ def vlm_verify_crop(original_image: np.ndarray,
           "new_bbox": [x1,y1,x2,y2]   # only if action=="recrop", in 0-1000 norm
         }
     """
-    client = _get_client()
+    client = _get_client(phase="verify_crop")
     pid = plant.get("id", "?")
     label = plant.get("label", "")
     bbox = plant.get("bbox", [])
