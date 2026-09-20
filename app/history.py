@@ -268,6 +268,28 @@ class HistoryStore:
                 (message, now, steps_json, run_id),
             )
 
+    def fail_stale_processing(
+        self,
+        message: str = "分析中断（连接终止或服务重启）",
+    ) -> int:
+        """把残留的 processing 记录标记为失败，返回处理条数。
+
+        客户端断开时 SSE 生成器是被「抛弃」而不是「关闭」的：finally 必须等到
+        生成器被回收才执行，时机不确定；服务重启则完全不会执行。
+        所以启动时扫一遍，避免历史里留下永远处于「进行中」的记录。
+        """
+        now = _now_iso()
+        with self._connection() as connection:
+            cursor = connection.execute(
+                """
+                UPDATE analysis_history SET
+                    status='failed', error_message=?, updated_at=?
+                WHERE status='processing'
+                """,
+                (message, now),
+            )
+            return cursor.rowcount
+
     def get(self, run_id: str) -> dict[str, Any] | None:
         with self._connection() as connection:
             row = connection.execute(
