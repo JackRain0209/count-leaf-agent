@@ -250,6 +250,40 @@ class HistoryStore:
                 raise KeyError(f"历史记录不存在：{run_id}")
         return normalized
 
+    def query_all_for_export(self, query: str = "") -> list[dict[str, Any]]:
+        """按筛选条件返回全部记录（不分页），用于导出。
+
+        返回结构与 get() 一致（含解析后的 result），筛选口径与 list() 保持一致。
+        """
+        where = ""
+        params: list[Any] = []
+        if query.strip():
+            where = "WHERE source_label LIKE ?"
+            params.append(f"%{query.strip()}%")
+
+        with self._connection() as connection:
+            rows = connection.execute(
+                f"""
+                SELECT * FROM analysis_history {where}
+                ORDER BY created_at DESC
+                """,
+                params,
+            ).fetchall()
+        return [self._row_to_detail(row) for row in rows]
+
+    def query_by_run_ids(self, run_ids: list[str]) -> list[dict[str, Any]]:
+        """按 run_id 列表导出，保持传入顺序。"""
+        if not run_ids:
+            return []
+        placeholders = ",".join("?" for _ in run_ids)
+        with self._connection() as connection:
+            rows = connection.execute(
+                f"SELECT * FROM analysis_history WHERE run_id IN ({placeholders})",
+                run_ids,
+            ).fetchall()
+        by_id = {row["run_id"]: self._row_to_detail(row) for row in rows}
+        return [by_id[rid] for rid in run_ids if rid in by_id]
+
     def fail(
         self,
         run_id: str,
