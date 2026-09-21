@@ -21,6 +21,7 @@ from .vlm_counter import (
 )
 from .pod_verify_vlm import verify_pod_markers
 from .pod_counter_stalk import count_pods_on_branch as _stalk_counter
+from app import cancel, trace
 from app.config import RESULT_DIR, CACHE_DIR
 
 
@@ -61,9 +62,12 @@ def analyze_plant_image_stream(
     """
     t0 = time.time()
     run_id = _safe_run_part(run_id) if run_id else _new_run_id(image_path)
+    trace.set_run(run_id)
     source_path = str(Path(image_path).resolve())
     source_label = source_label or Path(image_path).name
     if method != "stalk":
+        trace.event("image_end", status="failed", fail_reason="unsupported_method",
+                    label=source_label, method=method)
         yield {
             "type": "error",
             "run_id": run_id,
@@ -73,8 +77,12 @@ def analyze_plant_image_stream(
 
     image = cv2.imread(image_path)
     if image is None:
+        trace.event("image_end", status="failed", fail_reason="cannot_read",
+                    label=source_label, duration_s=round(time.time() - t0, 1))
         yield {"type": "error", "run_id": run_id, "message": f"Cannot read image: {image_path}"}
         return
+    trace.event("image_start", label=source_label, width=int(image.shape[1]),
+                height=int(image.shape[0]))
 
     stem_name = Path(image_path).stem
     debug_dir = RESULT_DIR / run_id
@@ -148,9 +156,16 @@ def analyze_plant_image_stream(
     # Step: Original
     yield _save_step(image, f"原始图片：{source_label}，{image.shape[1]}×{image.shape[0]} 像素")
 
+    if cancel.is_cancelled(run_id):
+        trace.event("image_end", status="failed", fail_reason="cancelled",
+                    label=source_label, duration_s=round(time.time() - t0, 1))
+        yield {"type": "error", "run_id": run_id, "message": "分析已被用户停止。"}
+        return
+
     # Step: VLM
     print(f"[Pipeline] Sending {image.shape[1]}x{image.shape[0]} to Doubao Vision...")
-    vlm_result = vlm_label_plants(image)
+    with trace.phase("vlm_annotate"):
+        vlm_result = vlm_label_plants(image)
     plants = vlm_result.get("plants", []) or []
     crops = vlm_result.get("crops", {}) or {}
     raw_response = vlm_result.get("raw_response", "")
@@ -182,19 +197,41 @@ def analyze_plant_image_stream(
         yield _save_step(labeled_img, desc)
 
     if not plants:
-        yield {
-            "type": "error",
-            "run_id": run_id,
-            "message": (
+        api_error = vlm_result.get("api_error")
+        trace.event("image_end", status="failed",
+                    fail_reason="api_error" if api_error else "no_plants",
+                    label=source_label, duration_s=round(time.time() - t0, 1),
+                    api_error=api_error,
+                    api_status=vlm_result.get("api_status"),
+                    parse_error=bool(vlm_result.get("parse_error")),
+                    partial_json=bool(vlm_result.get("partial_json")),
+                    raw_chars=len(raw_response or ""),
+                    crops=len(crops))
+        if api_error:
+            status = vlm_result.get("api_status")
+            detail = str(vlm_result.get("api_error_message") or "")[:200]
+            message = f"VLM 接口调用失败：{api_error}"
+            if status:
+                message += f"（HTTP {status}）"
+            message += f"。{detail}"
+        else:
+            message = (
                 "VLM 结构识别没有返回任何主干/主枝/分枝，本次已停止。"
                 f"调试文件已保存到 {debug_dir / 'vlm_label_debug.json'} 和 "
                 f"{debug_dir / 'vlm_label_raw.txt'}。"
-            ),
+            )
+        yield {
+            "type": "error",
+            "run_id": run_id,
+            "message": message,
             "result_dir": str(debug_dir),
         }
         return
 
     if not crops:
+        trace.event("image_end", status="failed", fail_reason="no_crops",
+                    label=source_label, duration_s=round(time.time() - t0, 1),
+                    plants=len(plants), raw_chars=len(raw_response or ""))
         yield {
             "type": "error",
             "run_id": run_id,
@@ -207,6 +244,7 @@ def analyze_plant_image_stream(
         return
 
     # ── Ruler detection + CV measurement ──
+    _t_ruler = time.perf_counter()
     px_per_cm = None
     ruler_found = False
     ruler_pixel_length = None
@@ -235,6 +273,9 @@ def analyze_plant_image_stream(
                 print("[Pipeline] Ruler bbox found but CV yellow detection failed")
         else:
             print(f"[Pipeline] Invalid ruler bbox: {ruler_bbox_norm}")
+
+    trace.event("phase_end", phase="cv_ruler",
+                duration_ms=round((time.perf_counter() - _t_ruler) * 1000, 1))
 
     # ── Label tag processing ──
     sample_id = vlm_result.get("sample_id", "")
@@ -279,6 +320,14 @@ def analyze_plant_image_stream(
     verify_plants = [p for p in plants
                      if p.get("id") in crops and p.get("label", "") != "主干"]
 
+    if cancel.is_cancelled(run_id):
+        trace.event("image_end", status="failed", fail_reason="cancelled",
+                    label=source_label, duration_s=round(time.time() - t0, 1),
+                    cancelled_at="before_verify_crops")
+        yield {"type": "error", "run_id": run_id, "message": "分析已被用户停止。"}
+        return
+
+    _t_verify = time.perf_counter()
     if verify_plants:
         print(f"[Pipeline] Verifying {len(verify_plants)} crops in parallel...")
         with ThreadPoolExecutor(max_workers=len(verify_plants)) as executor:
@@ -343,6 +392,9 @@ def analyze_plant_image_stream(
                     yield _save_step(crops[pid],
                                      f"[#{pid} {plabel}] ⚠️ VLM 复核：建议重截但未给新 bbox，保留原图 — {reason}")
 
+    trace.event("phase_end", phase="vlm_verify_crops", n_calls=len(verify_plants),
+                duration_ms=round((time.perf_counter() - _t_verify) * 1000, 1))
+
     # Apply deletions
     if plants_to_remove:
         plants = [p for p in plants if p.get("id") not in plants_to_remove]
@@ -402,6 +454,13 @@ def analyze_plant_image_stream(
     #                          f"[#{pid} {plabel}] 异株检测：未发现其他植株混入")
 
     # Steps: pod counting per branch (CPU, fast)
+    if cancel.is_cancelled(run_id):
+        trace.event("image_end", status="failed", fail_reason="cancelled",
+                    label=source_label, duration_s=round(time.time() - t0, 1),
+                    cancelled_at="before_cv_pod_count")
+        yield {"type": "error", "run_id": run_id, "message": "分析已被用户停止。"}
+        return
+    _t_cv = time.perf_counter()
     _counter = _stalk_counter
     pod_plants = [p for p in plants
                   if p.get("label", "") != "主干" and p.get("id") in crops]
@@ -445,6 +504,9 @@ def analyze_plant_image_stream(
         for step_img, step_desc in pod_result.get("step_images", []):
             yield _save_step(step_img, f"[#{pid} {plabel}] {step_desc}")
 
+    trace.event("phase_end", phase="cv_pod_count", parts=len(pod_plants),
+                duration_ms=round((time.perf_counter() - _t_cv) * 1000, 1))
+
     # ── VLM pod verification (parallel) ──
     vlm_verify_inputs = []
     for p in pod_plants:
@@ -460,7 +522,15 @@ def analyze_plant_image_stream(
         if trunk_markers:
             vlm_verify_inputs.append((trunk_plant, trunk_result, trunk_markers))
 
+    if cancel.is_cancelled(run_id):
+        trace.event("image_end", status="failed", fail_reason="cancelled",
+                    label=source_label, duration_s=round(time.time() - t0, 1),
+                    cancelled_at="before_vlm_pod_review")
+        yield {"type": "error", "run_id": run_id, "message": "分析已被用户停止。"}
+        return
+
     vlm_verify_results = {}  # pid -> verify_result
+    _t_podreview = time.perf_counter()
     if vlm_verify_inputs:
         print(f"[Pipeline] VLM verifying pods on {len(vlm_verify_inputs)} branches in parallel...")
         with ThreadPoolExecutor(max_workers=len(vlm_verify_inputs)) as executor:
@@ -493,6 +563,9 @@ def analyze_plant_image_stream(
                         "reason": f"VLM error: {e}",
                         "verified_image": crops[pid].copy(),
                     }
+
+    trace.event("phase_end", phase="vlm_pod_review", n_calls=len(vlm_verify_inputs),
+                duration_ms=round((time.perf_counter() - _t_podreview) * 1000, 1))
 
     # Yield VLM verify results in original order
     for p, pod_result, markers in vlm_verify_inputs:
@@ -588,6 +661,11 @@ def analyze_plant_image_stream(
     main_stem_length_cm = None
     if trunk_pixel_len > 0 and px_per_cm and px_per_cm > 0:
         main_stem_length_cm = round(trunk_pixel_len / px_per_cm, 1)
+
+    trace.event("image_end", status="completed", label=source_label,
+                duration_s=elapsed, plants=len(plants), crops=len(crops),
+                branch_count=branch_count, total_pods=total_pods,
+                ruler_found=ruler_found, main_stem_length_cm=main_stem_length_cm)
 
     yield {
         "type": "result",

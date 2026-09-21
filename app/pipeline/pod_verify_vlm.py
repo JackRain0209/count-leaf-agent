@@ -328,7 +328,7 @@ def verify_pod_markers(
             "verified_image": debug_image.copy(),
         }
 
-    client = _get_client()
+    client = _get_client(phase="pod_review")
 
     # Convert normalized coords to pixel space of the crop image
     h_crop, w_crop = crop_bgr.shape[:2]
