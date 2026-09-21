@@ -15,7 +15,9 @@ from fastapi import FastAPI, File, UploadFile, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
-
+from io import BytesIO
+from urllib.parse import quote
+from app.excel_export import build_workbook, workbook_to_bytes, make_filename
 from app.config import (
     UPLOAD_DIR,
     RESULT_DIR,
@@ -201,6 +203,7 @@ async def analyze(file: UploadFile = File(...), method: str = "stalk"):
     )
 
 
+
 @app.get("/api/history")
 def list_history(
     limit: int = Query(100, ge=1, le=500),
@@ -209,7 +212,32 @@ def list_history(
 ):
     return history_store.list(limit=limit, offset=offset, query=q)
 
-
+@app.get("/api/history/export")
+def export_history(
+    q: str = Query("", max_length=120),
+    run_ids: str = Query("", max_length=4000),
+):
+    """导出。
+    - 传 run_ids（逗号分隔）时：只导出这些 run_id，忽略 q
+    - 否则：按 q 筛选导出
+    """
+    rid_list = [x.strip() for x in run_ids.split(",") if x.strip()] if run_ids else []
+    if rid_list:
+        records = history_store.query_by_run_ids(rid_list)
+        filename = make_filename(tag="选中")
+    else:
+        records = history_store.query_all_for_export(query=q)
+        filename = make_filename(tag=(q or "").strip()[:20])
+    wb = build_workbook(records)
+    data = workbook_to_bytes(wb)
+    return StreamingResponse(
+        BytesIO(data),
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={
+            "Content-Disposition": f"attachment; filename*=UTF-8''{quote(filename)}",
+            "Content-Length": str(len(data)),
+        },
+    )
 @app.post("/api/history/{run_id}/restore")
 def restore_history_result(run_id: str):
     try:

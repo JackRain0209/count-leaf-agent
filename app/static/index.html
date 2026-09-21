@@ -167,10 +167,14 @@
         .history-search-wrap {
             padding: 12px 14px;
             border-bottom: 1px solid var(--line);
+            display: flex;
+            align-items: center;
+            gap: 8px;
         }
 
         .history-search {
-            width: 100%;
+            flex: 1;
+            min-width: 100px;
             height: 36px;
             padding: 0 11px;
             color: var(--text);
@@ -178,6 +182,7 @@
             border: 1px solid var(--line);
             border-radius: 5px;
             outline: none;
+            font-size: 13px;
         }
 
         .history-search:focus { border-color: var(--green); box-shadow: 0 0 0 2px rgba(37, 115, 71, 0.12); }
@@ -188,6 +193,40 @@
             overflow-y: auto;
             padding: 8px;
         }
+.history-export-btn {
+    height: 36px;
+    padding: 0 10px;
+    border: 1px solid var(--line, #ccc);
+    border-radius: 6px;
+    background: #f5f5f5;
+    color: #333;
+    font-size: 13px;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background 0.15s;
+    flex-shrink: 0;
+}
+.history-export-btn:hover { background: #ebebeb; }
+.history-export-btn:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+}
+.history-export-btn:disabled:hover {
+    background: #f5f5f5;
+}
+
+/* 选中态高亮 */
+.history-item {
+    cursor: pointer;
+    user-select: none;
+}
+.history-item.selected {
+    outline: 2px solid #4a90e2;
+    outline-offset: -2px;
+    background: rgba(74, 144, 226, 0.08);
+}
+
+.history-export-btn:disabled { opacity: 0.6; cursor: not-allowed; }
 
         .history-empty {
             padding: 42px 16px;
@@ -758,6 +797,8 @@
             </div>
             <div class="history-search-wrap">
                 <input class="history-search" id="historySearch" type="search" placeholder="搜索文件名" autocomplete="off">
+                 <button id="btnExportHistory" type="button" class="history-export-btn">导出 Excel</button>
+                <button id="btnExportSelected" type="button" class="history-export-btn" disabled>导出选中</button>
             </div>
             <div class="history-list" id="historyList"></div>
         </aside>
@@ -1006,10 +1047,15 @@
                         </span>
                     </button>`;
             }).join('');
-            list.querySelectorAll('[data-run-id]').forEach(button => {
-                button.addEventListener('click', () => openHistory(button.dataset.runId));
+                      list.querySelectorAll('[data-run-id]').forEach(button => {
+                button.addEventListener('click', (e) => handleHistoryItemClick(e, button));
+                button.addEventListener('dblclick', (e) => {
+                    if (e.ctrlKey || e.metaKey) return;  // Ctrl 双击当两次单击
+                    openHistory(button.dataset.runId);
+                });
             });
-        }
+            updateSelectedUI();
+            }
 
         async function openHistory(runId) {
             if (state.dirty && !confirm('当前修改尚未保存，确定离开吗？')) return;
@@ -1472,6 +1518,43 @@
         $('stopQueueBtn').addEventListener('click', stopQueue);
         $('clearQueueBtn').addEventListener('click', () => { state.queue = []; renderQueue(); });
         $('refreshHistoryBtn').addEventListener('click', () => loadHistory());
+                $('btnExportHistory').addEventListener('click', async () => {
+            const q = $('historySearch').value.trim();
+            const params = new URLSearchParams();
+            if (q) params.set('q', q);
+
+            const btn = $('btnExportHistory');
+            btn.disabled = true;
+            const oldText = btn.textContent;
+            btn.textContent = '导出中...';
+
+            try {
+                const resp = await fetch(`/api/history/export?${params.toString()}`);
+                if (!resp.ok) {
+                    alert(`导出失败：${resp.status} ${await resp.text()}`);
+                    return;
+                }
+                const blob = await resp.blob();
+                const cd = resp.headers.get('Content-Disposition') || '';
+                let filename = '考种汇总.xlsx';
+                const star = cd.match(/filename\*=UTF-8''([^;]+)/i);
+                if (star) filename = decodeURIComponent(star[1]);
+
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = filename;
+                document.body.appendChild(a);
+                a.click();
+                a.remove();
+                URL.revokeObjectURL(url);
+            } catch (e) {
+                alert(`导出异常：${e.message}`);
+            } finally {
+                btn.disabled = false;
+                btn.textContent = oldText;
+            }
+        });
         $('historySearch').addEventListener('input', debounce(() => loadHistory()));
         $('plantCountInput').addEventListener('input', event => {
             state.draftPlantCount = Math.max(0, Number(event.target.value) || 0);
@@ -1498,6 +1581,82 @@
         checkHealth();
         loadHistory();
         setInterval(checkHealth, 30000);
+       const selectedRunIds = new Set();
+        let lastClickedIndex = -1;
+
+        function handleHistoryItemClick(e, button) {
+            const runId = button.dataset.runId;
+            if (!runId) return;
+            const items = Array.from(document.querySelectorAll('#historyList [data-run-id]'));
+            const index = items.indexOf(button);
+
+            if (e.ctrlKey || e.metaKey) {
+                if (selectedRunIds.has(runId)) selectedRunIds.delete(runId);
+                else selectedRunIds.add(runId);
+                lastClickedIndex = index;
+            } else if (e.shiftKey && lastClickedIndex >= 0) {
+                const [a, b] = [Math.min(lastClickedIndex, index), Math.max(lastClickedIndex, index)];
+                for (let i = a; i <= b; i++) {
+                    const rid = items[i].dataset.runId;
+                    if (rid) selectedRunIds.add(rid);
+                }
+            } else {
+                selectedRunIds.clear();
+                selectedRunIds.add(runId);
+                lastClickedIndex = index;
+            }
+            updateSelectedUI();
+        }
+
+        function updateSelectedUI() {
+            document.querySelectorAll('#historyList [data-run-id]').forEach(el => {
+                el.classList.toggle('selected', selectedRunIds.has(el.dataset.runId));
+            });
+            const btn = document.getElementById('btnExportSelected');
+            if (btn) {
+                btn.disabled = selectedRunIds.size === 0;
+                btn.textContent = selectedRunIds.size > 0
+                    ? `导出选中 (${selectedRunIds.size})`
+                    : '导出选中';
+            }
+        }
+
+        document.getElementById('btnExportSelected')?.addEventListener('click', async () => {
+            if (selectedRunIds.size === 0) return;
+            const btn = document.getElementById('btnExportSelected');
+            btn.disabled = true;
+            const oldText = btn.textContent;
+            btn.textContent = '导出中...';
+            try {
+                const params = new URLSearchParams();
+                params.set('run_ids', Array.from(selectedRunIds).join(','));
+                const resp = await fetch(`/api/history/export?${params}`);
+                if (!resp.ok) {
+                    alert(`导出失败：${resp.status} ${await resp.text()}`);
+                    return;
+                }
+                const blob = await resp.blob();
+                const cd = resp.headers.get('Content-Disposition') || '';
+                let filename = '考种汇总_选中.xlsx';
+                const star = cd.match(/filename\*=UTF-8''([^;]+)/i);
+                if (star) filename = decodeURIComponent(star[1]);
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = filename;
+                document.body.appendChild(a);
+                a.click();
+                a.remove();
+                URL.revokeObjectURL(url);
+            } catch (e) {
+                alert(`导出异常：${e.message}`);
+            } finally {
+                btn.disabled = false;
+                btn.textContent = oldText;
+                updateSelectedUI();
+            }
+        });
+
     </script>
 </body>
 </html>
