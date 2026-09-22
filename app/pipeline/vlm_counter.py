@@ -23,6 +23,7 @@ from app import trace
 from app.config import (
     ARK_API_KEY, ARK_API_BASE, VLM_MODEL,
     VLM_THINKING, VLM_TIMEOUT_S, VLM_MAX_RETRIES,
+    VLM_SCHEMA_MAX_ATTEMPTS,
 )
 
 _COLORS = [
@@ -264,6 +265,122 @@ def _parse_json(content: str):
 
     print(f"[VLM] JSON parse failed: {raw[:300]}")
     return None
+
+
+# ───────────────────────────────────────────────────────────────────────
+# schema 校验 + 重发
+# ───────────────────────────────────────────────────────────────────────
+
+_VALID_LABELS = ("主干", "主枝", "分枝")
+
+
+def _is_number(v):
+    return isinstance(v, (int, float)) and not isinstance(v, bool)
+
+
+def _is_bbox(v):
+    return isinstance(v, list) and len(v) == 4 and all(_is_number(x) for x in v)
+
+
+def _validate_plant_payload(parsed):
+    """校验整图标注的返回。返回 (是否合规, 原因)。"""
+    if isinstance(parsed, dict):
+        plants = parsed.get("plants")
+    elif isinstance(parsed, list):
+        plants = parsed
+    else:
+        return False, "返回不是 JSON 对象或数组"
+
+    if not isinstance(plants, list) or not plants:
+        return False, "plants 为空"
+
+    dicts = [p for p in plants if isinstance(p, dict)]
+    if not dicts:
+        return False, "plants 里没有合法的部件对象"
+
+    bad_bbox = [p.get("id") for p in dicts if not _is_bbox(p.get("bbox"))]
+    if bad_bbox:
+        return False, "bbox 不是 4 个数字: id=%s" % bad_bbox[:5]
+
+    bad_label = [p.get("id") for p in dicts if p.get("label") not in _VALID_LABELS]
+    if bad_label:
+        return False, "label 非法: id=%s" % bad_label[:5]
+
+    return True, ""
+
+
+def _validate_verify_verdict(parsed):
+    """校验裁剪复核的返回。返回 (是否合规, 原因)。"""
+    if isinstance(parsed, list) and parsed:
+        parsed = parsed[0]
+    if not isinstance(parsed, dict):
+        return False, "返回不是 JSON 对象"
+
+    action = parsed.get("action")
+    if action not in ("keep", "delete", "recrop"):
+        return False, "action 非法: %r" % (action,)
+
+    if action == "recrop" and not _is_bbox(parsed.get("new_bbox")):
+        return False, "action=recrop 但 new_bbox 不是 4 个数字"
+
+    return True, ""
+
+
+def _normalize_verify_verdict(parsed):
+    """把已通过校验的复核结果转成内部结构。"""
+    if isinstance(parsed, list) and parsed:
+        parsed = parsed[0]
+    action = parsed.get("action", "keep")
+    result = {"action": action, "reason": parsed.get("reason", "")}
+    if action == "recrop":
+        result["new_bbox"] = [float(v) for v in parsed["new_bbox"]]
+    return result
+
+
+def _request_until_valid(phase, make_request, validate, label=""):
+    """反复请求，直到返回值通过 schema 校验。
+
+    模型偶尔返回漏字段 / 格式不对的结果（bbox 少逗号、action 非法、recrop
+    缺 new_bbox 等）。与其静默降级成 keep，不如重发请求让它重给一次。
+
+    重发次数有上限（VLM_SCHEMA_MAX_ATTEMPTS）——若无限重发，模型对某张图
+    始终给不出合规结果时会一直烧额度。
+
+    make_request() -> raw 文本；validate(parsed) -> (是否合规, 原因)
+    返回 (parsed, raw, 尝试次数, 最后一次的失败原因)
+    """
+    last_parsed = None
+    last_raw = ""
+    last_reason = ""
+
+    for attempt in range(1, VLM_SCHEMA_MAX_ATTEMPTS + 1):
+        try:
+            raw = make_request()
+        except Exception as exc:
+            last_reason = "%s: %s" % (type(exc).__name__, str(exc)[:160])
+            trace.event("schema_retry", phase=phase, label=label,
+                        attempt=attempt, stage="request", reason=last_reason)
+            continue
+
+        last_raw = raw
+        parsed = _parse_json(raw)
+        ok, reason = validate(parsed)
+        if ok:
+            if attempt > 1:
+                trace.event("schema_ok_after_retry", phase=phase, label=label,
+                            attempt=attempt)
+                print("[VLM] %s 第 %d 次重发后通过 schema 校验" % (phase, attempt))
+            return parsed, raw, attempt, ""
+        last_parsed = parsed
+        last_reason = reason
+        trace.event("schema_retry", phase=phase, label=label,
+                    attempt=attempt, stage="validate", reason=reason)
+        print("[VLM] %s 第 %d/%d 次未过 schema 校验（%s），重发请求..."
+              % (phase, attempt, VLM_SCHEMA_MAX_ATTEMPTS, reason))
+
+    print("[VLM] %s 重发 %d 次仍未过 schema 校验，退回降级处理（%s）"
+          % (phase, VLM_SCHEMA_MAX_ATTEMPTS, last_reason))
+    return last_parsed, last_raw, VLM_SCHEMA_MAX_ATTEMPTS, last_reason
 
 
 def _grid_to_pixel(cell_str: str, cell_size: int):
@@ -676,46 +793,61 @@ def vlm_label_plants(image: np.ndarray) -> dict:
 ```"""
 
     print(f"[VLM] Original {w}x{h}, using 0-1000 normalized coords...")
-    raw_response = ""
-    api_error = None
-    try:
-        response = client.chat.completions.create(
-            model=VLM_MODEL,
-            messages=[
+    _messages = [
+        {
+            "role": "user",
+            "content": [
+                {"type": "text", "text": prompt},
                 {
-                    "role": "user",
-                    "content": [
-                        {"type": "text", "text": prompt},
-                        {
-                            "type": "image_url",
-                            "image_url": {
-                                "url": f"data:image/jpeg;base64,{b64}",
-                            }
-                        }
-                    ]
+                    "type": "image_url",
+                    "image_url": {
+                        "url": f"data:image/jpeg;base64,{b64}",
+                    }
                 }
-            ],
-            max_tokens=8000,
-            temperature=0.1,
-        )
-        raw_response = response.choices[0].message.content.strip()
-        usage = getattr(response, 'usage', None)
-        if usage:
-            print(f"[VLM] Tokens: prompt={usage.prompt_tokens}, completion={usage.completion_tokens}, total={usage.total_tokens}")
-        print(f"[VLM] Response ({len(raw_response)} chars):\n{raw_response[:800]}")
-    except Exception as e:
-        # 这里是把「API 失败」和「模型真没识别到」区分开的唯一位置：
-        # raw_response 一旦被压成字符串，下游只能看到一句笼统的解析失败。
-        api_error = e
-        trace.event(
-            "vlm_annotate_failed",
-            phase="annotate",
-            error_type=type(e).__name__,
-            error_message=str(e)[:500],
-            http_status=getattr(e, "status_code", None),
-        )
-        raw_response = f"Doubao API error: {e}"
-        print(f"[VLM] {raw_response}")
+            ]
+        }
+    ]
+    _req_error = {}
+
+    def _do_request():
+        _req_error.pop("exc", None)
+        try:
+            _resp = client.chat.completions.create(
+                model=VLM_MODEL,
+                messages=_messages,
+                max_tokens=8000,
+                temperature=0.1,
+            )
+        except Exception as exc:
+            # 这里是把「API 失败」和「模型真没识别到」区分开的唯一位置：
+            # raw_response 一旦被压成字符串，下游只能看到一句笼统的解析失败。
+            _req_error["exc"] = exc
+            trace.event(
+                "vlm_annotate_failed",
+                phase="annotate",
+                error_type=type(exc).__name__,
+                error_message=str(exc)[:500],
+                http_status=getattr(exc, "status_code", None),
+            )
+            raise
+        _text = _resp.choices[0].message.content.strip()
+        _usage = getattr(_resp, "usage", None)
+        if _usage:
+            print(f"[VLM] Tokens: prompt={_usage.prompt_tokens}, completion={_usage.completion_tokens}, total={_usage.total_tokens}")
+        print(f"[VLM] Response ({len(_text)} chars):\n{_text[:800]}")
+        return _text
+
+    _parsed, raw_response, _attempts, _reason = _request_until_valid(
+        phase="annotate",
+        make_request=_do_request,
+        validate=_validate_plant_payload,
+    )
+
+    # 只有「所有尝试都失败、且最后一次是 API 异常」才算接口错误；
+    # 若最后一次是 schema 不过，raw_response 保留最后一份返回，走下面对解析的容错路径。
+    api_error = _req_error.get("exc") if _reason else None
+    if api_error is not None:
+        raw_response = f"Doubao API error: {api_error}"
 
     if api_error is not None:
         # 不能去解析错误信息。API 的报错原文里可能带方括号，例如
@@ -973,52 +1105,44 @@ def vlm_verify_crop(original_image: np.ndarray,
 
     print(f"[VLM Verify] Checking #{pid} {label}...")
     raw = ""
-    try:
-        response = client.chat.completions.create(
+    _messages = [
+        {
+            "role": "user",
+            "content": [
+                {"type": "text", "text": prompt},
+                {"type": "image_url",
+                 "image_url": {"url": f"data:image/jpeg;base64,{b64_orig}"}},
+                {"type": "image_url",
+                 "image_url": {"url": f"data:image/jpeg;base64,{b64_crop}"}},
+            ]
+        }
+    ]
+
+    def _do_request():
+        _resp = client.chat.completions.create(
             model=VLM_MODEL,
-            messages=[
-                {
-                    "role": "user",
-                    "content": [
-                        {"type": "text", "text": prompt},
-                        {"type": "image_url",
-                         "image_url": {"url": f"data:image/jpeg;base64,{b64_orig}"}},
-                        {"type": "image_url",
-                         "image_url": {"url": f"data:image/jpeg;base64,{b64_crop}"}},
-                    ]
-                }
-            ],
+            messages=_messages,
             max_tokens=500,
             temperature=0.1,
         )
-        raw = response.choices[0].message.content.strip()
-        print(f"[VLM Verify] #{pid} response: {raw[:300]}")
-    except Exception as e:
-        print(f"[VLM Verify] #{pid} error: {e}")
-        return {"action": "keep", "reason": f"verify failed: {e}"}
+        _text = _resp.choices[0].message.content.strip()
+        print(f"[VLM Verify] #{pid} response: {_text[:300]}")
+        return _text
 
-    # Parse — _parse_json returns either a list or dict
-    parsed = _parse_json(raw)
-    if isinstance(parsed, list) and parsed:
-        parsed = parsed[0]
-    if not isinstance(parsed, dict):
-        return {"action": "keep", "reason": "parse failed, default keep"}
+    parsed, raw, attempts, reason = _request_until_valid(
+        phase="verify_crop",
+        make_request=_do_request,
+        validate=_validate_verify_verdict,
+        label=f"#{pid} {plant.get('label', '')}",
+    )
 
-    action = parsed.get("action", "keep")
-    if action not in ("keep", "delete", "recrop"):
-        action = "keep"
+    if reason:
+        # 重发到上限仍未过校验，退回原来的降级行为
+        print(f"[VLM Verify] #{pid} schema 校验 {attempts} 次未通过，默认 keep")
+        return {"action": "keep",
+                "reason": f"schema 校验 {attempts} 次未通过，默认 keep（{reason}）"}
 
-    result = {"action": action, "reason": parsed.get("reason", "")}
-    if action == "recrop":
-        nb = parsed.get("new_bbox", [])
-        if isinstance(nb, list) and len(nb) == 4:
-            result["new_bbox"] = [float(v) for v in nb]
-        else:
-            # Fallback: invalid new_bbox, downgrade to keep
-            print(f"[VLM Verify] #{pid} recrop missing valid new_bbox, falling back to keep")
-            result["action"] = "keep"
-            result["reason"] = "recrop requested but new_bbox invalid"
-    return result
+    return _normalize_verify_verdict(parsed)
 
 
 def apply_recrop(original_image: np.ndarray,
