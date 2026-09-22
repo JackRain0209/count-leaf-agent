@@ -125,6 +125,22 @@ def draw_grid(image: np.ndarray, cell_size: int = 512):
     return gridded, n_rows, n_cols, cell_size
 
 
+_MISSING_COMMA = re.compile(r"(?<=\d)\s+(?=\d)")
+
+
+def _repair_json_text(text: str) -> str:
+    """修补模型常见的 JSON 格式错误：bbox 里少了逗号。
+
+    模型偶尔把 bbox 写成 `[597 142,903 187]`，本该是 `[597,142,903,187]`。
+    这种整体解析会失败，退化到逐对象解析时这些条目又被静默丢弃——
+    实测一张图 13 个部件里丢了 6 个，其中 3 个"主枝"全在内，
+    直接导致"主花序"和"主干+主枝"两列归零。
+    """
+    if not text:
+        return text
+    return _MISSING_COMMA.sub(",", text)
+
+
 def _extract_json_array(content: str) -> Optional[str]:
     """Return the first complete JSON array substring from a model response."""
     start = content.find("[")
@@ -193,8 +209,11 @@ def _extract_json_objects_from_array(content: str):
                 try:
                     obj = json.loads(candidate)
                 except json.JSONDecodeError:
-                    obj_start = None
-                    continue
+                    try:
+                        obj = json.loads(_repair_json_text(candidate))
+                    except json.JSONDecodeError:
+                        obj_start = None
+                        continue
                 if isinstance(obj, dict):
                     objects.append(obj)
                 obj_start = None
@@ -226,6 +245,17 @@ def _parse_json(content: str):
             continue
         # Return full parsed result — callers extract plants/ruler/label_tag as needed.
         return parsed
+
+    # 整体解析失败时先试着修补再重试。缺逗号是模型最常见的格式错误，
+    # 不在这里补救的话，下面退化的逐对象提取会把这些部件静默丢掉。
+    for candidate in candidates:
+        repaired = _repair_json_text(candidate)
+        if not repaired or repaired == candidate:
+            continue
+        try:
+            return json.loads(repaired)
+        except json.JSONDecodeError:
+            continue
 
     partial_objects = _extract_json_objects_from_array(raw)
     if partial_objects:

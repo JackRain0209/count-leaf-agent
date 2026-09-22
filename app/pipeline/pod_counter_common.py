@@ -37,6 +37,15 @@ def _binarize(crop_bgr: np.ndarray) -> np.ndarray:
 
     # Intersection: Otsu foreground AND not-black
     mask = (otsu > 0) & non_black
+
+    # 兜底：边框被亮物体（直尺、白色标签纸）占据时，border_v 的 90 分位数会被
+    # 拉爆，black_thresh 可能超过 255，于是 non_black 恒为空、mask 全灭，调用方
+    # 会直接判定为 "mask too small" 返回 0。实测一张被复核放大的主枝裁剪图
+    # （4799×1700，左边框正好切到黄色直尺）：bg_v=246 → black_thresh=256 → mask=0。
+    # 这种情况下退回纯 Otsu 结果。
+    if np.count_nonzero(mask) < 50 and np.count_nonzero(otsu) >= 50:
+        mask = otsu > 0
+
     mask = mask.astype(np.uint8) * 255
 
     # ── Dark root recovery ──
