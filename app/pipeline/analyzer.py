@@ -366,9 +366,20 @@ def analyze_plant_image_stream(
                 yield _save_step(crops[pid],
                                  f"[#{pid} {plabel}] ✅ VLM 复核：通过 — {reason}")
             elif action == "delete":
-                yield _save_step(crops[pid],
-                                 f"[#{pid} {plabel}] ❌ VLM 复核：剔除 — {reason}")
-                plants_to_remove.append(pid)
+                if plabel == "主枝":
+                    # 主枝是结构性必需部件：删掉它会让"主花序"和"主干+主枝"
+                    # 两列直接归零。而复核对"裁剪框与主干重叠"这类情况的判定
+                    # 并不稳定——同样的情况有时给 recrop、有时给 delete。
+                    # 所以这里不删，降级为保留（主干早已被排除在复核之外）。
+                    trace.event("verify_delete_downgraded", label=source_label,
+                                phase="vlm_verify_crops", pid=pid, plabel=plabel,
+                                reason=str(reason)[:200])
+                    yield _save_step(crops[pid],
+                                     f"[#{pid} {plabel}] ⚠️ VLM 复核：建议剔除，但主枝不可删除，予以保留 — {reason}")
+                else:
+                    yield _save_step(crops[pid],
+                                     f"[#{pid} {plabel}] ❌ VLM 复核：剔除 — {reason}")
+                    plants_to_remove.append(pid)
             elif action == "recrop":
                 new_bbox = verdict.get("new_bbox")
                 if new_bbox:

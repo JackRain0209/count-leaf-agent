@@ -39,6 +39,12 @@ VLM_THINKING = os.getenv("VLM_THINKING", "disabled").strip().lower()
 VLM_TIMEOUT_S = float(os.getenv("VLM_TIMEOUT_S", "120"))
 VLM_MAX_RETRIES = int(os.getenv("VLM_MAX_RETRIES", "1"))
 
+# schema 校验不通过时的重发次数上限。
+# 模型偶尔返回漏字段 / 格式不对的结果（如 bbox 少逗号、action 非法），
+# 与其静默降级，不如重发请求让它重给一次。上限是必须的——否则模型对某张图
+# 若始终给不出合规结果，会无限重发烧额度。
+VLM_SCHEMA_MAX_ATTEMPTS = int(os.getenv("VLM_SCHEMA_MAX_ATTEMPTS", "3"))
+
 # Server
 HOST = os.getenv("HOST", "0.0.0.0")
 PORT = int(os.getenv("PORT", "8501"))
