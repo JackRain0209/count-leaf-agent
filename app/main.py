@@ -13,7 +13,9 @@ import json as _json
 
 from fastapi import FastAPI, File, UploadFile, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse, StreamingResponse
+from fastapi.responses import FileResponse, StreamingResponse, Response
+from openpyxl import Workbook
+import io
 from fastapi.staticfiles import StaticFiles
 
 from app.config import (
@@ -257,6 +259,29 @@ def get_history_result(run_id: str):
     if not record:
         raise HTTPException(404, "历史记录不存在")
     return record
+
+@app.get("/api/history/{run_id}/export.xlsx")
+def export_history_item_xlsx(run_id: str):
+    record = history_store.get(run_id)
+    if not record or not record.get("result"):
+        raise HTTPException(404, "Completed history record not found")
+    result = record["result"]
+    plants = result.get("plants", []) or []
+    numbered = sorted((plant for plant in plants if plant.get("id") is not None), key=lambda plant: int(plant.get("id", 0)))
+    fields = ("plant_count", "branch_count", "main_inflorescence_pod_count", "main_stem_plus_main_pod_count", "branch_pod_count", "total_pods")
+    headers = ["植株数量", "分枝数量", "主花序角果", "主干 + 主枝", "分枝角果", "角果总数"] + [f"{plant.get('id')}号角果数量" for plant in numbered]
+    values = [result.get(field, 0) for field in fields] + [plant.get("pod_count", 0) for plant in numbered]
+    workbook = Workbook()
+    sheet = workbook.active
+    sheet.title = "result"
+    image_id = Path(record.get("source_label") or "").stem
+    match = re.match(r"^(DJI_\d{8}_\d{6}_\d{4})(?:_|$)", image_id)
+    sheet.append(["图片编号", match.group(1) if match else image_id])
+    sheet.append(headers)
+    sheet.append(values)
+    output = io.BytesIO()
+    workbook.save(output)
+    return Response(content=output.getvalue(), media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", headers={"Content-Disposition": f"attachment; filename=phenotype-{run_id}.xlsx"})
 
 
 @app.get("/api/results/{run_id}")

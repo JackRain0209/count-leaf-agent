@@ -1079,6 +1079,13 @@
             renderDraft();
             renderSteps();
             updateSaveState();
+            if (record.status === 'completed') {
+                const exportButton = document.createElement('button');
+                exportButton.className = 'button compact';
+                exportButton.textContent = '导出 Excel';
+                exportButton.onclick = () => window.location.assign(`/api/history/${encodeURIComponent(record.run_id)}/export.xlsx`);
+                $('summaryBand').appendChild(exportButton);
+            }
         }
 
         function calculateDraftSummary() {
